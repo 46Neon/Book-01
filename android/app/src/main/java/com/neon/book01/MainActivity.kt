@@ -901,6 +901,14 @@ private fun GeneralLedgerScreen(
                             TableCell("Haber", 116.dp, isHeader = true, align = TextAlign.End)
                             TableCell("Saldo D/H", 132.dp, isHeader = true, align = TextAlign.End)
                         }
+                        Row(modifier = Modifier.background(Color(0xFFE7F3EF)), verticalAlignment = Alignment.CenterVertically) {
+                            TableCell("", 88.dp)
+                            TableCell("", 84.dp)
+                            TableCell("Saldo inicial", 180.dp, fontWeight = FontWeight.SemiBold)
+                            TableCell("—", 116.dp, align = TextAlign.End)
+                            TableCell("—", 116.dp, align = TextAlign.End)
+                            TableCell(formatSignedLedgerBalance(data.openingBalanceMinor, currencyCode), 132.dp, align = TextAlign.End, fontWeight = FontWeight.SemiBold)
+                        }
                         if (data.rows.isEmpty()) {
                             Text(
                                 "No hay movimientos $currencyCode en esta cuenta.",
@@ -941,7 +949,7 @@ private fun GeneralLedgerScreen(
                     )
                 }
                 Text(
-                    "Desliza la tabla hacia los lados para ver todas las columnas. El saldo se calcula en orden de fecha y no modifica los asientos.",
+                    "Desliza la tabla para ver todas las columnas. El saldo inicial incluye los movimientos anteriores al rango; los asientos no se modifican.",
                     color = BookMuted,
                     fontSize = 11.sp,
                     textAlign = TextAlign.Center,
