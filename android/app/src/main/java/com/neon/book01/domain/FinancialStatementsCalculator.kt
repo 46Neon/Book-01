@@ -64,9 +64,9 @@ object FinancialStatementsCalculator {
         val dates = PostingDateRange.parse(startDate, endDate)
         val accountByCode = validateAccounts(accounts)
         val included = selectUsdPosted(postings).filter { dates.includes(it.entryDate) }
-        val (income, expenses) = accountBalances(accountByCode, included)
-        val incomeLines = income.filter { it.accountType == "INCOME" }
-        val expenseLines = expenses.filter { it.accountType == "EXPENSE" }
+        val (_, incomeAndExpenseAccounts) = accountBalances(accountByCode, included)
+        val incomeLines = incomeAndExpenseAccounts.filter { it.accountType == "INCOME" }
+        val expenseLines = incomeAndExpenseAccounts.filter { it.accountType == "EXPENSE" }
         val totalIncome = UsdMoney.sumMinorUnits(incomeLines.map { it.balanceMinor })
         val totalExpenses = UsdMoney.sumMinorUnits(expenseLines.map { it.balanceMinor })
         return IncomeStatementReport(
