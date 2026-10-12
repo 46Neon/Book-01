@@ -1,0 +1,7 @@
+# Local Supabase CLI project configuration for Book-01.
+# Keep remote project references and all credentials out of this file.
+project_id = "book-01"
+
+[api]
+enabled = true
+schemas = ["public"]
