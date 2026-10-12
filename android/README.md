@@ -1,27 +1,30 @@
 # Android app
 
-Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La interfaz usa pestañas, tablas, encabezados, filtros visuales y totales para conservar la familiaridad de una hoja de cálculo, adaptándola a pantallas móviles.
+Módulo Android de Book-01 en Kotlin + Jetpack Compose. La interfaz conserva una organización familiar de hoja de cálculo —pestañas, tablas, encabezados, filtros y totales— adaptada a pantallas móviles.
 
 ## Ya funciona en el prototipo
 
-- Pantalla Diario con filas de asiento en dos líneas contables.
-- Alta de ingreso o gasto sencillo mediante formulario.
-- Validación de descripción, fecha, importe positivo y precisión de dos decimales.
-- Generación automática de débito/crédito balanceados para ingreso o gasto pagado/cobrado en Caja o Banco.
-- Persistencia local inicial en Room/SQLite.
-- Totales locales de ingresos, gastos y neto.
-- Balance de comprobación por cuenta, con totales de débito/crédito, naturaleza D/H y verificación de equilibrio en USD.
+- Diario con líneas de asiento separadas y alta de ingresos/gastos simples.
+- Plan de cuentas tipo tabla y creación de cuentas con código, nombre, tipo y marca opcional para Caja/Banco.
+- Validación de datos y generación de débitos/créditos balanceados.
+- Persistencia local en Room/SQLite.
+- Balance de comprobación por cuenta, con débitos, créditos, naturaleza D/H y verificación de equilibrio en USD.
+- Totales de ingresos, gastos y neto, calculados en centavos.
 
-## Todavía pendiente
+## Manejo de USD y límites
 
-El prototipo usa un plan de cuentas de demostración y admite únicamente USD como moneda funcional. Los importes se guardan como centavos enteros (`Long`) y se analizan con semántica decimal exacta mediante `BigDecimal`, nunca con coma flotante binaria. La salida siempre se etiqueta `US$` y muestra dos decimales. Acepta `1,234.56`, `1.234,56`, `28,50` y `USD 28.50`; rechaza formatos ambiguos como `1.234` en vez de adivinar el valor. No hay conversión de cambio, cuentas ni asientos en otras monedas, ni mezcla de monedas. La migración Room 1→2 conserva los datos existentes y agrega la configuración predeterminada USD. Si existen asientos v1 con otro código de moneda, siguen visibles con su código original y se totalizan aparte; quedan excluidos de los resúmenes USD. No se convierten y no se pueden crear asientos nuevos en otra moneda. Aún faltan configuración fiscal, edición/reversión y auditoría completa, cierres, conciliación, exportación, sincronización, backend, reportes completos, localización profesional y validación de especialistas. No usar para libros reales.
+El libro inicial usa USD como moneda funcional. Los importes se almacenan en centavos enteros (`Long`) y se analizan con `BigDecimal`, nunca con coma flotante binaria. Se muestran como `US$` con dos decimales. Se aceptan formatos inequívocos estadounidense y español; los valores ambiguos o con más de dos decimales se rechazan. No se convierten ni se mezclan monedas.
+
+Las migraciones Room 1→2→3 conservan los asientos y las cuentas existentes y marcan Caja/Banco para registros nuevos. Las cuentas existentes no se pueden borrar ni cambiar de código/tipo; todavía faltan edición controlada y desactivación.
+
+Aún faltan libro mayor completo, reversas e historial de auditoría, configuración fiscal, cierres, conciliación, exportación, sincronización, backend/API y validación profesional. No usar esta versión para libros reales.
 
 ## Compilar
 
-Requisitos: JDK 17, Android SDK con API 36 y Gradle 8.13. Desde la raíz del repositorio:
+Requisitos: JDK 17, Android SDK API 36 y Gradle 8.13. Desde la raíz:
 
 ```sh
 gradle :app:testDebugUnitTest :app:assembleDebug
 ```
 
-La compilación de GitHub Actions genera el APK de depuración como artefacto.
+GitHub Actions publica el APK de depuración como artefacto. La prueba de migración en emulador se ejecuta manualmente.
