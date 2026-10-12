@@ -74,12 +74,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.neon.book01.data.AccountEntity
-import com.neon.book01.data.EntryKind
 import com.neon.book01.data.EntryWithLines
+import com.neon.book01.domain.AccountingRules
+import com.neon.book01.domain.EntryKind
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -594,11 +594,8 @@ private fun parseDraft(
         LocalDate.parse(dateText.trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"))
     }.getOrNull() ?: return null
     val amount = runCatching {
-        BigDecimal(amountText.trim().replace(',', '.'))
-            .setScale(2, RoundingMode.UNNECESSARY)
-            .movePointRight(2)
-            .longValueExact()
-    }.getOrNull()?.takeIf { it > 0 } ?: return null
+        AccountingRules.parseMinorUnits(amountText)
+    }.getOrNull() ?: return null
     return EntryDraft(date.toString(), description.trim(), kind, categoryCode, paymentCode, amount)
 }
 
