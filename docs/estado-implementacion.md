@@ -1,39 +1,24 @@
 # Estado de implementación — Parte 1
 
-## Hecho
+## Implementado en el prototipo Android
 
-- Repositorio privado y documentación de alcance, arquitectura, guía visual y contrato de integración.
-- Primera pantalla Android Kotlin/Compose con estilo tipo hoja de cálculo.
-- Base Room local versionada con cuentas, asientos y líneas contables.
-- Catálogo inicial de demostración: Caja, Banco, Cuentas por pagar, Capital, Ingresos, Papelería, Servicios y Otros gastos.
-- Hoja Plan de cuentas en formato de cuadrícula y alta de nuevas cuentas por código, nombre, tipo y uso opcional como Caja/Banco; no se permiten borrados ni cambios de código/tipo que alteren el histórico.
-- Formulario local para ingreso o gasto simple: descripción, importe, fecha, categoría y cuenta de efectivo/banco.
-- La capa de dominio genera las dos líneas contables, valida el tipo de cuenta y comprueba débito = crédito.
-- La escritura del asiento, sus líneas y el evento inicial de auditoría se realiza en una transacción local.
-- Ingresos y gastos resumidos desde líneas contables publicadas, de modo que una reversa reduce correctamente el saldo resumido; las otras monedas no se mezclan.
-- Reversas seguras: crean un asiento contabilizado nuevo con las líneas del original invertidas exactamente, fecha/motivo obligatorios y vínculo a su original; primero se comprueba el equilibrio por moneda. La reversa, sus líneas y dos eventos de historial se guardan en una transacción Room. Se rechazan asientos no contabilizados, no balanceados, reversas y originales ya reversados; el original no se modifica. La base impone como máximo una reversa por original.
-- Sección Trazabilidad accesible desde «Más» para revisar eventos de contabilización/reversa y abrir el flujo de reversa. No se ofrecen controles de edición o borrado de asientos contabilizados. Mayor y Balance reciben las líneas de reversa como asientos contabilizados normales.
-- Los registros preexistentes migrados permanecen intactos, pero sin eventos retroactivos: la auditoría empieza con las nuevas contabilizaciones.
-- Pruebas de reversa y migración añadidas para conservar asientos y verificar el esquema. En el commit 667d55e6, CI confirmó las pruebas unitarias, la compilación de Android-test y el APK debug; la ejecución instrumentada de migración v1→v4 sigue sin verificarse porque el emulador no arrancó. Este milestone añade pruebas para cambios de cuenta y extiende la prueba instrumentada hasta v5; los resultados de build/CI de este nuevo código quedan pendientes.
-- Reglas contables y de altas de cuentas separadas en el dominio, con pruebas unitarias para asientos, códigos/tipos, balance, Mayor y precisión/formato USD.
-- Moneda funcional del libro persistida como USD en Room, con migraciones aditivas 1→2→3→4 que conservan los asientos y cuentas existentes.
-- Importes USD representados como centavos enteros (`Long`), analizados con `BigDecimal` exacto y sin coma flotante binaria; salida rotulada `US$` con dos decimales. Admite formas inequívocas estadounidense y española; rechaza más de dos decimales y entradas ambiguas en vez de adivinarlas.
-- Migraciones Room 1→2→3→4→5 agregan configuración USD, indicador Caja/Banco, enlace de reversa, auditoría append-only y una instantánea del nombre por línea, sin borrar asientos ni líneas; las cuentas 1000/1010 existentes quedan marcadas para cobros/pagos. La migración v4→v5 rellena las instantáneas heredadas con el nombre actualmente guardado en `accounts`; los nombres antiguos de antes de una renominación no pueden reconstruirse. La prueba instrumentada está escrita para migrar una base v1 hasta v5 y comprobar la conservación de registros y las instantáneas. Su compilación y runtime para este cambio están pendientes; el runtime no debe darse por verificado mientras el emulador no complete la prueba.
-- La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
-- Balance de comprobación local por cuenta: débitos/créditos exactos, naturaleza de saldo D/H y comprobación de que el total cuadra; rechaza mezclar monedas en el reporte USD.
-- Mayor por cuenta con filas cronológicas, débitos/créditos, saldo corrido D/H y totales exactos; incluye saldo inicial anterior a «Desde», excluye borradores y separa otras monedas sin conversión.
-- Filtros opcionales inclusivos Desde/Hasta para el Mayor y el Balance de comprobación, en formato estricto AAAA-MM-DD. El saldo inicial del Mayor incorpora los movimientos anteriores a «Desde»; los totales débito/crédito solo incluyen las filas del periodo.
-- GitHub Actions ejecutó correctamente las pruebas unitarias, compiló Android-test y generó el APK de depuración en el commit de reversas; la ejecución instrumentada de migración sigue sin confirmarse porque el emulador no arrancó en la corrida manual.
+- Diario local con asientos sencillos de ingreso/gasto en doble partida; persistencia Room y cinco pestañas conservadas (Diario, Mayor, Cuentas, Balance y Más).
+- Plan de cuentas con altas y edición segura del nombre/estado. Código y clasificación son inmutables; cambios de nombre/estado dejan auditoría append-only. Las líneas guardan instantánea del nombre de cuenta.
+- Mayor por cuenta y Balance de comprobación con filtros inclusivos estrictos `AAAA-MM-DD`; el Mayor muestra saldo inicial anterior a «Desde».
+- Estado de resultados por periodo: suma exacta de ingresos y gastos por cuenta clasificada, con límites opcionales inclusivos Desde/Hasta.
+- Balance general a fecha inclusiva: muestra activos, pasivos y patrimonio en sus clasificaciones existentes, más el resultado acumulado de ingresos menos gastos como componente separado en el libro no cerrado. La diferencia de conciliación queda visible; no se crean ajustes ni se reclasifican tipos de cuenta.
+- Los dos estados financieros usan solo líneas USD de asientos `POSTED`; excluyen e indican borradores y líneas en otras monedas sin convertir. Las contralíneas de reversa se procesan por su fecha efectiva, reduciendo el efecto del asiento original cuando ambas fechas están dentro del corte.
+- Centavos USD como `Long`, operaciones aritméticas comprobadas y formato decimal exacto con `BigDecimal`; sin punto flotante ni conversión de moneda.
+- Reversas exactas no destructivas, vínculo al original, fecha/motivo y auditoría local. Migraciones Room aditivas v1→v5; la migración v4→v5 completa instantáneas heredadas con el nombre actual de cuenta, no reconstruye nombres históricos.
+- Pruebas unitarias de dominio existentes para reglas de cuenta, diario, reversas, USD, Mayor y Balance de comprobación. Se añadieron pruebas de estados financieros para límites, importes, reversas, exclusiones, rangos inválidos y conciliación.
 
-## Limitaciones conocidas
+## Pendiente / límites conocidos
 
-- Moneda del prototipo fija en USD, dos decimales; sin conversión de cambio ni soporte multi-moneda.
-- El plan permite agregar cuentas y editar nombre/estado; código y tipo no se editan para preservar la clasificación histórica. La plantilla sigue siendo genérica y no configurable por empresa.
-- Los asientos sencillos se marcan contabilizados al guardar; aún faltan borradores, aprobación y controles de cierre de periodo. La reversa local y auditoría básica ya están implementadas; no hay actor/usuario autenticado, sincronización ni registro retroactivo para asientos previos a v4.
-- Aún sin API/backend, usuarios, roles, sincronización, adjuntos, importación/exportación o restauración.
-- El Mayor y el Balance de comprobación permiten seleccionar un rango de fechas local en USD; faltan controles de cierre de periodos y estados financieros completos.
-- No se declara cumplimiento contable/fiscal local.
+- Este hito no implementa cierre o apertura de periodo, cierre formal de ingresos/gastos, arrastre formal de utilidades, ajustes de cierre ni control de periodos bloqueados. El resultado acumulado reportado es ingreso menos gasto publicado hasta la fecha, únicamente para el libro sin cerrar; no representa historial de utilidades retenidas derivado de periodos cerrados.
+- No hay borradores editables, aprobación, usuarios/roles autenticados, API/backend de producción, sincronización, respaldo/restauración, adjuntos ni importación/exportación.
+- No hay configuración fiscal ni validación profesional de normas contables locales. Los informes son informativos y no declaran cumplimiento contable, fiscal o legal de Venezuela ni de otra jurisdicción; requieren revisión de un profesional para cualquier uso oficial.
+- Sincronización, seguridad de cuentas reales, pruebas de usabilidad de teléfono/tablet, recuperación, cierre y demás trabajo de producto quedan abiertos. No afirmar que Parte 1 completa está terminada.
 
-## Siguiente hito
+## Verificación
 
-Siguiente: compilar y ejecutar la migración v1→v5 en un emulador funcional; luego controles de cierre/periodos y estados financieros más completos. Después siguen API/backend, sincronización y respaldo dentro de Parte 1. El chat conversacional continúa fuera de mi alcance; cualquier futuro soporte multi-moneda debe diseñarse expresamente antes de implementarse.
+Los resultados de CI correspondientes a este cambio deben anotarse después de que GitHub Actions finalice: pruebas unitarias, compilación de fuentes Android-test, APK debug y tamaño/enlace de artefacto. La compilación de las pruebas instrumentadas no demuestra runtime de migración; este último solo se considera verificado si el job de emulador arranca y termina exitosamente. La última ejecución de emulador conocida falló al iniciar, por lo que no se debe afirmar que la migración se ejecutó en runtime hasta tener una corrida exitosa.

@@ -84,9 +84,13 @@ import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.AccountRules
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.GeneralLedgerCalculator
+import com.neon.book01.domain.IncomeStatementReport
+import com.neon.book01.domain.BalanceSheetReport
+import com.neon.book01.domain.FinancialStatementsCalculator
 import com.neon.book01.domain.OperatingSummaryCalculator
 import com.neon.book01.domain.ReportAccount
 import com.neon.book01.domain.ReportPostingLine
+import com.neon.book01.domain.StatementPostingLine
 import com.neon.book01.domain.TrialBalanceCalculator
 import com.neon.book01.domain.TrialBalanceReport
 import com.neon.book01.domain.UsdMoney
@@ -154,6 +158,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var accountBeingEdited by remember { mutableStateOf<AccountEntity?>(null) }
     var showReversalDialog by rememberSaveable { mutableStateOf(false) }
     var showAuditHistory by rememberSaveable { mutableStateOf(false) }
+    var showFinancialStatements by rememberSaveable { mutableStateOf(false) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var auditEvents by remember { mutableStateOf<List<AuditEventEntity>>(emptyList()) }
     var accountAuditEvents by remember { mutableStateOf<List<AccountAuditEventEntity>>(emptyList()) }
@@ -266,6 +271,12 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         onReverse = { showReversalDialog = true },
                         onBack = { showAuditHistory = false },
                     )
+                } else if (showFinancialStatements) {
+                    FinancialStatementsScreen(
+                        accounts = accounts,
+                        entries = entries,
+                        onBack = { showFinancialStatements = false },
+                    )
                 } else {
                     BookSettingsScreen(
                         bookName = bookName,
@@ -275,6 +286,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                             snackbarHostState.showSnackbar("Nombre del libro actualizado.")
                         },
                         onOpenAudit = { showAuditHistory = true },
+                        onOpenStatements = { showFinancialStatements = true },
                     )
                 }
             } else {
@@ -1245,6 +1257,154 @@ private fun TrialBalanceScreen(
 }
 
 @Composable
+private fun FinancialStatementsScreen(
+    accounts: List<AccountEntity>,
+    entries: List<EntryWithLines>,
+    onBack: () -> Unit,
+) {
+    var startDate by rememberSaveable { mutableStateOf("") }
+    var endDate by rememberSaveable { mutableStateOf("") }
+    var asOfDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    val reportAccounts = remember(accounts) { accounts.map { ReportAccount(it.code, it.name, it.type) } }
+    val statementPostings = remember(entries) {
+        entries.flatMap { entry ->
+            entry.lines.map { line ->
+                StatementPostingLine(
+                    accountCode = line.accountCode,
+                    debitMinor = line.debitMinor,
+                    creditMinor = line.creditMinor,
+                    currencyCode = line.currencyCode,
+                    entryDate = entry.entry.entryDate,
+                    entryStatus = entry.entry.status,
+                )
+            }
+        }
+    }
+    val incomeResult = remember(reportAccounts, statementPostings, startDate, endDate) {
+        runCatching {
+            FinancialStatementsCalculator.incomeStatement(reportAccounts, statementPostings, startDate, endDate)
+        }
+    }
+    val balanceResult = remember(reportAccounts, statementPostings, asOfDate) {
+        runCatching { FinancialStatementsCalculator.balanceSheet(reportAccounts, statementPostings, asOfDate) }
+    }
+    val income = incomeResult.getOrNull()
+    val balance = balanceResult.getOrNull()
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Estados financieros", color = BookInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Informes informativos en USD · no sustituyen revisión profesional", color = BookMuted, fontSize = 11.sp)
+            }
+            TextButton(onClick = onBack) { Text("Volver") }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Estado de resultados", color = BookInk, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text("Ingresos y gastos contabilizados dentro del periodo inclusivo.", color = BookMuted, fontSize = 12.sp)
+                DateRangeControls(startDate, endDate, onStartDateChange = { startDate = it }, onEndDateChange = { endDate = it })
+                incomeResult.exceptionOrNull()?.let { error ->
+                    Text(error.message ?: "No se pudo calcular el estado de resultados.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
+                income?.let { data -> IncomeStatementContent(data) }
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Balance general", color = BookInk, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text("Saldos acumulados hasta la fecha inclusive.", color = BookMuted, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = asOfDate,
+                    onValueChange = { asOfDate = it },
+                    label = { Text("Al día (AAAA-MM-DD)") },
+                    placeholder = { Text("AAAA-MM-DD") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                balanceResult.exceptionOrNull()?.let { error ->
+                    Text(error.message ?: "No se pudo calcular el balance general.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
+                balance?.let { data -> BalanceSheetContent(data) }
+            }
+        }
+        Text(
+            "Las líneas de reversa afectan los informes en su fecha de contabilización. Se incluyen únicamente asientos contabilizados y líneas USD; no se convierten monedas ni se reclasifican cuentas. El resultado acumulado se muestra por separado mientras no exista cierre de periodo.",
+            color = BookMuted,
+            fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun IncomeStatementContent(report: IncomeStatementReport) {
+    if (report.incomeLines.none { it.balanceMinor != 0L } && report.expenseLines.none { it.balanceMinor != 0L }) {
+        Text("No hay movimientos USD contabilizados en este periodo.", color = BookMuted, fontSize = 12.sp)
+    }
+    StatementLines("Ingresos", report.incomeLines)
+    StatementLines("Gastos", report.expenseLines)
+    StatementValueRow("Total ingresos", report.totalIncomeMinor, strong = true)
+    StatementValueRow("Total gastos", report.totalExpensesMinor, strong = true)
+    StatementValueRow("Utilidad (pérdida) neta", report.netIncomeMinor, strong = true)
+    StatementExclusions(report.excludedDraftLineCount, report.excludedOtherCurrencyLineCount)
+}
+
+@Composable
+private fun BalanceSheetContent(report: BalanceSheetReport) {
+    val hasActivity = report.assetLines.any { it.balanceMinor != 0L } ||
+        report.liabilityLines.any { it.balanceMinor != 0L } ||
+        report.equityLines.any { it.balanceMinor != 0L } || report.accumulatedResultMinor != 0L
+    if (!hasActivity) Text("No hay movimientos USD contabilizados hasta esta fecha.", color = BookMuted, fontSize = 12.sp)
+    StatementLines("Activos", report.assetLines)
+    StatementLines("Pasivos", report.liabilityLines)
+    StatementLines("Patrimonio (cuentas clasificadas como patrimonio)", report.equityLines)
+    StatementValueRow("Total activos", report.totalAssetsMinor, strong = true)
+    StatementValueRow("Total pasivos", report.totalLiabilitiesMinor, strong = true)
+    StatementValueRow("Patrimonio", report.totalEquityMinor, strong = true)
+    StatementValueRow("Resultado acumulado / actual sin cierre", report.accumulatedResultMinor, strong = true)
+    StatementValueRow("Pasivos + patrimonio + resultado", Math.addExact(Math.addExact(report.totalLiabilitiesMinor, report.totalEquityMinor), report.accumulatedResultMinor), strong = true)
+    StatementValueRow("Diferencia de conciliación", report.reconciliationDifferenceMinor, strong = true)
+    Text(
+        if (report.isReconciled) "Conciliado: activos = pasivos + patrimonio + resultado acumulado."
+        else "No conciliado: revisa integridad y clasificación de los asientos; no se ajustaron saldos automáticamente.",
+        color = if (report.isReconciled) BookGreen else MaterialTheme.colorScheme.error,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
+    StatementExclusions(report.excludedDraftLineCount, report.excludedOtherCurrencyLineCount)
+}
+
+@Composable
+private fun StatementLines(title: String, lines: List<com.neon.book01.domain.StatementAccountBalance>) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(title, color = BookInk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        lines.filter { it.balanceMinor != 0L }.forEach { line ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${line.accountCode} · ${line.accountName}", color = BookMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Text(money(line.balanceMinor), color = BookInk, fontSize = 12.sp)
+            }
+        }
+        if (lines.none { it.balanceMinor != 0L }) Text("—", color = BookMuted, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun StatementValueRow(label: String, amount: Long, strong: Boolean = false) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = BookInk, fontSize = 12.sp, fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal, modifier = Modifier.weight(1f))
+        Text(money(amount), color = BookInk, fontSize = 12.sp, fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal)
+    }
+}
+
+@Composable
+private fun StatementExclusions(drafts: Int, otherCurrency: Int) {
+    if (drafts > 0 || otherCurrency > 0) {
+        Text("Excluidos: $drafts líneas de borrador · $otherCurrency líneas en otra moneda (sin conversión).", color = BookMuted, fontSize = 10.sp)
+    }
+}
+
+@Composable
 private fun AuditHistoryScreen(
     events: List<AuditEventEntity>,
     entries: List<EntryWithLines>,
@@ -1391,6 +1551,7 @@ private fun BookSettingsScreen(
     currencyCode: String,
     onSaveName: suspend (String) -> Unit,
     onOpenAudit: () -> Unit,
+    onOpenStatements: () -> Unit,
 ) {
     var nameInput by rememberSaveable(bookName) { mutableStateOf(bookName) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -1442,6 +1603,13 @@ private fun BookSettingsScreen(
                     color = BookMuted,
                     fontSize = 12.sp,
                 )
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Estados financieros", color = BookInk, fontWeight = FontWeight.SemiBold)
+                Text("Consulta el estado de resultados por periodo y el balance general a una fecha.", color = BookMuted, fontSize = 12.sp)
+                TextButton(onClick = onOpenStatements) { Text("Abrir estados financieros") }
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
