@@ -11,14 +11,13 @@
 - La escritura del asiento y sus líneas se realiza en una transacción local.
 - Reglas contables separadas en el dominio y pruebas unitarias para ingreso, gasto, cuenta incompatible, balance y parseo/formato USD.
 - Moneda funcional del libro persistida como USD en Room, con migración 1→2 que conserva los asientos existentes.
-- Importes USD representados como centavos enteros (`Long`), analizados con `BigDecimal` exacto y sin coma flotante binaria; salida rotulada `US$` con dos decimales. Admite formas inequívocas estadounidense y española; rechaza más de dos decimales y entradas ambiguas en vez de adivinarlas.
-- Migración Room 1→2 agrega configuración USD sin borrar los asientos y líneas ya almacenados; los importes viejos se conservan tal cual. Filas v1 con otro código permanecen visibles con ese código, se totalizan por separado y quedan fuera de los resúmenes USD; no se convierten ni permiten contabilizar nueva moneda.
+- Importes USD representados en centavos enteros; parser `BigDecimal` admite formas `1,234.56` y `1.234,56`, rechaza más de dos decimales y entradas ambiguas; pantalla rotula montos como US$.
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
 - GitHub Actions compila el APK de depuración.
 
 ## Limitaciones conocidas
 
-- Moneda del prototipo fija en USD, dos decimales; sin conversión de cambio ni soporte multi-moneda.
+- Moneda del prototipo fija en USD, dos decimales; sin tasa ni multi-moneda.
 - Plan de cuentas fijo para demostración; aún no editable ni configurable por empresa.
 - Los asientos sencillos se marcan contabilizados al guardar; falta flujo de borrador, aprobación, reversa y auditoría completa.
 - Aún sin API/backend, usuarios, roles, sincronización, adjuntos, importación/exportación o restauración.
@@ -27,4 +26,4 @@
 
 ## Siguiente hito
 
-Completar la separación formal entre dominio, almacenamiento y presentación; validar migraciones con una base de prueba real; añadir borradores, reversas y auditoría antes de ampliar reportes. Cualquier futuro soporte multi-moneda debe diseñarse explícitamente antes de implementar conversiones. El backend compartido queda fuera de este hito.
+Separar formalmente dominio, almacenamiento y presentación; añadir pruebas automatizadas del equilibrio y clasificación; luego diseñar configuración del libro/moneda y reversas antes de ampliar reportes o crear el backend compartido.
