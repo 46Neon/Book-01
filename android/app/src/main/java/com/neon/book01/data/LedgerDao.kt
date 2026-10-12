@@ -60,6 +60,27 @@ interface LedgerDao {
     @Query("SELECT * FROM accounts ORDER BY code")
     suspend fun getAllAccounts(): List<AccountEntity>
 
+    @Query("SELECT * FROM journal_lines ORDER BY id")
+    suspend fun getAllJournalLines(): List<JournalLineEntity>
+
+    @Query("SELECT * FROM book_settings ORDER BY id")
+    suspend fun getAllBookSettings(): List<BookSettingsEntity>
+
+    @Query("SELECT COUNT(*) FROM journal_lines")
+    suspend fun countJournalLines(): Int
+
+    @Query("SELECT COUNT(*) FROM journal_entries")
+    suspend fun countJournalEntriesRaw(): Int
+
+    @Query("SELECT COUNT(*) FROM audit_events")
+    suspend fun countAuditEvents(): Int
+
+    @Query("SELECT COUNT(*) FROM account_audit_events")
+    suspend fun countAccountAuditEvents(): Int
+
+    @Query("SELECT COUNT(*) FROM period_closes")
+    suspend fun countPeriodCloses(): Int
+
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
     suspend fun getAccount(code: String): AccountEntity?
 

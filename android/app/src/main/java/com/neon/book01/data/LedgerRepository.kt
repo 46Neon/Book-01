@@ -29,6 +29,60 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     suspend fun getPeriodCloses(): List<PeriodCloseEntity> = dao.getPeriodCloses()
 
+    /** Validate a decrypted backup and check the destination before presenting the confirmation screen. */
+    suspend fun previewBackupRestore(snapshot: LedgerBackupSnapshot): LedgerBackupPreview = database.withTransaction {
+        val preview = LedgerBackupValidator.validate(snapshot)
+        requirePristineRestoreTarget()
+        preview
+    }
+
+    /** Restore only into the untouched starter book; all checks and writes share one Room transaction. */
+    suspend fun restoreBackup(snapshot: LedgerBackupSnapshot): LedgerBackupPreview = database.withTransaction {
+        val preview = LedgerBackupValidator.validate(snapshot)
+        requirePristineRestoreTarget()
+
+        val importedByCode = snapshot.accounts.associateBy { it.code }
+        val seededCodes = LedgerBookDefaults.accounts.map { it.code }.toSet()
+        val currentAccounts = dao.getAllAccounts().associateBy { it.code }
+        if (currentAccounts.isNotEmpty()) {
+            // Code and type are immutable; validation above has already enforced each default type.
+            LedgerBookDefaults.accounts.forEach { default ->
+                val imported = importedByCode.getValue(default.code)
+                val current = currentAccounts.getValue(default.code)
+                if (current != imported) dao.updateAccount(imported)
+            }
+        }
+        snapshot.accounts.filter { it.code !in seededCodes }.forEach { dao.insertAccount(it) }
+
+        val importedSettings = snapshot.bookSettings!!
+        val currentSettings = dao.getBookSettings()
+        if (currentSettings == null) dao.insertBookSettings(importedSettings)
+        else if (currentSettings != importedSettings) dao.updateBookSettings(importedSettings)
+
+        snapshot.journalEntries.forEach { dao.insertEntry(it) }
+        if (snapshot.journalLines.isNotEmpty()) dao.insertLines(snapshot.journalLines)
+        snapshot.auditEvents.forEach { dao.insertAuditEvent(it) }
+        snapshot.accountAuditEvents.forEach { dao.insertAccountAuditEvent(it) }
+        snapshot.periodCloses.forEach { dao.insertPeriodClose(it) }
+        preview
+    }
+
+    private suspend fun requirePristineRestoreTarget() {
+        val accounts = dao.getAllAccounts()
+        val settings = dao.getAllBookSettings()
+        val ledgerIsEmpty = dao.countJournalEntriesRaw() == 0 && dao.countJournalLines() == 0 &&
+            dao.countAuditEvents() == 0 && dao.countAccountAuditEvents() == 0 && dao.countPeriodCloses() == 0
+        require(ledgerIsEmpty) {
+            "Por seguridad, restaura solo en un libro nuevo y sin movimientos, auditoría ni cierres."
+        }
+        val neverInitialized = accounts.isEmpty() && settings.isEmpty()
+        val exactStarterBook = accounts == LedgerBookDefaults.accounts.sortedBy { it.code } &&
+            settings == listOf(LedgerBookDefaults.settings)
+        require(neverInitialized || exactStarterBook) {
+            "El libro ya fue personalizado; no se puede reemplazar mediante una restauración."
+        }
+    }
+
     /** Collect every table under one Room transaction so the encrypted file is a coherent snapshot. */
     suspend fun createBackupSnapshot(): LedgerBackupSnapshot = database.withTransaction {
         val entriesWithLines = dao.getAllEntries()
@@ -48,20 +102,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
     fun observeBookSettings(): Flow<BookSettingsEntity?> = dao.observeBookSettings()
 
     suspend fun initializeBook() {
-        dao.insertAccounts(
-            listOf(
-                AccountEntity(code = "1000", name = "Caja", type = "ASSET", cashOrBank = true),
-                AccountEntity(code = "1010", name = "Banco", type = "ASSET", cashOrBank = true),
-                AccountEntity(code = "2000", name = "Cuentas por pagar", type = "LIABILITY"),
-                AccountEntity(code = "3000", name = "Capital", type = "EQUITY"),
-                AccountEntity(code = "3100", name = "Utilidades retenidas", type = "EQUITY"),
-                AccountEntity(code = "4000", name = "Ingresos", type = "INCOME"),
-                AccountEntity(code = "5100", name = "Papelería", type = "EXPENSE"),
-                AccountEntity(code = "5200", name = "Servicios", type = "EXPENSE"),
-                AccountEntity(code = "5300", name = "Otros gastos", type = "EXPENSE"),
-            ),
-        )
-        dao.insertBookSettings(BookSettingsEntity(id = 1, bookName = "Libro de prueba", baseCurrency = "USD"))
+        dao.insertAccounts(LedgerBookDefaults.accounts)
+        dao.insertBookSettings(LedgerBookDefaults.settings)
     }
 
     suspend fun renameBook(newName: String) {

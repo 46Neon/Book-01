@@ -26,7 +26,7 @@ Crear el libro contable y su APK Android antes de integrar la experiencia de cha
 - Totales y periodo visibles; selección de fila para abrir el detalle.
 - En móvil, mostrar columnas prioritarias y abrir el resto en un detalle; en tablet, tabla más ancha.
 - Formularios de captura rápidos que conservan el vocabulario y el orden de columnas del Diario.
-- Importación/exportación por etapas; cualquier importación se valida en una vista previa antes de confirmarse.
+- Exportación/restauración offline por etapas. La restauración v1 está permitida únicamente sobre una base no inicializada o sobre el libro predeterminado exactamente intacto, sin asientos, líneas, auditorías, historial de cuentas ni cierres. Descifra y valida antes de mostrar una vista previa con conteos; requiere una confirmación separada. No reemplaza libros existentes o personalizados.
 
 ## Reglas funcionales
 

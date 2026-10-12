@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.InputStream
 import java.security.SecureRandom
 import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
@@ -32,7 +33,7 @@ object LedgerBackupCodec {
     private const val NONCE_BYTES = 12
     private const val TAG_BITS = 128
     private const val TAG_BYTES = TAG_BITS / 8
-    private const val MAX_FILE_BYTES = 128 * 1024 * 1024
+    const val MAX_FILE_BYTES = 128 * 1024 * 1024
     private const val MAX_STRING_BYTES = 1 * 1024 * 1024
     private const val MAX_ROWS = 1_000_000
     private val random = SecureRandom()
@@ -51,13 +52,38 @@ object LedgerBackupCodec {
             cipher.init(Cipher.ENCRYPT_MODE, deriveKey(passphrase, salt), GCMParameterSpec(TAG_BITS, nonce))
             cipher.updateAAD(header)
             val ciphertext = cipher.doFinal(plaintext)
-            ByteArrayOutputStream(header.size + ciphertext.size).use { bytes ->
-                bytes.write(header)
-                bytes.write(ciphertext)
-                bytes.toByteArray()
-            }.also { require(it.size <= MAX_FILE_BYTES) { "El libro es demasiado grande para exportarlo." } }
+            try {
+                ByteArrayOutputStream(header.size + ciphertext.size).use { bytes ->
+                    bytes.write(header)
+                    bytes.write(ciphertext)
+                    bytes.toByteArray()
+                }.also { require(it.size <= MAX_FILE_BYTES) { "El libro es demasiado grande para exportarlo." } }
+            } finally {
+                ciphertext.fill(0)
+                header.fill(0)
+            }
         } finally {
             plaintext.fill(0)
+            salt.fill(0)
+            nonce.fill(0)
+        }
+    }
+
+    /** Read a SAF stream incrementally, rejecting oversized input before growing its buffer further. */
+    fun readBounded(input: InputStream): ByteArray {
+        val output = WipingByteArrayOutputStream()
+        val buffer = ByteArray(16 * 1024)
+        try {
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                require(output.size() <= MAX_FILE_BYTES - count) { "El archivo de copia supera el tamaño máximo permitido." }
+                output.write(buffer, 0, count)
+            }
+            return output.toByteArray()
+        } finally {
+            buffer.fill(0)
+            output.clear()
         }
     }
 
@@ -81,18 +107,24 @@ object LedgerBackupCodec {
         }
         val ciphertext = ByteArray(cipherLength).also(input::readFully)
         val authenticatedHeader = header(salt, nonce, cipherLength)
-        val plaintext = try {
+        var plaintext: ByteArray? = null
+        try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, deriveKey(passphrase, salt), GCMParameterSpec(TAG_BITS, nonce))
             cipher.updateAAD(authenticatedHeader)
-            cipher.doFinal(ciphertext)
-        } catch (_: AEADBadTagException) {
-            throw BackupAuthenticationException("No se pudo autenticar la copia. Verifique la frase y que el archivo no haya sido alterado.")
-        }
-        return try {
-            decodeSnapshot(plaintext)
+            val cleartext = try {
+                cipher.doFinal(ciphertext)
+            } catch (_: AEADBadTagException) {
+                throw BackupAuthenticationException("No se pudo autenticar la copia. Verifique la frase y que el archivo no haya sido alterado.")
+            }
+            plaintext = cleartext
+            return decodeSnapshot(cleartext)
         } finally {
-            plaintext.fill(0)
+            plaintext?.fill(0)
+            ciphertext.fill(0)
+            salt.fill(0)
+            nonce.fill(0)
+            authenticatedHeader.fill(0)
         }
     }
 
@@ -203,10 +235,10 @@ object LedgerBackupCodec {
         val settings = if (input.readBoolean()) {
             BookSettingsEntity(input.readInt(), input.readString(), input.readString())
         } else null
-        val accounts = List(input.readCount()) {
+        val accounts = List(input.readCount(minimumRecordBytes = 14)) {
             AccountEntity(input.readString(), input.readString(), input.readString(), input.readBoolean(), input.readBoolean())
         }
-        val entries = List(input.readCount()) {
+        val entries = List(input.readCount(minimumRecordBytes = 45)) {
             JournalEntryEntity(
                 id = input.readString(),
                 entryDate = input.readString(),
@@ -221,7 +253,7 @@ object LedgerBackupCodec {
                 reversalOfEntryId = input.readNullableString(),
             )
         }
-        val lines = List(input.readCount()) {
+        val lines = List(input.readCount(minimumRecordBytes = 36)) {
             JournalLineEntity(
                 id = input.readString(),
                 entryId = input.readString(),
@@ -232,7 +264,7 @@ object LedgerBackupCodec {
                 accountNameSnapshot = input.readString(),
             )
         }
-        val audits = List(input.readCount()) {
+        val audits = List(input.readCount(minimumRecordBytes = 25)) {
             AuditEventEntity(
                 id = input.readString(),
                 entryId = input.readString(),
@@ -243,7 +275,7 @@ object LedgerBackupCodec {
                 relatedEntryId = input.readNullableString(),
             )
         }
-        val accountAudits = List(input.readCount()) {
+        val accountAudits = List(input.readCount(minimumRecordBytes = 22)) {
             AccountAuditEventEntity(
                 id = input.readString(),
                 accountCode = input.readString(),
@@ -254,7 +286,7 @@ object LedgerBackupCodec {
                 newActive = input.readBoolean(),
             )
         }
-        val closes = List(input.readCount()) {
+        val closes = List(input.readCount(minimumRecordBytes = 29)) {
             PeriodCloseEntity(
                 id = input.readString(),
                 startDate = input.readString(),
@@ -274,8 +306,10 @@ object LedgerBackupCodec {
         writeInt(count)
     }
 
-    private fun DataInputStream.readCount(): Int = readInt().also {
-        require(it in 0..MAX_ROWS) { "Cantidad de registros no válida." }
+    private fun DataInputStream.readCount(minimumRecordBytes: Int): Int = readInt().also {
+        require(it in 0..MAX_ROWS && (it == 0 || it <= available() / minimumRecordBytes)) {
+            "Cantidad de registros no válida."
+        }
     }
 
     private fun DataOutputStream.writeString(value: String) {
@@ -298,6 +332,13 @@ object LedgerBackupCodec {
     }
 
     private fun DataInputStream.readNullableString(): String? = if (readBoolean()) readString() else null
+}
+
+private class WipingByteArrayOutputStream : ByteArrayOutputStream(8 * 1024) {
+    fun clear() {
+        buf.fill(0)
+        reset()
+    }
 }
 
 class BackupAuthenticationException(message: String) : SecurityException(message)

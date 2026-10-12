@@ -14,6 +14,21 @@ import androidx.room.Relation
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+object LedgerBookDefaults {
+    val accounts = listOf(
+        AccountEntity(code = "1000", name = "Caja", type = "ASSET", cashOrBank = true),
+        AccountEntity(code = "1010", name = "Banco", type = "ASSET", cashOrBank = true),
+        AccountEntity(code = "2000", name = "Cuentas por pagar", type = "LIABILITY"),
+        AccountEntity(code = "3000", name = "Capital", type = "EQUITY"),
+        AccountEntity(code = "3100", name = "Utilidades retenidas", type = "EQUITY"),
+        AccountEntity(code = "4000", name = "Ingresos", type = "INCOME"),
+        AccountEntity(code = "5100", name = "Papelería", type = "EXPENSE"),
+        AccountEntity(code = "5200", name = "Servicios", type = "EXPENSE"),
+        AccountEntity(code = "5300", name = "Otros gastos", type = "EXPENSE"),
+    )
+    val settings = BookSettingsEntity(id = 1, bookName = "Libro de prueba", baseCurrency = "USD")
+}
+
 @Entity(tableName = "accounts")
 data class AccountEntity(
     @PrimaryKey val code: String,
