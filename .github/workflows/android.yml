@@ -37,8 +37,24 @@ jobs:
       - name: Run accounting unit tests and build debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug
 
+      - name: Run on-device Room migration tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: gradle :app:connectedDebugAndroidTest
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: book-01-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload generated Room schema
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-01-room-schemas
+          path: android/app/schemas/
+          if-no-files-found: warn

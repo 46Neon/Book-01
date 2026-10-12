@@ -84,7 +84,8 @@ abstract class LedgerDatabase : RoomDatabase() {
     abstract fun ledgerDao(): LedgerDao
 
     companion object {
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        // Keep the migration visible to the on-device migration regression test.
+        internal val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
                     "CREATE TABLE IF NOT EXISTS `book_settings` (" +
