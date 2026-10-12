@@ -23,8 +23,10 @@ El bloque de chatbot/MCP se muestra solo para definir el límite de integración
 - **Android:** Kotlin + Jetpack Compose; navegación y componentes de tabla adaptativos.
 - **Persistencia local:** Room/SQLite, con migraciones versionadas.
 - **Trabajo diferido:** WorkManager para reintentos de sincronización; la UI muestra pendiente/sincronizado/error y no promete sincronización inmediata.
-- **Servidor:** API HTTPS con OpenAPI y PostgreSQL. El framework backend queda por confirmar antes de iniciar ese módulo.
-- **Límite arquitectónico:** interfaz y chatbot no acceden directo a tablas; todas las escrituras pasan por el dominio contable y se validan del lado servidor.
+- **Servidor:** API HTTPS documentada con OpenAPI y PostgreSQL gestionado en Supabase. El framework backend queda por confirmar antes de iniciar ese módulo.
+- **Límite arquitectónico:** APK, web y chatbot no acceden directamente a tablas ni ejecutan SQL; las operaciones pasan por la API y el dominio contable.
+- **Aislamiento:** cada solicitud se autoriza por libro/empresa en servidor; las políticas RLS de PostgreSQL/Supabase serán una defensa adicional, no sustituyen las validaciones del dominio.
+- **Secretos:** `GROQ_API_KEY`, credenciales de conexión y cualquier clave Supabase privilegiada viven solo en el servidor/secrets del despliegue; nunca en APK, navegador, Git ni logs.
 
 ## Datos contables iniciales
 
@@ -36,9 +38,7 @@ El bloque de chatbot/MCP se muestra solo para definir el límite de integración
 - `audit_events`: actor, acción, objeto, momento, resultado y referencia de corrección.
 - `sync_outbox`: operaciones pendientes con clave idempotente y estado de sincronización.
 
-Usar identificadores estables. En Android, los importes USD se guardan como centavos enteros (`Long`) y el texto se analiza con semántica decimal exacta (`BigDecimal`), sin coma flotante binaria. La presentación usa la etiqueta explícita `US$` y dos decimales; las formas numéricas ambiguas se rechazan, no se interpretan por inferencia. En la API futura se transmitirán valores decimales exactos junto con el código ISO de moneda. La versión inicial del libro admite únicamente USD: no convierte ni mezcla monedas. Agregar otra moneda requerirá precisión, reglas de cambio y migraciones explícitas.
-
-La base local Room está en versión 3. La migración 1→2 crea `book_settings` con el libro inicial en USD; la migración 2→3 agrega `cashOrBank` a las cuentas y marca los códigos iniciales `1000` (Caja) y `1010` (Banco). Ambas son aditivas y conservan las cuentas, asientos y líneas ya almacenados. El catálogo actual permite agregar cuentas y las expone también cuando están inactivas para resolver el historial; no permite editar ni borrar cuentas. Las pantallas de captura solo ofrecen categorías activas y cuentas activas marcadas Caja/Banco. Si quedan registros heredados con otro código de moneda, la UI los muestra con el código original y los excluye de los totales USD; no los convierte. Solo se admiten nuevos asientos en USD.
+Usar identificadores estables. Representar el importe mediante decimal exacto en la API y una representación exacta en la base de datos. En Android se debe definir precisión por moneda; nunca usar coma flotante binaria para cálculos monetarios.
 
 ## Sincronización
 
