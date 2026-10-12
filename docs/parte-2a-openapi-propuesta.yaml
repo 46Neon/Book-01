@@ -243,8 +243,8 @@ components:
       required: [id, code, name, type, active]
       properties:
         id: { type: string, format: uuid }
-        code: { type: string, maxLength: 40 }
-        name: { type: string, maxLength: 160 }
+        code: { type: string }
+        name: { type: string }
         type:
           type: string
           enum: [asset, liability, equity, income, expense]
@@ -267,14 +267,14 @@ components:
           pattern: '^(0|[1-9]\d*)(\.\d+)?$'
           description: Non-negative exact decimal string; never JSON floating point.
         currency: { $ref: '#/components/schemas/CurrencyCode' }
-        description: { type: [string, 'null'], maxLength: 500 }
+        description: { type: [string, 'null'] }
     JournalEntry:
       type: object
       required: [id, date, description, status, lines]
       properties:
         id: { type: string, format: uuid }
         date: { $ref: '#/components/schemas/AccountingDate' }
-        description: { type: string, maxLength: 500 }
+        description: { type: string }
         status: { $ref: '#/components/schemas/EntryStatus' }
         lines:
           type: array

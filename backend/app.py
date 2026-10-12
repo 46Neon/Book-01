@@ -81,8 +81,8 @@ ERROR_UPSTREAM = {502: {"model": ApiError}, 503: {"model": ApiError}, 504: {"mod
 class Account(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: uuid.UUID
-    code: str = Field(max_length=40)
-    name: str = Field(max_length=160)
+    code: str
+    name: str
     type: Literal["asset", "liability", "equity", "income", "expense"]
     active: bool
 
@@ -95,7 +95,7 @@ class MoneyTotal(BaseModel):
 class JournalLine(BaseModel):
     id: uuid.UUID
     accountId: uuid.UUID
-    description: str | None = Field(default=None, max_length=500)
+    description: str | None = None
     debit: str = Field(pattern=r"^(0|[1-9]\d*)(\.\d+)?$")
     credit: str = Field(pattern=r"^(0|[1-9]\d*)(\.\d+)?$")
     currency: str = Field(pattern=r"^[A-Z]{3}$")
@@ -104,7 +104,7 @@ class JournalLine(BaseModel):
 class JournalEntry(BaseModel):
     id: uuid.UUID
     date: date
-    description: str = Field(max_length=500)
+    description: str
     status: Literal["draft", "posted", "void"]
     lines: list[JournalLine]
 
