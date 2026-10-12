@@ -39,7 +39,7 @@ class FinancialStatementsCalculatorTest {
         )
         val wholeRange = FinancialStatementsCalculator.incomeStatement(accounts, postings, "2026-06-01", "2026-06-20")
         assertEquals(0L, wholeRange.totalIncomeMinor)
-        assertEquals(2_000L, wholeRange.netIncomeMinor)
+        assertEquals(-2_000L, wholeRange.netIncomeMinor)
         val beforeReversal = FinancialStatementsCalculator.incomeStatement(accounts, postings, null, "2026-06-19")
         assertEquals(12_345L, beforeReversal.netIncomeMinor)
     }
