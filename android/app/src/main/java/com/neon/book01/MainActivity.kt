@@ -79,7 +79,12 @@ import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.EntryKind
+import com.neon.book01.domain.ReportAccount
+import com.neon.book01.domain.ReportPostingLine
+import com.neon.book01.domain.TrialBalanceCalculator
+import com.neon.book01.domain.TrialBalanceReport
 import com.neon.book01.domain.UsdMoney
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -152,11 +157,17 @@ private fun BookHomeScreen(repository: LedgerRepository) {
         launch { repository.observeBookSettings().collect { bookSettings = it } }
     }
 
-    val incomeMinor = UsdMoney.sumMinorUnits(entries.filter { it.entry.kind == EntryKind.INCOME.name }.map { it.entry.amountMinor })
-    val expenseMinor = UsdMoney.sumMinorUnits(entries.filter { it.entry.kind == EntryKind.EXPENSE.name }.map { it.entry.amountMinor })
-    val netMinor = UsdMoney.subtractMinorUnits(incomeMinor, expenseMinor)
     val bookName = bookSettings?.bookName ?: "Libro de prueba"
     val currencyCode = bookSettings?.baseCurrency ?: UsdMoney.CURRENCY_CODE
+    val incomeMinor = UsdMoney.sumMinorUnits(
+        entries.filter { it.entry.kind == EntryKind.INCOME.name && it.entry.currencyCode == currencyCode }
+            .map { it.entry.amountMinor },
+    )
+    val expenseMinor = UsdMoney.sumMinorUnits(
+        entries.filter { it.entry.kind == EntryKind.EXPENSE.name && it.entry.currencyCode == currencyCode }
+            .map { it.entry.amountMinor },
+    )
+    val netMinor = UsdMoney.subtractMinorUnits(incomeMinor, expenseMinor)
     val rowItems = entries.flatMap { entry -> entry.toJournalRows(accounts) }
 
     Scaffold(
@@ -213,6 +224,8 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         }
                     },
                 )
+            } else if (selectedTab == 3) {
+                TrialBalanceScreen(accounts, entries, currencyCode)
             } else if (selectedTab == 4) {
                 BookSettingsScreen(
                     bookName = bookName,
@@ -355,6 +368,7 @@ private fun JournalScreen(rows: List<JournalRow>, currencyCode: String, onFilter
 
 @Composable
 private fun LedgerTable(rows: List<JournalRow>, currencyCode: String) {
+    val baseCurrencyRows = rows.filter { it.currencyCode == currencyCode }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(13.dp),
@@ -398,8 +412,8 @@ private fun LedgerTable(rows: List<JournalRow>, currencyCode: String) {
                     TableCell("Total", 66.dp, isHeader = true)
                     TableCell("", 132.dp, isHeader = true)
                     TableCell("", 126.dp, isHeader = true)
-                    TableCell(money(UsdMoney.sumMinorUnits(rows.map { it.debitMinor }), currencyCode), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
-                    TableCell(money(UsdMoney.sumMinorUnits(rows.map { it.creditMinor }), currencyCode), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                    TableCell(money(UsdMoney.sumMinorUnits(baseCurrencyRows.map { it.debitMinor }), currencyCode), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                    TableCell(money(UsdMoney.sumMinorUnits(baseCurrencyRows.map { it.creditMinor }), currencyCode), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
                 }
             }
         }
@@ -413,6 +427,15 @@ private fun LedgerTable(rows: List<JournalRow>, currencyCode: String) {
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
         )
+        if (rows.any { it.currencyCode != currencyCode }) {
+            Text(
+                "Los totales resaltados solo incluyen $currencyCode; las otras monedas se muestran aparte y no se convierten.",
+                modifier = Modifier.fillMaxWidth(),
+                color = BookMuted,
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
@@ -623,6 +646,99 @@ private fun parseDraft(
 }
 
 @Composable
+private fun TrialBalanceScreen(
+    accounts: List<AccountEntity>,
+    entries: List<EntryWithLines>,
+    currencyCode: String,
+) {
+    val reportResult = remember(accounts, entries, currencyCode) {
+        runCatching {
+            TrialBalanceCalculator.calculate(
+                accounts = accounts.map { ReportAccount(it.code, it.name, it.type) },
+                postings = entries
+                    .filter { it.entry.status == "POSTED" }
+                    .flatMap { it.lines }
+                    .map { ReportPostingLine(it.accountCode, it.debitMinor, it.creditMinor, it.currencyCode) },
+                currencyCode = currencyCode,
+            )
+        }
+    }
+    val report = reportResult.getOrNull()
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Balance de comprobación", color = BookInk, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+                Text("Todos los periodos · $currencyCode", color = BookMuted, fontSize = 12.sp)
+            }
+            Text(
+                if (report?.isBalanced == true) "CUADRA" else if (report == null) "REVISAR" else "DIFERENCIA",
+                color = if (report?.isBalanced == true) BookGreen else MaterialTheme.colorScheme.error,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        reportResult.exceptionOrNull()?.let { error ->
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Text(
+                    error.message ?: "No se pudo calcular el balance.",
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+
+        report?.let { data ->
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
+                SummaryCard("Total débitos", money(data.totalDebitMinor, currencyCode), modifier = Modifier.weight(1f))
+                SummaryCard("Total créditos", money(data.totalCreditMinor, currencyCode), modifier = Modifier.weight(1f))
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(13.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+            ) {
+                Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    Row(modifier = Modifier.background(Color(0xFFF0F4F5)), verticalAlignment = Alignment.CenterVertically) {
+                        TableCell("Código", 68.dp, isHeader = true)
+                        TableCell("Cuenta", 145.dp, isHeader = true)
+                        TableCell("Débitos", 104.dp, isHeader = true, align = TextAlign.End)
+                        TableCell("Créditos", 104.dp, isHeader = true, align = TextAlign.End)
+                        TableCell("Saldo", 110.dp, isHeader = true, align = TextAlign.End)
+                        TableCell("Naturaleza", 85.dp, isHeader = true, align = TextAlign.Center)
+                    }
+                    data.lines.forEach { line ->
+                        val debitNature = line.accountType == "ASSET" || line.accountType == "EXPENSE"
+                        val side = when {
+                            line.signedBalanceMinor == 0L -> "—"
+                            debitNature && line.signedBalanceMinor > 0 -> "D"
+                            !debitNature && line.signedBalanceMinor > 0 -> "H"
+                            debitNature -> "H"
+                            else -> "D"
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TableCell(line.accountCode, 68.dp, color = BookMuted)
+                            TableCell(line.accountName, 145.dp, fontWeight = FontWeight.Medium)
+                            TableCell(money(line.totalDebitMinor, currencyCode), 104.dp, align = TextAlign.End)
+                            TableCell(money(line.totalCreditMinor, currencyCode), 104.dp, align = TextAlign.End)
+                            TableCell(money(line.signedBalanceMinor, currencyCode), 110.dp, align = TextAlign.End)
+                            TableCell(side, 85.dp, align = TextAlign.Center, color = BookGreen, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+            Text(
+                "D = saldo deudor · H = saldo acreedor. Los importes están expresados en USD; no se convierten otras monedas.",
+                color = BookMuted,
+                fontSize = 11.sp,
+            )
+        }
+    }
+}
+
+@Composable
 private fun BookSettingsScreen(
     bookName: String,
     currencyCode: String,
@@ -721,6 +837,7 @@ private fun EntryWithLines.toJournalRows(accounts: List<AccountEntity>): List<Jo
             account = accountName,
             debit = if (line.debitMinor == 0L) "—" else money(line.debitMinor, line.currencyCode),
             credit = if (line.creditMinor == 0L) "—" else money(line.creditMinor, line.currencyCode),
+            currencyCode = line.currencyCode,
             debitMinor = line.debitMinor,
             creditMinor = line.creditMinor,
         )
@@ -733,11 +850,13 @@ private data class JournalRow(
     val account: String,
     val debit: String,
     val credit: String,
+    val currencyCode: String,
     val debitMinor: Long = 0,
     val creditMinor: Long = 0,
 )
 
 private fun money(amountMinor: Long, currencyCode: String = UsdMoney.CURRENCY_CODE): String {
-    require(currencyCode == UsdMoney.CURRENCY_CODE) { "Esta versión solo formatea USD." }
-    return UsdMoney.format(amountMinor)
+    if (currencyCode == UsdMoney.CURRENCY_CODE) return UsdMoney.format(amountMinor)
+    val legacyAmount = BigDecimal.valueOf(amountMinor, 2).toPlainString().replace('.', ',')
+    return "$currencyCode $legacyAmount"
 }
