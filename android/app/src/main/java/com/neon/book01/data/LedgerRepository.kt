@@ -51,8 +51,11 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 val current = currentAccounts.getValue(default.code)
                 if (current != imported) dao.updateAccount(imported)
             }
+            snapshot.accounts.filter { it.code !in seededCodes }.forEach { dao.insertAccount(it) }
+        } else {
+            // An uninitialized database has no seed rows, so restore the complete chart of accounts.
+            snapshot.accounts.forEach { dao.insertAccount(it) }
         }
-        snapshot.accounts.filter { it.code !in seededCodes }.forEach { dao.insertAccount(it) }
 
         val importedSettings = snapshot.bookSettings!!
         val currentSettings = dao.getBookSettings()
