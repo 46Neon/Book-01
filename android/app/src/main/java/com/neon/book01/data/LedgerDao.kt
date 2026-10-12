@@ -14,6 +14,22 @@ interface LedgerDao {
     @Transaction
     fun observeEntries(): Flow<List<EntryWithLines>>
 
+    @Query("SELECT * FROM journal_entries ORDER BY entryDate DESC, createdAt DESC")
+    @Transaction
+    suspend fun getAllEntries(): List<EntryWithLines>
+
+    @Query("SELECT * FROM audit_events ORDER BY occurredAt DESC")
+    fun observeAuditEvents(): Flow<List<AuditEventEntity>>
+
+    @Query("SELECT * FROM journal_entries WHERE id = :entryId LIMIT 1")
+    suspend fun getEntry(entryId: String): JournalEntryEntity?
+
+    @Query("SELECT * FROM journal_lines WHERE entryId = :entryId ORDER BY id")
+    suspend fun getLines(entryId: String): List<JournalLineEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM journal_entries WHERE reversalOfEntryId = :entryId)")
+    suspend fun hasReversal(entryId: String): Boolean
+
     @Query("SELECT * FROM accounts ORDER BY code")
     fun observeAccounts(): Flow<List<AccountEntity>>
 
@@ -46,4 +62,7 @@ interface LedgerDao {
 
     @Insert
     suspend fun insertLines(lines: List<JournalLineEntity>)
+
+    @Insert
+    suspend fun insertAuditEvent(event: AuditEventEntity)
 }
