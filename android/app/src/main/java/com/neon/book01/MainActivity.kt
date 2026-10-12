@@ -381,7 +381,7 @@ private fun LedgerTable() {
     }
     Spacer(Modifier.height(8.dp))
     Text(
-        "Desliza la tabla hacia los lados para ver más columnas",
+        "Desliza la tabla hacia los lados para ver más columnas\nImportes ilustrativos: datos de demostración, no reales.",
         modifier = Modifier.fillMaxWidth(),
         color = BookMuted,
         fontSize = 11.sp,
