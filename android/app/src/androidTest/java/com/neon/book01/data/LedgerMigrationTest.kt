@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Runtime regression test for upgrading an existing v1 local book without losing postings. */
+/** Runtime regression test for the full v1→v4 chain without losing postings. */
 @RunWith(AndroidJUnit4::class)
 class LedgerMigrationTest {
     @Test
@@ -20,11 +20,11 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(3L, db.longValue("PRAGMA user_version"))
+            assertEquals(4L, db.longValue("PRAGMA user_version"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
@@ -35,6 +35,12 @@ class LedgerMigrationTest {
             assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1000'"))
             assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1010'"))
             assertEquals(0L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '4000'"))
+            assertEquals(0L, db.longValue("SELECT COUNT(*) FROM audit_events"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('journal_entries') WHERE name = 'reversalOfEntryId'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE id = 'entry-v1' AND reversalOfEntryId IS NULL"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_journal_entries_reversalOfEntryId'"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'audit_events_no_%'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('audit_events') WHERE name = 'reason'"))
         } finally {
             upgraded.close()
             context.deleteDatabase(databaseName)
