@@ -41,7 +41,7 @@ def test_unlisted_origin_gets_no_cross_origin_access(monkeypatch):
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_options_preflight_allows_only_chat_post_headers_and_exact_origin(monkeypatch):
+def test_options_preflight_allows_only_book_get_and_chat_post_headers_and_exact_origin(monkeypatch):
     app = make_app(monkeypatch)
     with TestClient(app) as client:
         response = client.options("/v1/chat", headers={
@@ -51,10 +51,22 @@ def test_options_preflight_allows_only_chat_post_headers_and_exact_origin(monkey
         })
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == ALLOWED
-    assert "POST" in response.headers["access-control-allow-methods"]
+    allowed_methods = {method.strip() for method in response.headers["access-control-allow-methods"].split(",")}
+    assert allowed_methods == {"GET", "POST"}
     assert "authorization" in response.headers["access-control-allow-headers"].lower()
     assert "content-type" in response.headers["access-control-allow-headers"].lower()
     assert "access-control-allow-credentials" not in response.headers
+    with TestClient(app) as client:
+        get_preflight = client.options("/v1/books", headers={
+            "Origin": ALLOWED, "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization",
+        })
+        delete_preflight = client.options("/v1/books", headers={
+            "Origin": ALLOWED, "Access-Control-Request-Method": "DELETE",
+        })
+    assert get_preflight.status_code == 200
+    assert get_preflight.headers["access-control-allow-origin"] == ALLOWED
+    assert delete_preflight.status_code == 400
 
 
 @pytest.mark.parametrize("origins", ["*", "http://book.example.test", "https://example.test/path", "https://user:pass@example.test"])

@@ -13,10 +13,36 @@ servers:
 security:
   - bearerAuth: []
 tags:
+  - name: Books
   - name: Accounts
   - name: Journal
   - name: Reports
 paths:
+  /books:
+    get:
+      tags: [Books]
+      operationId: listBooks
+      summary: List books visible to the authenticated caller
+      description: >-
+        Results are selected by Supabase PostgREST under the caller bearer and RLS;
+        this route does not accept user identity or use a service-role credential.
+        Results are ordered and bounded with cursor pagination.
+      parameters:
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 100 }
+        - name: cursor
+          in: query
+          schema: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: Page of books visible under row-level security
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /books/{bookId}/accounts:
     get:
       tags: [Accounts]
@@ -223,6 +249,20 @@ components:
       required: true
       schema: { type: string, format: uuid }
   schemas:
+    Book:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    BookPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Book' }
+        nextCursor: { type: [string, 'null'] }
     AccountingDate:
       type: string
       format: date

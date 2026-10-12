@@ -15,7 +15,7 @@ from typing import Any, Literal
 from urllib.parse import quote, urlsplit
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, ValidationError, field_validator, model_validator
@@ -54,6 +54,22 @@ class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     bookId: uuid.UUID
     message: StrictStr = Field(min_length=1, max_length=4000)
+
+
+class BookListRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    pageSize: StrictInt = Field(default=100, ge=1, le=200)
+    cursor: StrictStr | None = Field(default=None, min_length=1, max_length=200)
+
+
+class BookItem(BaseModel):
+    id: uuid.UUID
+    name: StrictStr = Field(min_length=1, max_length=200)
+
+
+class BookListResponse(BaseModel):
+    items: list[BookItem]
+    nextCursor: StrictStr | None
 
 
 class Args(BaseModel):
@@ -267,7 +283,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=configured_cors_origins(),
         allow_credentials=False,
-        allow_methods=["POST"],
+        allow_methods=["GET", "POST"],
         allow_headers=["Authorization", "Content-Type"],
         max_age=600,
     )
@@ -298,6 +314,28 @@ def create_app(
     @app.get("/healthz")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/v1/books", response_model=BookListResponse, responses={401: {"model": ServiceError}, 403: {"model": ServiceError}, 404: {"model": ServiceError}, 422: {"model": ServiceError}, 502: {"model": ServiceError}, 503: {"model": ServiceError}, 504: {"model": ServiceError}})
+    async def list_books(
+        request: Request,
+        page_size: int = Query(default=100, alias="pageSize", ge=1, le=200),
+        cursor: str | None = Query(default=None, min_length=1, max_length=200),
+    ) -> BookListResponse:
+        authorization = request.headers.get("authorization", "")
+        match = re.fullmatch(r"Bearer\s+([^\s]+)", authorization, re.IGNORECASE)
+        if not match:
+            raise GatewayFailure(401, "authentication_required", "A bearer token is required.")
+        if not app.state.accounting_base_url:
+            raise GatewayFailure(503, "service_unavailable", "Accounting API is not configured.")
+        base = app.state.accounting_base_url.rstrip("/")
+        if not base.startswith("https://") or "?" in base or "#" in base:
+            raise GatewayFailure(503, "service_unavailable", "Accounting API must be configured with an HTTPS base URL.")
+        data = await call_accounting(app, match.group(1), None, "listBooks", "", BookListRequest(pageSize=page_size, cursor=cursor))
+        try:
+            result = BookListResponse.model_validate(data)
+        except ValidationError as exc:
+            raise GatewayFailure(502, "invalid_accounting_response", "The accounting API returned an invalid book list.") from exc
+        return result
 
     @app.post("/v1/chat", response_model=ChatResponse, responses={400: {"model": ServiceError}, 401: {"model": ServiceError}, 403: {"model": ServiceError}, 404: {"model": ServiceError}, 422: {"model": ServiceError}, 502: {"model": ServiceError}, 503: {"model": ServiceError}, 504: {"model": ServiceError}})
     async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
@@ -391,9 +429,12 @@ def create_app(
     return app
 
 
-async def call_accounting(app: FastAPI, bearer: str, book_id: uuid.UUID, name: str, suffix: str, args: Args) -> dict[str, Any]:
+async def call_accounting(app: FastAPI, bearer: str, book_id: uuid.UUID | None, name: str, suffix: str, args: Args) -> dict[str, Any]:
     path_suffix = suffix.format(accountId=quote(str(getattr(args, "accountId")), safe="")) if "{accountId}" in suffix else suffix
-    url = f"{app.state.accounting_base_url.rstrip('/')}/books/{quote(str(book_id), safe='')}/{path_suffix}"
+    if book_id is None:
+        url = f"{app.state.accounting_base_url.rstrip('/')}/books"
+    else:
+        url = f"{app.state.accounting_base_url.rstrip('/')}/books/{quote(str(book_id), safe='')}/{path_suffix}"
     params: list[tuple[str, str]] = []
     for key, value in args.model_dump(exclude_none=True).items():
         if isinstance(value, uuid.UUID):

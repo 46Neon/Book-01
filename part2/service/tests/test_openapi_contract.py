@@ -13,6 +13,7 @@ def test_part2a_accounting_contract_is_valid_openapi():
 
     assert spec["openapi"].startswith("3.1.")
     assert set(spec["paths"]) == {
+        "/books",
         "/books/{bookId}/accounts",
         "/books/{bookId}/journal-entries",
         "/books/{bookId}/accounts/{accountId}/balance",

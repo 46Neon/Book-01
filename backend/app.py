@@ -128,6 +128,16 @@ class AccountPage(BaseModel):
     nextCursor: str | None
 
 
+class Book(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class BookPage(BaseModel):
+    items: list[Book]
+    nextCursor: str | None
+
+
 EntryStatus = Literal["draft", "posted", "void"]
 
 
@@ -394,6 +404,29 @@ def create_app() -> FastAPI:
             if len(lines) > MAX_REPORT_LINES:
                 raise HTTPException(422, detail=error("result_limit_exceeded", "Report range exceeds the bounded scaffold limit."))
         return entries, lines
+
+    @app.get(f"{API_PREFIX}/books", operation_id="listBooks", response_model=BookPage, responses={**ERROR_401, **ERROR_403, **ERROR_404, **ERROR_422, **ERROR_UPSTREAM})
+    async def list_books(
+        page_size: int = Query(default=100, alias="pageSize", ge=1, le=MAX_PAGE_SIZE),
+        cursor: str | None = Query(default=None, max_length=200),
+        ctx: tuple[Config, str, httpx.AsyncClient] = Depends(get_context),
+    ) -> dict[str, Any]:
+        """List only books visible to the caller through Supabase RLS."""
+        offset = page_offset(cursor)
+        cfg, token, client = ctx
+        rows = await upstream(cfg, token, client, "books", {
+            "select": "id,name", "order": "name.asc,id.asc", "limit": str(page_size + 1), "offset": str(offset),
+        })
+        has_more = len(rows) > page_size
+        if has_more and offset + page_size > MAX_CURSOR_OFFSET:
+            raise HTTPException(422, detail=error("result_limit_exceeded", "Book list exceeds the bounded pagination limit."))
+        items = []
+        for row in rows[:page_size]:
+            try:
+                items.append(Book(id=row["id"], name=row["name"]).model_dump(mode="json"))
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(502, detail=error("upstream_invalid_response", "Accounting data service returned an invalid book list."))
+        return {"items": items, "nextCursor": next_cursor(offset, page_size, has_more)}
 
     @app.get(f"{API_PREFIX}/books/{{bookId}}/accounts", operation_id="listBookAccounts", response_model=AccountPage, responses={**ERROR_401, **ERROR_403, **ERROR_404, **ERROR_422, **ERROR_UPSTREAM})
     async def list_accounts(

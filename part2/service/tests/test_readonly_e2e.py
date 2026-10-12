@@ -136,6 +136,107 @@ def test_chat_to_accounting_api_to_postgrest_with_access_preflight(monkeypatch):
     anyio.run(scenario)
 
 
+def test_rls_book_picker_flow_through_postgrest_accounting_and_chat_without_groq_for_listing(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.test")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "synthetic-publishable-key")
+    second_book = "10000000-0000-4000-8000-000000000002"
+    hidden_token = "synthetic-hidden-caller"
+    invalid_token = "synthetic-invalid-caller"
+
+    async def scenario():
+        events: list[str] = []
+        postgrest_headers: list[dict[str, str]] = []
+        postgrest_queries: list[dict[str, str]] = []
+        groq_requests: list[httpx.Request] = []
+        visible = [
+            {"id": BOOK_ID, "name": "Primary book"},
+            {"id": second_book, "name": "Second book"},
+        ]
+
+        async def postgrest_handler(request: httpx.Request) -> httpx.Response:
+            table = request.url.path.rsplit("/", 1)[-1]
+            bearer = request.headers.get("authorization", "")
+            events.append(f"db:{table}:{request.url.params.get('select', '')}")
+            postgrest_headers.append({"authorization": bearer, "apikey": request.headers.get("apikey", "")})
+            postgrest_queries.append(dict(request.url.params))
+            if table == "books":
+                if bearer == f"Bearer {invalid_token}":
+                    return httpx.Response(401, json={"message": "token rejected"})
+                if request.url.params.get("select") == "id,name":
+                    assert "user_id" not in request.url.params
+                    return httpx.Response(200, json=[] if bearer == f"Bearer {hidden_token}" else visible)
+                requested = request.url.params.get("id", "")
+                found_id = requested.removeprefix("eq.")
+                if bearer == f"Bearer {hidden_token}" or found_id not in {row["id"] for row in visible}:
+                    return httpx.Response(200, json=[])
+                return httpx.Response(200, json=[{"id": found_id}])
+            if table == "accounts":
+                return httpx.Response(200, json=[])
+            raise AssertionError(f"Unexpected PostgREST table: {table}")
+
+        postgrest_client = httpx.AsyncClient(transport=httpx.MockTransport(postgrest_handler))
+        accounting_app = create_accounting_app()
+
+        async def override_postgrest_client():
+            yield postgrest_client
+
+        accounting_app.dependency_overrides[accounting_app.state.http_client_dependency] = override_postgrest_client
+        accounting_client = httpx.AsyncClient(transport=httpx.ASGITransport(app=accounting_app), base_url="https://accounting.test")
+
+        async def groq_handler(request: httpx.Request) -> httpx.Response:
+            events.append("groq")
+            groq_requests.append(request)
+            return httpx.Response(200, json=_groq_response())
+
+        groq_client = httpx.AsyncClient(transport=httpx.MockTransport(groq_handler))
+        chat_app = create_chat_app(
+            groq_client=groq_client, accounting_client=accounting_client,
+            groq_api_key=GROQ_KEY, accounting_base_url="https://accounting.test/api/v1",
+        )
+        chat_client = httpx.AsyncClient(transport=httpx.ASGITransport(app=chat_app), base_url="http://chat.test")
+        try:
+            listed = await chat_client.get("/v1/books?pageSize=10", headers={"Authorization": f"Bearer {CALLER_TOKEN}"})
+            assert listed.status_code == 200, listed.text
+            assert listed.json() == {"items": visible, "nextCursor": None}
+            assert events == ["db:books:id,name"]
+            assert groq_requests == []
+            assert all(row["authorization"] == f"Bearer {CALLER_TOKEN}" for row in postgrest_headers)
+            assert all(row["apikey"] == "synthetic-publishable-key" for row in postgrest_headers)
+
+            hidden = await chat_client.get("/v1/books", headers={"Authorization": f"Bearer {hidden_token}"})
+            assert hidden.status_code == 200
+            assert hidden.json() == {"items": [], "nextCursor": None}
+            assert len(groq_requests) == 0
+
+            invalid = await chat_client.get("/v1/books", headers={"Authorization": f"Bearer {invalid_token}"})
+            assert invalid.status_code == 401
+            assert invalid.json()["code"] == "accounting_unauthorized"
+            assert len(groq_requests) == 0
+
+            selected = await chat_client.post(
+                "/v1/chat", headers={"Authorization": f"Bearer {CALLER_TOKEN}"},
+                json={"bookId": second_book, "message": "Consulta el segundo libro"},
+            )
+            assert selected.status_code == 200, selected.text
+            assert selected.json()["text"] == "El período está balanceado."
+            assert any(row["id"] == second_book for row in visible)
+            # The selected opaque ID is the exact scope the accounting API rechecks before Groq.
+            assert any(query.get("id") == f"eq.{second_book}" for query in postgrest_queries)
+            scoped_reads = [query for query in postgrest_queries if query.get("id") == f"eq.{second_book}"]
+            assert len(scoped_reads) == 1
+            assert events.index("groq") > events.index("db:accounts:id,book_id,code,name,account_type,active")
+            assert len(groq_requests) == 1
+            assert postgrest_headers[-1]["authorization"] == f"Bearer {CALLER_TOKEN}"
+            assert invalid_token not in selected.text and CALLER_TOKEN not in selected.text
+        finally:
+            await chat_client.aclose()
+            await groq_client.aclose()
+            await accounting_client.aclose()
+            await postgrest_client.aclose()
+
+    anyio.run(scenario)
+
+
 def test_inaccessible_book_is_rejected_before_groq(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.test")
     monkeypatch.setenv("SUPABASE_ANON_KEY", "synthetic-publishable-key")

@@ -45,7 +45,11 @@ h1 { margin-bottom: 0; font-size: 19px; }
 .auth-grid { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(230px, 1fr) auto; align-items: end; gap: 14px; margin-top: 17px; }
 .auth-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; }
 .auth-form label, .book-field label { color: #728286; font-size: 10px; font-weight: 700; }
-.auth-form input, .book-field input { min-width: 0; width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fbfdfc; font-size: 11px; }
+.auth-form input, .book-field select { min-width: 0; width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fbfdfc; font-size: 11px; }
+.book-field select:focus-visible { outline: 2px solid #85c8bd; outline-offset: 2px; }
+.book-field select:disabled { color: var(--muted); }
+.book-field button { justify-self: start; padding: 6px 8px; }
+.book-field button[hidden] { display: none; }
 .auth-form button { grid-column: 1 / -1; justify-self: start; padding: 9px 13px; border: 0; border-radius: 9px; color: #fff; background: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; }
 .auth-form button:hover { background: var(--accent-dark); }
 .book-field { display: grid; gap: 8px; }

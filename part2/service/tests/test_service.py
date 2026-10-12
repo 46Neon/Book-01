@@ -38,6 +38,41 @@ def ask(client, message="¿Cuál es mi balance?", token=USER_TOKEN):
     return client.post("/v1/chat", headers=headers, json={"bookId": BOOK_ID, "message": message})
 
 
+def test_authenticated_book_list_forwards_bearer_without_groq_and_returns_only_id_and_name():
+    touched = []
+    def accounting(req):
+        touched.append(req)
+        assert req.url.path == "/api/v1/books"
+        assert req.headers["authorization"] == f"Bearer {USER_TOKEN}"
+        assert req.url.params["pageSize"] == "2"
+        return httpx.Response(200, json={"items": [{"id": BOOK_ID, "name": "Caja principal", "private": "drop"}], "nextCursor": "opaque-cursor"})
+    app, g, a = app_with(lambda req: pytest.fail("book listing must not call Groq"), accounting)
+    with TestClient(app) as client:
+        response = client.get("/v1/books?pageSize=2", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert response.status_code == 200, response.text
+    assert response.json() == {"items": [{"id": BOOK_ID, "name": "Caja principal"}], "nextCursor": "opaque-cursor"}
+    assert len(touched) == 1
+
+
+@pytest.mark.parametrize("status,expected", [(401, "accounting_unauthorized"), (403, "accounting_forbidden")])
+def test_book_list_preserves_authentication_and_access_denials_without_groq(status, expected):
+    app, g, a = app_with(lambda req: pytest.fail("book listing must not call Groq"), lambda req: httpx.Response(status, json={"private": "do not expose"}))
+    with TestClient(app) as client:
+        response = client.get("/v1/books", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert response.status_code == status
+    assert response.json()["code"] == expected
+    assert "private" not in response.text and USER_TOKEN not in response.text
+
+
+def test_book_list_requires_bearer_and_bounds_page_size():
+    app, g, a = app_with(lambda req: pytest.fail("Groq must not be called"), lambda req: pytest.fail("invalid auth/page must not call API"))
+    with TestClient(app) as client:
+        missing = client.get("/v1/books")
+        oversized = client.get("/v1/books?pageSize=201", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert missing.status_code == 401 and missing.json()["code"] == "authentication_required"
+    assert oversized.status_code == 422
+
+
 def test_authentication_is_required_before_any_model_or_accounting_call():
     touched = []
     app, g, a = app_with(lambda req: touched.append("groq") or httpx.Response(200, json=groq_text()),

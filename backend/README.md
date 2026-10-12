@@ -17,6 +17,7 @@ Esta implementación solo prepara endpoints `GET` para el contrato de [`../docs/
 
 ## Operaciones preparadas
 
+- `GET /api/v1/books`: lista paginada de libros visibles bajo RLS usando el bearer del llamante, con selección estricta `id,name`, orden estable, `pageSize` 1–200 y cursor opaco con desplazamiento acotado. No acepta identidad de usuario ni usa `service_role`.
 - `GET /api/v1/books/{bookId}/accounts`: listado paginado, filtro `activeOnly` (default true), `pageSize` 1–200 y cursor opaco con desplazamiento acotado. Devuelve solo campos persistidos; no inventa jerarquía de cuentas.
 - `GET /api/v1/books/{bookId}/journal-entries`: periodo inclusivo obligatorio; status por default `posted`; filtros de cuenta, USD, literal search por descripción, status real (`draft`, `posted`, `void`), paginación y líneas leídas del esquema. Respuesta sin `reference`, contraparte ni relación de reversa, porque no existen en la migración.
 - `GET /api/v1/books/{bookId}/accounts/{accountId}/balance`: calcula saldo a la fecha desde líneas contabilizadas visibles.

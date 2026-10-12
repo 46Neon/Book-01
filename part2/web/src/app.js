@@ -129,20 +129,25 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
   const signInButton = doc.getElementById('sign-in-button');
   const signOutButton = doc.getElementById('sign-out-button');
   const sessionLabel = doc.getElementById('session-label');
-  const bookInput = doc.getElementById('book-id');
+  const bookSelect = doc.getElementById('book-id');
+  const loadMoreBooks = doc.getElementById('load-more-books');
   const sendButton = doc.getElementById('send-button');
 
   const readyConfig = Boolean(auth && isHttpsUrl(config?.supabaseUrl) && config?.supabasePublishableKey
     && isHttpsUrl(config?.chatServiceBaseUrl));
   let accessToken = '';
   let busy = false;
+  let bookLoading = false;
+  let nextBooksCursor = null;
+  let booksRequestId = 0;
   connectionLabel.textContent = readyConfig ? 'Servicio no verificado' : 'Configuración pendiente';
 
   const updateAvailability = () => {
-    sendButton.disabled = busy || !readyConfig || !accessToken || !isValidBookId(bookInput.value);
+    sendButton.disabled = busy || bookLoading || !readyConfig || !accessToken || !isValidBookId(bookSelect.value);
     signInButton.disabled = busy || !readyConfig || Boolean(accessToken);
     signOutButton.disabled = busy || !accessToken;
-    bookInput.setAttribute('aria-invalid', bookInput.value.trim() && !isValidBookId(bookInput.value) ? 'true' : 'false');
+    bookSelect.disabled = !accessToken || bookLoading || bookSelect.options.length <= 1;
+    loadMoreBooks.disabled = busy || bookLoading || !accessToken;
   };
 
   function addMessage(text, kind = 'assistant') {
@@ -155,12 +160,91 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
 
   function clearResults() { setEmptyResults(results, doc); }
 
+  function resetBookPicker(message = 'Inicia sesión para cargar tus libros.') {
+    bookSelect.replaceChildren();
+    const placeholder = doc.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Selecciona un libro';
+    bookSelect.append(placeholder);
+    nextBooksCursor = null;
+    loadMoreBooks.hidden = true;
+    loadMoreBooks.textContent = 'Cargar más libros';
+    if (message) validation.textContent = message;
+  }
+
   function clearSession(message) {
     accessToken = '';
+    booksRequestId += 1;
+    bookLoading = false;
+    resetBookPicker(message || 'Inicia sesión para cargar tus libros.');
     sessionLabel.textContent = 'Sesión no iniciada';
     connectionLabel.textContent = readyConfig ? 'Sesión requerida' : 'Configuración pendiente';
-    if (message) validation.textContent = message;
     updateAvailability();
+  }
+
+  async function loadBooks(token, cursor = null, append = false) {
+    if (!token || !readyConfig) return;
+    const requestId = ++booksRequestId;
+    if (!append) {
+      resetBookPicker('Cargando los libros disponibles…');
+    }
+    bookLoading = true;
+    updateAvailability();
+    const params = new URLSearchParams({ pageSize: '100' });
+    if (cursor) params.set('cursor', cursor);
+    try {
+      const response = await fetchImpl(`${config.chatServiceBaseUrl.replace(/\/$/, '')}/v1/books?${params}`, {
+        method: 'GET', mode: 'cors', credentials: 'omit', redirect: 'error', cache: 'no-store',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      let payload = {};
+      try { payload = await response.json(); } catch { /* use safe local fallback */ }
+      if (requestId !== booksRequestId) return;
+      if (response.status === 401) {
+        await auth.signOut({ scope: 'local' }).catch(() => {});
+        clearSession('La sesión venció o ya no es válida. Vuelve a iniciar sesión para cargar tus libros.');
+        return;
+      }
+      if (response.status === 403) {
+        resetBookPicker('El servicio denegó el acceso a la lista de libros.');
+        return;
+      }
+      if (!response.ok) {
+        resetBookPicker(serviceMessage(payload, `No se pudieron cargar los libros (HTTP ${response.status}).`));
+        return;
+      }
+      if (!Array.isArray(payload.items) || (payload.nextCursor !== null && typeof payload.nextCursor !== 'string')) throw new Error('invalid_book_list');
+      const validItems = payload.items.filter((book) => book && isValidBookId(book.id)
+        && typeof book.name === 'string' && book.name.trim().length > 0 && book.name.length <= 200);
+      if (validItems.length !== payload.items.length) throw new Error('invalid_book_list');
+      const priorSelection = bookSelect.value;
+      for (const book of validItems) {
+        const option = doc.createElement('option');
+        option.value = book.id;
+        option.textContent = book.name;
+        bookSelect.append(option);
+      }
+      if (priorSelection && Array.from(bookSelect.options).some((option) => option.value === priorSelection)) bookSelect.value = priorSelection;
+      nextBooksCursor = payload.nextCursor;
+      loadMoreBooks.hidden = !nextBooksCursor;
+      if (bookSelect.options.length <= 1) {
+        resetBookPicker('No hay libros disponibles para esta cuenta. Pide acceso a un libro o verifica la configuración de acceso.');
+      } else if (append) {
+        validation.textContent = 'Se cargaron más libros disponibles. Selecciona uno para habilitar el chat.';
+      } else {
+        validation.textContent = 'Libros cargados. Selecciona un libro para habilitar el chat.';
+      }
+    } catch (error) {
+      if (requestId !== booksRequestId) return;
+      resetBookPicker(error?.message === 'invalid_book_list'
+        ? 'El servicio devolvió una lista de libros con formato inválido.'
+        : 'No se pudieron cargar los libros desde el servicio HTTPS. Comprueba la configuración y la conexión.');
+    } finally {
+      if (requestId === booksRequestId) {
+        bookLoading = false;
+        updateAvailability();
+      }
+    }
   }
 
   if (!readyConfig) {
@@ -170,6 +254,7 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
     signInForm.hidden = true;
     sessionLabel.textContent = 'Configuración pendiente';
   }
+  resetBookPicker(readyConfig ? 'Inicia sesión para cargar tus libros.' : 'Configuración pendiente.');
 
   signInForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -190,7 +275,7 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
       accessToken = data.session.access_token;
       sessionLabel.textContent = 'Sesión iniciada';
       connectionLabel.textContent = 'Sesión lista';
-      validation.textContent = 'Sesión activa solo en memoria. Escribe el ID UUID de un libro autorizado para habilitar consultas.';
+      await loadBooks(accessToken);
     } catch {
       clearSession('No se pudo contactar el proveedor de autenticación. Intenta de nuevo más tarde.');
     } finally {
@@ -210,15 +295,19 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
     updateAvailability();
   });
 
-  bookInput.addEventListener('input', updateAvailability);
+  bookSelect.addEventListener('change', updateAvailability);
+  loadMoreBooks.addEventListener('click', async () => {
+    if (!nextBooksCursor || !accessToken || bookLoading) return;
+    await loadBooks(accessToken, nextBooksCursor, true);
+  });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const question = input.value.trim();
-    const bookId = bookInput.value.trim();
-    if (!question || busy || !readyConfig || !accessToken) return;
+    const bookId = bookSelect.value;
+    if (!question || busy || bookLoading || !readyConfig || !accessToken) return;
     if (!isValidBookId(bookId)) {
-      validation.textContent = 'Escribe un UUID válido para el libro antes de consultar.';
-      bookInput.focus();
+      validation.textContent = 'Selecciona un libro disponible antes de consultar.';
+      bookSelect.focus();
       updateAvailability();
       return;
     }
@@ -227,14 +316,11 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
     input.value = '';
     busy = true;
     connectionLabel.textContent = 'Consultando…';
-    validation.textContent = 'El servidor verificará el acceso a este libro antes de enviar la pregunta al modelo.';
+    validation.textContent = 'El servidor verificará el acceso al libro antes de enviar la pregunta al modelo.';
     updateAvailability();
     try {
       const response = await fetchImpl(`${config.chatServiceBaseUrl.replace(/\/$/, '')}/v1/chat`, {
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'omit',
-        redirect: 'error',
+        method: 'POST', mode: 'cors', credentials: 'omit', redirect: 'error', cache: 'no-store',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ bookId, message: question }),
       });
@@ -261,7 +347,7 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
       }
       if (typeof payload.text !== 'string') throw new Error('invalid_response');
       connectionLabel.textContent = 'Respuesta recibida';
-      validation.textContent = 'Consulta completada. El ID de libro se autorizó mediante el API contable; no se deriva del token.';
+      validation.textContent = 'Consulta completada. El ID de libro seleccionado se autorizó mediante el API contable; no se deriva del token.';
       addMessage(payload.text.slice(0, 800), 'assistant');
       renderQueryResult(results, payload, doc);
       renderSummary(results, payload, doc);
@@ -304,13 +390,21 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
         accessToken = token;
         sessionLabel.textContent = 'Sesión iniciada';
         connectionLabel.textContent = 'Sesión lista';
+        void loadBooks(token);
       }
       updateAvailability();
     }).catch(() => {});
     auth.onAuthStateChange((_event, session) => {
-      accessToken = session?.access_token || '';
-      sessionLabel.textContent = accessToken ? 'Sesión iniciada' : 'Sesión no iniciada';
-      connectionLabel.textContent = accessToken ? 'Sesión lista' : (readyConfig ? 'Sesión requerida' : 'Configuración pendiente');
+      const token = session?.access_token || '';
+      if (!token) {
+        if (accessToken) clearSession('La sesión terminó. Inicia sesión para cargar tus libros.');
+        return;
+      }
+      if (accessToken === token) return;
+      accessToken = token;
+      sessionLabel.textContent = 'Sesión iniciada';
+      connectionLabel.textContent = 'Sesión lista';
+      void loadBooks(token);
       updateAvailability();
     });
   }

@@ -40,9 +40,12 @@
             <button id="sign-in-button" type="submit">Iniciar sesión</button>
           </form>
           <div class="book-field">
-            <label for="book-id">ID del libro (UUID)</label>
-            <input id="book-id" name="book-id" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-4000-8000-000000000000" aria-describedby="book-help">
-            <small id="book-help">Escribe un UUID de libro al que tu cuenta tenga acceso. El servidor autoriza este ID; no se deduce del token.</small>
+            <label for="book-id">Libro</label>
+            <select id="book-id" name="book-id" autocomplete="off" aria-describedby="book-help" disabled>
+              <option value="">Inicia sesión para cargar tus libros</option>
+            </select>
+            <button id="load-more-books" class="quiet-button" type="button" hidden>Cargar más libros</button>
+            <small id="book-help">Selecciona un libro visible para tu cuenta. El acceso se verifica de nuevo en el servidor antes de consultar.</small>
           </div>
           <div class="session-actions">
             <span id="session-label" aria-live="polite">Sesión no iniciada</span>

@@ -62,6 +62,38 @@ def test_requires_bearer_before_any_upstream_request(monkeypatch):
     assert calls == []
 
 
+def test_book_list_forwards_bearer_uses_rls_and_returns_only_id_and_name(monkeypatch):
+    second_book = "10000000-0000-4000-8000-000000000002"
+
+    def responder(request):
+        assert request.headers["authorization"] == f"Bearer {TOKEN}"
+        assert request.headers["apikey"] == "anon-publishable-test-key"
+        assert request.url.path.endswith("/books")
+        assert request.url.params["select"] == "id,name"
+        assert request.url.params["limit"] == "3"
+        assert request.url.params["offset"] in {"0", "2"}
+        return json_response([{"id": BOOK, "name": "Main", "secret": "not returned"}, {"id": second_book, "name": "Side"}, {"id": "10000000-0000-4000-8000-000000000003", "name": "Third"}])
+
+    client, calls = client_for(monkeypatch, responder)
+    response = client.get("/api/v1/books?pageSize=2", headers={"Authorization": f"Bearer {TOKEN}"})
+    assert response.status_code == 200, response.text
+    assert response.json() == {"items": [{"id": BOOK, "name": "Main"}, {"id": second_book, "name": "Side"}], "nextCursor": "djE6Mg"}
+    assert len(calls) == 1
+    next_page = client.get("/api/v1/books?pageSize=2&cursor=djE6Mg", headers={"Authorization": f"Bearer {TOKEN}"})
+    assert next_page.status_code == 200
+    assert calls[1].url.params["offset"] == "2"
+
+
+def test_book_list_requires_bearer_and_preserves_typed_upstream_denials(monkeypatch):
+    client, calls = client_for(monkeypatch, lambda request: httpx.Response(401, json={"message": "private"}))
+    missing = client.get("/api/v1/books")
+    assert missing.status_code == 401 and missing.json()["code"] == "unauthorized"
+    assert calls == []
+    rejected = client.get("/api/v1/books", headers={"Authorization": f"Bearer {TOKEN}"})
+    assert rejected.status_code == 401 and rejected.json()["code"] == "unauthorized"
+    assert "private" not in rejected.text and TOKEN not in rejected.text
+
+
 def test_account_reads_forward_only_caller_bearer_and_scope_book(monkeypatch):
     def responder(request):
         assert request.headers["authorization"] == f"Bearer {TOKEN}"
@@ -257,6 +289,7 @@ def test_api_routes_match_proposal_paths_and_operation_ids():
     schema = create_app().openapi()
     paths = schema["paths"]
     expected = {
+        "/books": "listBooks",
         "/books/{bookId}/accounts": "listBookAccounts",
         "/books/{bookId}/journal-entries": "listJournalEntries",
         "/books/{bookId}/accounts/{accountId}/balance": "getAccountBalance",

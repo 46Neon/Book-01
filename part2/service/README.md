@@ -1,6 +1,6 @@
 # Part 2A read-only conversational service (scaffold)
 
-This is a **testable, non-production scaffold** for the server-side conversational layer. It exposes `POST /v1/chat`, requires a caller bearer token and an explicit UUID `bookId`, and provides the model five allowlisted read tools matching the operation IDs and `GET` paths in `docs/parte-2a-openapi-propuesta.yaml`:
+This is a **testable, non-production scaffold** for the server-side conversational layer. Authenticated `GET /v1/books` forwards the caller bearer to the accounting API and returns only the RLS-visible `id`/`name` page; it never contacts Groq. The service also exposes `POST /v1/chat`, which requires a caller bearer token and an explicit UUID `bookId`, and provides the model five allowlisted read tools matching the operation IDs and `GET` paths in `docs/parte-2a-openapi-propuesta.yaml`:
 
 - `listBookAccounts` → `GET /books/{bookId}/accounts`
 - `listJournalEntries` → `GET /books/{bookId}/journal-entries`
