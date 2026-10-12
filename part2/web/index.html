@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8f7">
+  <meta name="description" content="Interfaz de consulta contable de solo lectura para Book-01. Actualmente sin conexión al backend.">
+  <title>Asistente contable · Book-01</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Book-01, inicio">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span class="brand-copy"><strong>Book-01</strong><small>Asistente contable</small></span>
+      </a>
+      <div class="topbar-meta">
+        <span class="read-only-pill"><span aria-hidden="true">◉</span> Solo lectura</span>
+        <span class="connection-pill" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="connection-label">Backend pendiente</span></span>
+      </div>
+    </header>
+
+    <main id="inicio" class="workspace">
+      <section class="context-panel" aria-labelledby="context-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CONTEXTO DE CONSULTA</p>
+            <h1 id="context-title">Define qué quieres revisar</h1>
+          </div>
+          <span class="context-note">El contexto no se envía mientras no haya conexión.</span>
+        </div>
+        <div class="context-grid">
+          <fieldset class="context-field period-field">
+            <legend>Periodo</legend>
+            <label for="date-from">Desde</label>
+            <input id="date-from" name="date-from" type="date" aria-label="Fecha inicial del periodo">
+            <span class="date-separator" aria-hidden="true">—</span>
+            <label class="visually-hidden" for="date-to">Hasta</label>
+            <input id="date-to" name="date-to" type="date" aria-label="Fecha final del periodo">
+          </fieldset>
+          <div class="context-field">
+            <label for="currency">Moneda</label>
+            <select id="currency" name="currency">
+              <option value="">No definida</option>
+              <option value="VES">VES</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div class="context-field filter-field">
+            <label for="filters">Filtros</label>
+            <input id="filters" name="filters" type="text" maxlength="120" placeholder="Cuenta, estado u otro criterio">
+          </div>
+        </div>
+        <p class="context-validation" id="context-validation" aria-live="polite"></p>
+      </section>
+
+      <section class="chat-panel" aria-label="Conversación de consulta contable">
+        <div class="chat-toolbar">
+          <div class="chat-title">
+            <span class="assistant-avatar" aria-hidden="true">B</span>
+            <div><h2>Consulta tu libro</h2><p>Respuestas basadas en datos del libro, cuando el servicio esté disponible</p></div>
+          </div>
+          <button id="clear-chat" class="quiet-button" type="button" aria-label="Limpiar conversación">Limpiar</button>
+        </div>
+
+        <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Mensajes de la conversación">
+          <article class="welcome-card" id="welcome-card">
+            <div class="welcome-icon" aria-hidden="true">✳</div>
+            <h3>Una forma sencilla de consultar tus cuentas</h3>
+            <p>Pregunta por movimientos, cuentas o reportes. La consulta será de solo lectura y respetará el periodo, la moneda y los filtros que definas.</p>
+            <div class="pending-banner" role="status">
+              <span class="pending-icon" aria-hidden="true">◷</span>
+              <span><strong>Servicio aún no conectado</strong><br>Esta interfaz no envía mensajes ni contiene datos contables de ejemplo. Tus consultas no saldrán de este navegador.</span>
+            </div>
+            <p class="suggestion-label">Puedes empezar con una pregunta como</p>
+            <div class="suggestions" aria-label="Ejemplos de consultas">
+              <button type="button" class="suggestion" data-prompt="¿Qué cuentas están activas?">¿Qué cuentas están activas?</button>
+              <button type="button" class="suggestion" data-prompt="Muéstrame los movimientos de un periodo">Movimientos de un periodo</button>
+              <button type="button" class="suggestion" data-prompt="Consulta un reporte contable">Consultar un reporte</button>
+            </div>
+          </article>
+        </div>
+
+        <form id="composer-form" class="composer" autocomplete="off">
+          <label class="visually-hidden" for="message-input">Escribe una consulta contable</label>
+          <textarea id="message-input" name="message" rows="1" maxlength="2000" placeholder="Escribe una consulta contable…" required></textarea>
+          <button id="send-button" class="send-button" type="submit" aria-label="Enviar consulta localmente; no se transmitirá">
+            <span aria-hidden="true">↑</span><span class="send-label">Consultar</span>
+          </button>
+          <p class="composer-footnote"><span aria-hidden="true">🔒</span> Solo consultas · Sin conexión, nada se envía ni se guarda</p>
+        </form>
+      </section>
+
+      <section class="results-panel" aria-labelledby="results-title">
+        <div class="results-heading">
+          <div><p class="eyebrow">DATOS ESTRUCTURADOS</p><h2 id="results-title">Resultados de consulta</h2></div>
+          <span class="results-tag">Tabla segura</span>
+        </div>
+        <div id="query-results" class="result-content">
+          <div class="empty-results"><span class="empty-table-icon" aria-hidden="true">▦</span><p>Los resultados aparecerán aquí cuando exista una respuesta válida del servicio.</p></div>
+        </div>
+      </section>
+      <footer class="page-footer"><span>Book-01 · Interfaz web en desarrollo</span><span>No sustituye la revisión de tus registros contables.</span></footer>
+    </main>
+  </div>
+</body>
+</html>
