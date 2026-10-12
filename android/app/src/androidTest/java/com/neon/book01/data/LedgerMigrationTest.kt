@@ -20,11 +20,11 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(2L, db.longValue("PRAGMA user_version"))
+            assertEquals(3L, db.longValue("PRAGMA user_version"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
@@ -32,6 +32,8 @@ class LedgerMigrationTest {
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE entryId = 'entry-v1'"))
             assertEquals(100L, db.longValue("SELECT amountMinor FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals("USD", db.stringValue("SELECT currencyCode FROM journal_entries WHERE id = 'entry-v1'"))
+            assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1000'"))
+            assertEquals(0L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '4000'"))
         } finally {
             upgraded.close()
             context.deleteDatabase(databaseName)
