@@ -254,7 +254,7 @@ export function initWeb({ auth, config, fetchImpl = window.fetch.bind(window), d
     signInForm.hidden = true;
     sessionLabel.textContent = 'Configuración pendiente';
   }
-  resetBookPicker(readyConfig ? 'Inicia sesión para cargar tus libros.' : 'Configuración pendiente.');
+  resetBookPicker(readyConfig ? 'Inicia sesión para cargar tus libros.' : 'Configura VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY y VITE_CHAT_SERVICE_BASE_URL con orígenes HTTPS antes de iniciar sesión.');
 
   signInForm.addEventListener('submit', async (event) => {
     event.preventDefault();
