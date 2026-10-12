@@ -25,3 +25,7 @@ Implement Part 1's authenticated accounting API and authorization model; validat
 ## Tests
 
 `.github/workflows/supabase-db.yml` starts PostgreSQL 16, bootstraps Supabase Auth/roles for tests, applies the migration, and runs `supabase/tests/rls_and_invariants.sql`. This exercises SQL behavior against PostgreSQL, including role/RLS, constraints, audit append-only behavior, and blocked posting. The CI bootstrap is not a substitute for testing against Supabase Auth/RLS in the deployed Supabase environment.
+
+## Live Auth/RLS smoke test
+
+After creating two isolated test users/books in a Supabase development project, run the opt-in, read-only test described in [`docs/supabase-live-rls-smoke-test.md`](../docs/supabase-live-rls-smoke-test.md). It checks real Auth tokens and that each user can read only their own book and accounts. It is skipped unless explicitly enabled and is not a substitute for end-to-end testing of the deployed API, web client, chat service, or Android synchronization.
