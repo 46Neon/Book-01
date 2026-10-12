@@ -1,5 +1,7 @@
 # Backend contable — scaffold FastAPI de solo lectura
 
+Estado de integración Part 2A y blockers: [`../docs/parte-2a-estado-integracion-lectura.md`](../docs/parte-2a-estado-integracion-lectura.md).
+
 **Estado: scaffold acotado, no producción. No desplegar ni conectar a un proyecto real.** No hay proyecto/credenciales Supabase disponibles aquí y no se hicieron pruebas contra Supabase en vivo. FastAPI se elige provisionalmente porque el servicio existente de Parte 2A ya lo utiliza; es una decisión reversible, no una selección de plataforma de despliegue.
 
 Esta implementación solo prepara endpoints `GET` para el contrato de [`../docs/parte-2a-openapi-propuesta.yaml`](../docs/parte-2a-openapi-propuesta.yaml). No modifica el servicio web/chat existente ni Android. No hay `POST`/`PATCH`/`DELETE`, contabilización, Groq, conexión directa a PostgreSQL ni clave `service_role`.
@@ -15,19 +17,19 @@ Esta implementación solo prepara endpoints `GET` para el contrato de [`../docs/
 
 ## Operaciones preparadas
 
-- `GET /api/v1/books/{bookId}/accounts`: listado paginado, filtro `activeOnly` (default true), `pageSize` 1–200 y cursor opaco con desplazamiento acotado.
-- `GET /api/v1/books/{bookId}/journal-entries`: periodo inclusivo obligatorio; status por default `posted`; filtros de cuenta/moneda; `pageSize` 1–200. Cuando una fila real no puede representarse según el contrato, devuelve error tipado `501` (`ApiError`) en lugar de inventar un `reference`, contraparte o reversa.
+- `GET /api/v1/books/{bookId}/accounts`: listado paginado, filtro `activeOnly` (default true), `pageSize` 1–200 y cursor opaco con desplazamiento acotado. Devuelve solo campos persistidos; no inventa jerarquía de cuentas.
+- `GET /api/v1/books/{bookId}/journal-entries`: periodo inclusivo obligatorio; status por default `posted`; filtros de cuenta, USD, literal search por descripción, status real (`draft`, `posted`, `void`), paginación y líneas leídas del esquema. Respuesta sin `reference`, contraparte ni relación de reversa, porque no existen en la migración.
 - `GET /api/v1/books/{bookId}/accounts/{accountId}/balance`: calcula saldo a la fecha desde líneas contabilizadas visibles.
 - `GET /api/v1/books/{bookId}/reports/trial-balance`: suma movimientos contabilizados previos y del rango inclusivo, en USD, con `Decimal`; acotado a 1.000 cuentas, 1.000 asientos y 5.000 líneas.
 - `GET /api/v1/books/{bookId}/reports/income-statement`: si no hay asientos contabilizados, devuelve arrays vacíos y neto cero. Si hay movimientos, falla con `501 not_implemented`: el esquema migrado no distingue costos de gastos, por lo que no puede clasificarlos fielmente.
 
 Todos los reportes incluyen solamente `posted`. La migración actual bloquea deliberadamente la contabilización y solo permite crear/editar borradores, por eso resultados vacíos son esperables y no se fabrican saldos.
 
-### Desajustes explícitos del contrato y la migración
+### Contrato provisional y límites del esquema
 
-La migración `202610120001_initial_core.sql` no contiene `parent_account_id`, referencia contable separada, contraparte, relación de reversa, tipo de cuenta `cost`, ni status `reversed`/`voided` (su valor equivalente es `void`). El listado de cuentas emite `parentAccountId: null`, campo no almacenado. El endpoint de asientos no confunde la clave técnica `idempotency_key` con la referencia contable del contrato: si hay asientos que devolver, o se usa un filtro de contraparte/referencia que no puede satisfacerse, responde `501` con el mismo formato tipado `ApiError`, sin inventar valores. Los `501` comunican incompatibilidades detectadas y los `502`/`503`/`504` cubren fallos de configuración/upstream/timeout con el mismo `ApiError`; son respuestas adicionales documentadas por el scaffold, no cambian el borrador del contrato.
+El documento `docs/parte-2a-openapi-propuesta.yaml` se revisó para reflejar lo que la migración realmente almacena: estados `draft|posted|void`, tipos `asset|liability|equity|income|expense`, USD, líneas con descripción, y entradas con su descripción/fecha/estado. Se quitaron referencia contable separada, contraparte, jerarquía de cuenta, reversas y `cost`, no presentes en tablas. La clave `idempotency_key` sigue siendo interna y no se presenta como una referencia legible. El endpoint de cuenta filtra por líneas visibles y pagina sobre resultados autorizados; el estado `void` es el valor de base de datos, no `voided`.
 
-El borrador OpenAPI permite moneda de tres letras, pero la migración solo admite USD; otros códigos dan un error tipado `422`. El borrador incluye el tipo `cost`, ausente del CHECK del esquema migrado.
+El contrato sigue siendo una propuesta: las pruebas comparan shapes/operaciones runtime con el YAML, pero no hay proyecto Supabase conectado ni validación de permisos reales. Los `501` están documentados para el estado de resultados si existen asientos contabilizados, porque el esquema no separa costos de gastos. `502`/`503`/`504` cubren errores de configuración/upstream/timeout de forma tipada.
 
 ## Configuración y ejecución local
 

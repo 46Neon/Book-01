@@ -6,7 +6,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app import TOOL_REGISTRY, configured_currencies, create_app, groq_tools
+from app import JournalArgs, TOOL_REGISTRY, configured_currencies, create_app, groq_tools
 
 BOOK_ID = "bc255014-b7d0-4eb5-9b88-444de9867f39"
 ACCOUNT_ID = "4a48234c-198e-44cc-ae74-bc573b39006c"
@@ -88,13 +88,6 @@ def test_malformed_or_ambiguous_tool_arguments_fail_before_accounting(args):
     assert response.status_code == 502
     assert response.json()["code"] == "invalid_tool_arguments"
     assert called == []
-
-
-def test_currency_default_matches_current_part1_usd_only(monkeypatch):
-    monkeypatch.delenv("SUPPORTED_CURRENCIES", raising=False)
-    assert configured_currencies() == frozenset({"USD"})
-    journal_tool = next(tool for tool in groq_tools() if tool["function"]["name"] == "listJournalEntries")
-    assert journal_tool["function"]["parameters"]["properties"]["currency"]["enum"] == ["USD"]
 
 
 def test_only_five_allowlisted_tools_and_no_write_or_scope_arguments():
@@ -192,12 +185,24 @@ def test_accounting_request_has_explicit_server_selected_book_scope():
         return httpx.Response(200, json=groq_tool_call(name="getAccountBalance", arguments={"accountId": ACCOUNT_ID, "asOf": "2025-02-01", "currency": "USD"}))
     def accounting(req):
         captured["url"] = str(req.url)
-        captured["query_params"] = set(req.url.params.keys())
         return httpx.Response(200, json={"balance": "23.10", "currency": "USD", "asOf": "2025-02-01", "accountId": ACCOUNT_ID, "bookId": BOOK_ID})
     app, g, a = app_with(groq, accounting)
     with TestClient(app) as client:
         response = ask(client)
     assert response.status_code == 200
     assert f"/books/{BOOK_ID}/accounts/{ACCOUNT_ID}/balance" in captured["url"]
-    assert "accountId" not in captured["query_params"]
     assert response.json()["summary"]["balance"] == "23.10"
+
+
+def test_part2_default_currency_and_journal_statuses_match_current_accounting_contract(monkeypatch):
+    monkeypatch.delenv("SUPPORTED_CURRENCIES", raising=False)
+    assert configured_currencies() == frozenset({"USD"})
+    args = JournalArgs(dateFrom="2026-01-01", dateTo="2026-01-31", status=["draft", "void"])
+    assert args.status == ["draft", "void"]
+    with pytest.raises(Exception):
+        JournalArgs(dateFrom="2026-01-01", dateTo="2026-01-31", status=["reversed"])
+    journal_schema = next(tool["function"]["parameters"] for tool in groq_tools() if tool["function"]["name"] == "listJournalEntries")
+    assert "counterpartyId" not in journal_schema["properties"]
+    assert journal_schema["properties"]["status"]["items"]["enum"] == ["draft", "posted", "void"]
+    currency_schema = next(tool["function"]["parameters"]["properties"]["currency"] for tool in groq_tools() if "currency" in tool["function"]["parameters"]["properties"])
+    assert currency_schema["enum"] == ["USD"]

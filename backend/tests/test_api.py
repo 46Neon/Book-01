@@ -4,6 +4,7 @@ from urllib.parse import parse_qs
 
 import httpx
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from backend.app import create_app
@@ -74,7 +75,7 @@ def test_account_reads_forward_only_caller_bearer_and_scope_book(monkeypatch):
     )
     assert response.status_code == 200, response.text
     assert response.json() == {
-        "items": [{"id": CASH, "code": "1000", "name": "Cash", "type": "asset", "active": True, "parentAccountId": None}],
+        "items": [{"id": CASH, "code": "1000", "name": "Cash", "type": "asset", "active": True}],
         "nextCursor": None,
     }
     book_query = calls[0].url.params
@@ -180,7 +181,7 @@ def test_journal_empty_posted_range_and_filters_are_scoped_and_inclusive(monkeyp
     assert len(calls) == 2
 
 
-def test_validation_and_schema_mismatch_are_typed_errors_without_upstream_body(monkeypatch):
+def test_journal_returns_truthful_database_fields_for_drafts(monkeypatch):
     def responder(request):
         if request.url.path.endswith("/books"):
             return json_response([{"id": BOOK}])
@@ -197,11 +198,17 @@ def test_validation_and_schema_mismatch_are_typed_errors_without_upstream_body(m
     bad_range = client.get(f"/api/v1/books/{BOOK}/journal-entries?dateFrom=2026-02-03&dateTo=2026-02-01", headers={"Authorization": f"Bearer {TOKEN}"})
     assert bad_range.status_code == 422
     assert bad_range.json()["code"] == "validation_error"
-    unsupported = client.get(f"/api/v1/books/{BOOK}/journal-entries?dateFrom=2026-02-01&dateTo=2026-02-28&status=draft", headers={"Authorization": f"Bearer {TOKEN}"})
-    assert unsupported.status_code == 501
-    assert unsupported.json()["code"] == "schema_incompatible"
-    assert unsupported.json()["message"]
-    assert TOKEN not in unsupported.text
+    response = client.get(f"/api/v1/books/{BOOK}/journal-entries?dateFrom=2026-02-01&dateTo=2026-02-28&status=draft", headers={"Authorization": f"Bearer {TOKEN}"})
+    assert response.status_code == 200, response.text
+    entry = response.json()["items"][0]
+    assert entry["id"] == PERIOD_ENTRY
+    assert entry["status"] == "draft"
+    assert entry["description"] == "draft"
+    assert "reference" not in entry
+    assert "reversalOfEntryId" not in entry
+    assert entry["lines"][0]["debit"] == "1.00"
+    assert response.json()["totals"]["debits"]["amount"] == "1.00"
+    assert TOKEN not in response.text
 
 
 def test_upstream_forbidden_maps_to_typed_error_and_drops_body_and_token(monkeypatch):
@@ -258,4 +265,30 @@ def test_api_routes_match_proposal_paths_and_operation_ids():
     assert account_response == {"$ref": "#/components/schemas/AccountPage"}
     journal_response = paths["/books/{bookId}/journal-entries"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert journal_response == {"$ref": "#/components/schemas/JournalPage"}
-    assert schema["components"]["schemas"]["JournalEntry"]["required"] == ["id", "reference", "date", "description", "status", "lines"]
+    journal = schema["components"]["schemas"]["JournalEntry"]
+    assert journal["required"] == ["id", "date", "description", "status", "lines"]
+    assert set(journal["properties"]) == {"id", "date", "description", "status", "lines"}
+    assert journal["properties"]["status"]["enum"] == ["draft", "posted", "void"]
+    assert set(schema["components"]["schemas"]["Account"]["properties"]) == {"id", "code", "name", "type", "active"}
+
+
+def test_draft_openapi_contract_matches_live_fastapi_shape():
+    from pathlib import Path
+
+    contract = yaml.safe_load(Path("docs/parte-2a-openapi-propuesta.yaml").read_text())
+    runtime = create_app().openapi()
+    for path, path_item in contract["paths"].items():
+        for method, operation in path_item.items():
+            if method in {"get", "post", "put", "patch", "delete"}:
+                runtime_path = path.replace("/books/{bookId}", "/books/{bookId}")
+                assert runtime["paths"][runtime_path][method]["operationId"] == operation["operationId"]
+    contract_schemas = contract["components"]["schemas"]
+    runtime_schemas = runtime["components"]["schemas"]
+    assert set(contract_schemas["Account"]["properties"]) == set(runtime_schemas["Account"]["properties"])
+    assert set(contract_schemas["JournalEntry"]["properties"]) == set(runtime_schemas["JournalEntry"]["properties"])
+    assert contract_schemas["EntryStatus"]["enum"] == runtime_schemas["JournalEntry"]["properties"]["status"]["enum"]
+    assert set(contract_schemas["JournalLine"]["properties"]) == set(runtime_schemas["JournalLine"]["properties"])
+    assert set(contract_schemas["AppliedFilters"]["properties"]) == set(runtime_schemas["AppliedFilters"]["properties"])
+    assert contract_schemas["Account"]["properties"]["type"]["enum"] == runtime_schemas["Account"]["properties"]["type"]["enum"]
+    assert contract_schemas["CurrencyCode"]["enum"] == ["USD"]
+    assert set(contract["paths"]) == set(runtime["paths"])

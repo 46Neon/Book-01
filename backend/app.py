@@ -83,9 +83,8 @@ class Account(BaseModel):
     id: uuid.UUID
     code: str = Field(max_length=40)
     name: str = Field(max_length=160)
-    type: Literal["asset", "liability", "equity", "income", "cost", "expense"]
+    type: Literal["asset", "liability", "equity", "income", "expense"]
     active: bool
-    parentAccountId: uuid.UUID | None = None
 
 
 class MoneyTotal(BaseModel):
@@ -96,20 +95,18 @@ class MoneyTotal(BaseModel):
 class JournalLine(BaseModel):
     id: uuid.UUID
     accountId: uuid.UUID
+    description: str | None = Field(default=None, max_length=500)
     debit: str = Field(pattern=r"^(0|[1-9]\d*)(\.\d+)?$")
     credit: str = Field(pattern=r"^(0|[1-9]\d*)(\.\d+)?$")
     currency: str = Field(pattern=r"^[A-Z]{3}$")
-    counterpartyId: uuid.UUID | None = None
 
 
 class JournalEntry(BaseModel):
     id: uuid.UUID
-    reference: str = Field(max_length=80)
     date: date
     description: str = Field(max_length=500)
-    status: Literal["draft", "posted", "reversed", "voided"]
-    reversalOfEntryId: uuid.UUID | None = None
-    lines: list[JournalLine] = Field(min_length=2)
+    status: Literal["draft", "posted", "void"]
+    lines: list[JournalLine]
 
 
 class DateRange(BaseModel):
@@ -131,14 +128,13 @@ class AccountPage(BaseModel):
     nextCursor: str | None
 
 
-EntryStatus = Literal["draft", "posted", "reversed", "voided"]
+EntryStatus = Literal["draft", "posted", "void"]
 
 
 class AppliedFilters(BaseModel):
     dateFrom: date
     dateTo: date
     accountId: uuid.UUID | None = None
-    counterpartyId: uuid.UUID | None = None
     status: list[EntryStatus] = Field(default_factory=list)
     currency: str | None = None
     search: str | None = None
@@ -415,15 +411,14 @@ def create_app() -> FastAPI:
         items = []
         for row in visible:
             # The migration has no parent_account_id; null is the honest proposal-compatible value.
-            items.append(Account(id=row["id"], code=row["code"], name=row["name"], type=row["account_type"], active=row["active"], parentAccountId=None))
+            items.append(Account(id=row["id"], code=row["code"], name=row["name"], type=row["account_type"], active=row["active"]))
         return {"items": items, "nextCursor": next_cursor(offset, page_size, has_more)}
 
-    @app.get(f"{API_PREFIX}/books/{{bookId}}/journal-entries", operation_id="listJournalEntries", response_model=JournalPage, responses={400: {"model": ApiError}, **ERROR_401, **ERROR_403, **ERROR_404, **ERROR_422, **ERROR_501, **ERROR_UPSTREAM})
+    @app.get(f"{API_PREFIX}/books/{{bookId}}/journal-entries", operation_id="listJournalEntries", response_model=JournalPage, responses={400: {"model": ApiError}, **ERROR_401, **ERROR_403, **ERROR_404, **ERROR_422, **ERROR_UPSTREAM})
     async def list_journal_entries(
         bookId: uuid.UUID,
         date_from: date = Query(alias="dateFrom"), date_to: date = Query(alias="dateTo"),
         account_id: uuid.UUID | None = Query(default=None, alias="accountId"),
-        counterparty_id: uuid.UUID | None = Query(default=None, alias="counterpartyId"),
         status: list[EntryStatus] | None = Query(default=None),
         currency_code: str | None = Query(default=None, alias="currency", pattern=r"^[A-Z]{3}$"),
         search: str | None = Query(default=None, max_length=120),
@@ -436,35 +431,22 @@ def create_app() -> FastAPI:
         start, end = date_from, date_to
         if start > end:
             raise HTTPException(422, detail=error("validation_error", "dateFrom must be on or before dateTo."))
-        if counterparty_id is not None:
-            raise HTTPException(501, detail=error("not_implemented", "The migration has no counterparty data to filter."))
-        if search:
-            raise HTTPException(501, detail=error("not_implemented", "The migration has no accounting reference field, so the proposed description/reference search cannot be satisfied completely."))
         cur = currency(currency_code) if currency_code else None
         requested_status = status or ["posted"]
-        allowed = {"draft", "posted", "reversed", "voided"}
-        if not requested_status or any(value not in allowed for value in requested_status):
-            raise HTTPException(422, detail=error("validation_error", "One or more status filters are invalid."))
-        if "reversed" in requested_status:
-            raise HTTPException(501, detail=error("not_implemented", "The migration has no reversal status or reversal relationship."))
-        if search is not None and any(char in search for char in "%_(),*\\"):
-            raise HTTPException(422, detail=error("validation_error", "Search contains unsupported filter characters."))
+        if not requested_status:
+            raise HTTPException(422, detail=error("validation_error", "At least one entry status must be requested."))
+        if search is not None and (not search.strip() or any(char in search for char in "%_(),*\\")):
+            raise HTTPException(422, detail=error("validation_error", "Search must be non-empty and contain only literal text."))
         offset = page_offset(cursor)
         cfg, token, client = ctx
-        status_map = {"draft": "draft", "posted": "posted", "reversed": "", "voided": "void"}
-        db_statuses = sorted({status_map[s] for s in requested_status if status_map[s]})
         params: dict[str, Any] = {
-            "select": "id,book_id,entry_date,description,idempotency_key,currency_code,status",
+            "select": "id,book_id,entry_date,description,currency_code,status",
             "book_id": f"eq.{book_id}", "entry_date": f"gte.{start.isoformat()}",
             "and": f"(entry_date.lte.{end.isoformat()})", "order": "entry_date.asc,id.asc",
             "limit": str(MAX_REPORT_ENTRIES + 1),
         }
-        if len(db_statuses) == 1:
-            params["status"] = f"eq.{db_statuses[0]}"
-        elif db_statuses:
-            params["status"] = f"in.({','.join(db_statuses)})"
-        else:
-            raise HTTPException(422, detail=error("validation_error", "No requested entry status exists in this migration."))
+        db_statuses = sorted(set(requested_status))
+        params["status"] = f"eq.{db_statuses[0]}" if len(db_statuses) == 1 else f"in.({','.join(db_statuses)})"
         if cur:
             params["currency_code"] = f"eq.{cur}"
         if search:
@@ -477,26 +459,39 @@ def create_app() -> FastAPI:
         for index in range(0, len(ids), 100):
             batch = ids[index:index + 100]
             chunk = await upstream(cfg, token, client, "journal_entry_lines", {
-                "select": "id,book_id,journal_entry_id,account_id,line_number,debit,credit,currency_code",
+                "select": "id,book_id,journal_entry_id,account_id,line_number,description,debit,credit,currency_code",
                 "book_id": f"eq.{book_id}", "journal_entry_id": f"in.({','.join(batch)})",
                 "order": "journal_entry_id.asc,line_number.asc", "limit": str(MAX_REPORT_LINES + 1 - len(lines)),
             })
             lines.extend(chunk)
             if len(lines) > MAX_REPORT_LINES:
                 raise HTTPException(422, detail=error("result_limit_exceeded", "Entry range exceeds the bounded scaffold limit."))
+        if any(row.get("currency_code") != "USD" for row in entries) or any(line.get("currency_code") != "USD" for line in lines):
+            raise HTTPException(422, detail=error("unsupported_currency", "Only USD journal data is supported."))
         lines_by_entry: dict[str, list[dict[str, Any]]] = {}
         for line in lines:
             lines_by_entry.setdefault(str(line["journal_entry_id"]), []).append(line)
         if account_id is not None:
             entries = [e for e in entries if any(str(line["account_id"]) == str(account_id) for line in lines_by_entry.get(str(e["id"]), []))]
-        if any(row.get("currency_code") != "USD" for row in entries) or any(line.get("currency_code") != "USD" for line in lines):
-            raise HTTPException(422, detail=error("unsupported_currency", "Only USD journal data is supported."))
-        # After local account filtering, any rows still cannot be faithfully represented:
-        # the migration lacks the required accounting reference and reversal/counterparty fields.
-        if entries:
-            raise HTTPException(501, detail=error("schema_incompatible", "Journal entries cannot be represented faithfully: the migration has no accounting reference, counterparty, or reversal fields."))
-        applied = {"dateFrom": start.isoformat(), "dateTo": end.isoformat(), "accountId": str(account_id) if account_id else None, "counterpartyId": None, "status": requested_status, "currency": cur, "search": search}
-        return {"period": {"from": start.isoformat(), "to": end.isoformat()}, "appliedFilters": applied, "items": [], "totals": {"debits": {"amount": "0.00", "currency": cur or "USD"}, "credits": {"amount": "0.00", "currency": cur or "USD"}}, "nextCursor": None}
+        visible = entries[offset:offset + page_size]
+        visible_ids = {str(e["id"]) for e in visible}
+        page_lines = [line for line in lines if str(line["journal_entry_id"]) in visible_ids]
+        debit_total = sum((decimal_value(line["debit"]) for line in page_lines), Decimal("0"))
+        credit_total = sum((decimal_value(line["credit"]) for line in page_lines), Decimal("0"))
+        items = [{
+            "id": entry["id"], "date": entry["entry_date"], "description": entry["description"],
+            "status": entry["status"],
+            "lines": [{"id": line["id"], "accountId": line["account_id"], "description": line.get("description"),
+                       "debit": money(decimal_value(line["debit"])), "credit": money(decimal_value(line["credit"])),
+                       "currency": line["currency_code"]}
+                      for line in lines_by_entry.get(str(entry["id"]), [])],
+        } for entry in visible]
+        applied = {"dateFrom": start.isoformat(), "dateTo": end.isoformat(), "accountId": str(account_id) if account_id else None,
+                   "status": requested_status, "currency": cur, "search": search}
+        return {"period": {"from": start.isoformat(), "to": end.isoformat()}, "appliedFilters": applied,
+                "items": items, "totals": {"debits": {"amount": money(debit_total), "currency": cur or "USD"},
+                "credits": {"amount": money(credit_total), "currency": cur or "USD"}},
+                "nextCursor": next_cursor(offset, page_size, len(entries) > offset + page_size)}
 
     @app.get(f"{API_PREFIX}/books/{{bookId}}/accounts/{{accountId}}/balance", operation_id="getAccountBalance", response_model=AccountBalance, responses={**ERROR_401, **ERROR_403, **ERROR_404, **ERROR_422, **ERROR_UPSTREAM})
     async def account_balance(

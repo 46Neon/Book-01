@@ -69,8 +69,7 @@ class JournalArgs(Args):
     dateFrom: StrictStr
     dateTo: StrictStr
     accountId: uuid.UUID | None = None
-    counterpartyId: uuid.UUID | None = None
-    status: list[Literal["draft", "posted", "reversed", "voided"]] | None = Field(default=None, max_length=4)
+    status: list[Literal["draft", "posted", "void"]] | None = Field(default=None, max_length=3)
     currency: StrictStr | None = None
     search: StrictStr | None = Field(default=None, max_length=120)
     pageSize: StrictInt = Field(default=50, ge=1, le=200)
@@ -170,7 +169,7 @@ class ReportArgs(Args):
 
 def configured_currencies() -> frozenset[str]:
     # Conservative defaults; deployments must align this allowlist with Part 1.
-    values = os.getenv("SUPPORTED_CURRENCIES", "USD").split(",")
+    values = os.getenv("SUPPORTED_CURRENCIES", ",".join(sorted(DEFAULT_CURRENCIES))).split(",")
     return frozenset(v.strip().upper() for v in values if re.fullmatch(r"[A-Z]{3}", v.strip().upper()))
 
 
@@ -190,8 +189,8 @@ TOOL_REGISTRY: dict[str, tuple[type[Args], str, dict[str, Any]]] = {
     })),
     "listJournalEntries": (JournalArgs, "journal-entries", _object_schema({
         "dateFrom": {"type": "string", "format": "date"}, "dateTo": {"type": "string", "format": "date"},
-        "accountId": {"type": "string", "format": "uuid"}, "counterpartyId": {"type": "string", "format": "uuid"},
-        "status": {"type": "array", "items": {"type": "string", "enum": ["draft", "posted", "reversed", "voided"]}, "maxItems": 4},
+        "accountId": {"type": "string", "format": "uuid"},
+        "status": {"type": "array", "items": {"type": "string", "enum": ["draft", "posted", "void"]}, "maxItems": 3},
         "currency": {"type": "string", "enum": sorted(DEFAULT_CURRENCIES)},
         "search": {"type": "string", "minLength": 1, "maxLength": 120},
         "pageSize": {"type": "integer", "minimum": 1, "maximum": 200}, "cursor": {"type": "string", "minLength": 1, "maxLength": 200},
@@ -352,10 +351,7 @@ async def call_accounting(app: FastAPI, bearer: str, book_id: uuid.UUID, name: s
     path_suffix = suffix.format(accountId=quote(str(getattr(args, "accountId")), safe="")) if "{accountId}" in suffix else suffix
     url = f"{app.state.accounting_base_url.rstrip('/')}/books/{quote(str(book_id), safe='')}/{path_suffix}"
     params: list[tuple[str, str]] = []
-    path_parameters = {"accountId"} if "{accountId}" in suffix else set()
     for key, value in args.model_dump(exclude_none=True).items():
-        if key in path_parameters:
-            continue
         if isinstance(value, uuid.UUID):
             value = str(value)
         if isinstance(value, list):

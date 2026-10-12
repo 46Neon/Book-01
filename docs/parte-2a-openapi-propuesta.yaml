@@ -72,12 +72,9 @@ paths:
         - name: accountId
           in: query
           schema: { type: string, format: uuid }
-        - name: counterpartyId
-          in: query
-          schema: { type: string, format: uuid }
         - name: status
           in: query
-          description: Defaults to posted entries; drafts are excluded unless explicitly requested.
+          description: Defaults to posted entries. Supported values are the database status values draft, posted, and void.
           schema:
             type: array
             items: { $ref: '#/components/schemas/EntryStatus' }
@@ -89,7 +86,7 @@ paths:
           schema: { $ref: '#/components/schemas/CurrencyCode' }
         - name: search
           in: query
-          description: Bounded text search over authorized entry descriptions/references.
+          description: Bounded literal text search over authorized entry descriptions.
           schema: { type: string, maxLength: 120 }
         - name: pageSize
           in: query
@@ -181,6 +178,10 @@ paths:
       tags: [Reports]
       operationId: getIncomeStatement
       summary: Get income, cost and expense totals for a date range
+      description: >-
+        The current schema does not distinguish cost accounts from expenses. The API
+        returns typed 501 not_implemented when posted entries exist rather than
+        claiming an incomplete classification; an empty period may return zero totals.
       parameters:
         - $ref: '#/components/parameters/BookId'
         - name: dateFrom
@@ -205,6 +206,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 components:
   securitySchemes:
     bearerAuth:
@@ -225,7 +227,7 @@ components:
       description: Calendar date in ISO 8601; no local timezone conversion.
     CurrencyCode:
       type: string
-      pattern: '^[A-Z]{3}$'
+      enum: [USD]
       example: USD
     DateRange:
       type: object
@@ -235,7 +237,7 @@ components:
         to: { $ref: '#/components/schemas/AccountingDate' }
     EntryStatus:
       type: string
-      enum: [draft, posted, reversed, voided]
+      enum: [draft, posted, void]
     Account:
       type: object
       required: [id, code, name, type, active]
@@ -245,9 +247,8 @@ components:
         name: { type: string, maxLength: 160 }
         type:
           type: string
-          enum: [asset, liability, equity, income, cost, expense]
+          enum: [asset, liability, equity, income, expense]
         active: { type: boolean }
-        parentAccountId: { type: [string, 'null'], format: uuid }
     JournalLine:
       type: object
       required: [id, accountId, debit, credit, currency]
@@ -266,20 +267,17 @@ components:
           pattern: '^(0|[1-9]\d*)(\.\d+)?$'
           description: Non-negative exact decimal string; never JSON floating point.
         currency: { $ref: '#/components/schemas/CurrencyCode' }
-        counterpartyId: { type: [string, 'null'], format: uuid }
+        description: { type: [string, 'null'], maxLength: 500 }
     JournalEntry:
       type: object
-      required: [id, reference, date, description, status, lines]
+      required: [id, date, description, status, lines]
       properties:
         id: { type: string, format: uuid }
-        reference: { type: string, maxLength: 80 }
         date: { $ref: '#/components/schemas/AccountingDate' }
         description: { type: string, maxLength: 500 }
         status: { $ref: '#/components/schemas/EntryStatus' }
-        reversalOfEntryId: { type: [string, 'null'], format: uuid }
         lines:
           type: array
-          minItems: 2
           items: { $ref: '#/components/schemas/JournalLine' }
     AppliedFilters:
       type: object
@@ -288,7 +286,6 @@ components:
         dateFrom: { $ref: '#/components/schemas/AccountingDate' }
         dateTo: { $ref: '#/components/schemas/AccountingDate' }
         accountId: { type: [string, 'null'], format: uuid }
-        counterpartyId: { type: [string, 'null'], format: uuid }
         status:
           type: array
           items: { $ref: '#/components/schemas/EntryStatus' }
@@ -396,6 +393,11 @@ components:
           schema: { $ref: '#/components/schemas/ApiError' }
     NotFound:
       description: Book or resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    NotImplemented:
+      description: The current schema cannot answer faithfully without a domain decision.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }

@@ -22,18 +22,18 @@ Abre <http://localhost:8000>. También puede abrirse `index.html` directamente, 
 
 ## Límites actuales y seguridad
 
-- No hay llamadas `fetch`/XHR, endpoint configurable ni integración de red en este corte: el backend, el contrato final y el proveedor de autenticación aún no existen. No se deben introducir solicitudes contables hasta acordar esos componentes.
-- El OpenAPI en `docs/parte-2a-openapi-propuesta.yaml` es una propuesta, no una API desplegada ni un contrato definitivo.
+- No hay llamadas `fetch`/XHR, endpoint configurable ni integración de red en este corte. Existe un FastAPI de lectura provisional y testeable con transportes sintéticos, pero no hay instancia desplegada, proyecto Supabase, emisor/sesión de autenticación configurados ni contrato final.
+- El OpenAPI en `docs/parte-2a-openapi-propuesta.yaml` es una propuesta revisada para reflejar el esquema SQL actual, no una API desplegada ni un contrato aprobado.
 - No hay respuestas simuladas ni cifras contables de ejemplo; el área de resultados permanece vacía hasta recibir explícitamente datos válidos del renderer.
 - No hay credenciales, claves de Groq ni secretos en el navegador. No se implementan escrituras, borradores, confirmaciones o contabilización.
 - La interfaz no guarda el chat ni el contexto. Al limpiar o recargar, el contenido local desaparece.
 
 ## Requisitos antes de integrar un backend
 
-1. Publicar y desplegar el contrato definitivo para consultas, con esquema de respuesta tipado que incluya moneda, periodo, filtros y referencias cuando correspondan; confirmar también el mapeo entre intención de chat y las cinco operaciones de consulta propuestas.
-2. Definir autenticación/sesión de usuario y autorización por libro/tenant en el servidor. Nunca confiar en identificadores suministrados por el modelo ni incluir secretos de servicio en código cliente.
-3. Acordar URL HTTPS por entorno, política CORS, límites, manejo estructurado de errores y límites de datos. Toda integración futura debe exigir configuración explícita del endpoint y fallar cerrada si está ausente o no es segura; no debe enviar preguntas ni contexto en modo desconectado.
-4. Revisar el tratamiento de datos del prompt y resultados (retención, registros, privacidad) y probar que la API rechaza operaciones de escritura para este cliente.
+1. Elegir el proyecto Supabase real; configurar su URL, Auth issuer/audience/proveedores, exposición/grants REST, RLS, membresías y usuarios de prueba. Aplicar migrations y probar book isolation con JWT reales antes de usarlo.
+2. Desplegar la API contable y el servicio Part 2 por HTTPS; configurar sus bases URL y claves de runtime mediante settings/secrets del hosting. No usar service-role. La clave Groq solo se configura después de aprobar tratamiento de prompts/resultados.
+3. Acordar login web que adquiera un JWT de usuario y mantenga el token solo en memoria. La interfaz no debe guardar tokens en localStorage/sessionStorage ni hacer llamadas directas a Supabase; solo enviará al servicio Part 2 por HTTPS.
+4. Definir same-origin routing o CORS restringido, límites, manejo de errores, expiración/renovación de sesión y auditoría de privacidad. Validar integración real de extremo a extremo antes de cambiar el aviso de «Backend pendiente».
 
 ## Comprobaciones
 
