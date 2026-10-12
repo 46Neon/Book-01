@@ -36,7 +36,9 @@ El bloque de chatbot/MCP se muestra solo para definir el límite de integración
 - `audit_events`: actor, acción, objeto, momento, resultado y referencia de corrección.
 - `sync_outbox`: operaciones pendientes con clave idempotente y estado de sincronización.
 
-Usar identificadores estables. Representar el importe mediante decimal exacto en la API y una representación exacta en la base de datos. En Android se debe definir precisión por moneda; nunca usar coma flotante binaria para cálculos monetarios.
+Usar identificadores estables. En Android, los importes USD se guardan como centavos enteros (`Long`) y el texto se analiza con semántica decimal exacta (`BigDecimal`), sin coma flotante binaria. La presentación usa la etiqueta explícita `US$` y dos decimales; las formas numéricas ambiguas se rechazan, no se interpretan por inferencia. En la API futura se transmitirán valores decimales exactos junto con el código ISO de moneda. La versión inicial del libro admite únicamente USD: no convierte ni mezcla monedas. Agregar otra moneda requerirá precisión, reglas de cambio y migraciones explícitas.
+
+La base local Room usa una migración versionada 1→2: crea `book_settings` con el libro inicial en USD sin borrar ni recrear las tablas previas, por lo que conserva los asientos y líneas ya almacenados. Si quedan registros heredados con otro código de moneda, la UI los muestra con el código original y agrupa sus totales por separado; no los convierte ni los incorpora a los totales USD. Solo se admiten nuevos asientos en USD.
 
 ## Sincronización
 

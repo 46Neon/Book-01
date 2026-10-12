@@ -74,14 +74,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.neon.book01.data.AccountEntity
+import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
-import com.neon.book01.domain.AccountingRules
-import com.neon.book01.domain.EntryKind
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
-import java.math.BigDecimal
+import com.neon.book01.domain.EntryKind
+import com.neon.book01.domain.UsdMoney
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
@@ -103,6 +104,7 @@ private data class EntryDraft(
     val categoryAccountCode: String,
     val paymentAccountCode: String,
     val amountMinor: Long,
+    val currencyCode: String,
 )
 
 private val tabs = listOf(
@@ -140,6 +142,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var accounts by remember { mutableStateOf<List<AccountEntity>>(emptyList()) }
+    var bookSettings by remember { mutableStateOf<BookSettingsEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -147,10 +150,20 @@ private fun BookHomeScreen(repository: LedgerRepository) {
         repository.initializeBook()
         launch { repository.observeEntries().collect { entries = it } }
         launch { repository.observeAccounts().collect { accounts = it } }
+        launch { repository.observeBookSettings().collect { bookSettings = it } }
     }
 
-    val incomeMinor = entries.filter { it.entry.kind == EntryKind.INCOME.name }.sumOf { it.entry.amountMinor }
-    val expenseMinor = entries.filter { it.entry.kind == EntryKind.EXPENSE.name }.sumOf { it.entry.amountMinor }
+    val usdEntries = entries.filter {
+        it.entry.currencyCode == UsdMoney.CURRENCY_CODE && it.lines.all { line -> line.currencyCode == UsdMoney.CURRENCY_CODE }
+    }
+    val incomeMinor = UsdMoney.sumMinorUnits(usdEntries.filter { it.entry.kind == EntryKind.INCOME.name }.map { it.entry.amountMinor })
+    val expenseMinor = UsdMoney.sumMinorUnits(usdEntries.filter { it.entry.kind == EntryKind.EXPENSE.name }.map { it.entry.amountMinor })
+    val netMinor = UsdMoney.subtractMinorUnits(incomeMinor, expenseMinor)
+    val legacyNonUsdEntryCount = entries.count {
+        it.entry.currencyCode != UsdMoney.CURRENCY_CODE || it.lines.any { line -> line.currencyCode != UsdMoney.CURRENCY_CODE }
+    }
+    val bookName = bookSettings?.bookName ?: "Libro de prueba"
+    val currencyCode = bookSettings?.baseCurrency ?: UsdMoney.CURRENCY_CODE
     val rowItems = entries.flatMap { entry -> entry.toJournalRows(accounts) }
 
     Scaffold(
@@ -185,22 +198,42 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
-            BookHeader()
+            BookHeader(bookName, currencyCode)
             Spacer(Modifier.height(16.dp))
             SummaryCards(
-                netMinor = incomeMinor - expenseMinor,
+                netMinor = netMinor,
                 incomeMinor = incomeMinor,
                 expenseMinor = expenseMinor,
+                currencyCode = currencyCode,
             )
+            if (legacyNonUsdEntryCount > 0) {
+                Spacer(Modifier.height(9.dp))
+                Text(
+                    "$legacyNonUsdEntryCount asiento(s) histórico(s) en otras monedas se conservan y muestran con su código original; no se convierten ni se incluyen en los totales USD. Solo se pueden registrar asientos USD.",
+                    modifier = Modifier.fillMaxWidth(),
+                    color = BookMuted,
+                    fontSize = 11.sp,
+                )
+            }
             Spacer(Modifier.height(22.dp))
 
             if (selectedTab == 0) {
                 JournalScreen(
                     rows = rowItems,
+                    currencyCode = currencyCode,
                     onFilterClick = {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Los filtros se incorporarán en la siguiente iteración.")
                         }
+                    },
+                )
+            } else if (selectedTab == 4) {
+                BookSettingsScreen(
+                    bookName = bookName,
+                    currencyCode = currencyCode,
+                    onSaveName = { newName ->
+                        withContext(Dispatchers.IO) { repository.renameBook(newName) }
+                        snackbarHostState.showSnackbar("Nombre del libro actualizado.")
                     },
                 )
             } else {
@@ -213,6 +246,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     if (showEntryDialog) {
         NewEntryDialog(
             accounts = accounts,
+            currencyCode = currencyCode,
             onDismiss = { showEntryDialog = false },
             onSave = { draft ->
                 withContext(Dispatchers.IO) {
@@ -223,6 +257,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         categoryAccountCode = draft.categoryAccountCode,
                         paymentAccountCode = draft.paymentAccountCode,
                         amountMinor = draft.amountMinor,
+                        currencyCode = draft.currencyCode,
                     )
                 }
                 showEntryDialog = false
@@ -233,7 +268,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
 }
 
 @Composable
-private fun BookHeader() {
+private fun BookHeader(bookName: String, currencyCode: String) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -246,7 +281,7 @@ private fun BookHeader() {
         Column(modifier = Modifier.weight(1f).padding(start = 11.dp)) {
             Text("Book-01", color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Libro de prueba", color = BookMuted, fontSize = 12.sp)
+                Text("$bookName · $currencyCode", color = BookMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Icon(
                     Icons.Outlined.KeyboardArrowDown,
                     contentDescription = "Cambiar libro",
@@ -267,11 +302,11 @@ private fun BookHeader() {
 }
 
 @Composable
-private fun SummaryCards(netMinor: Long, incomeMinor: Long, expenseMinor: Long) {
+private fun SummaryCards(netMinor: Long, incomeMinor: Long, expenseMinor: Long, currencyCode: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
-        SummaryCard("Saldo", money(netMinor), modifier = Modifier.weight(1.15f), emphasize = true)
-        SummaryCard("Ingresos", money(incomeMinor), modifier = Modifier.weight(1f))
-        SummaryCard("Gastos", money(expenseMinor), modifier = Modifier.weight(1f))
+        SummaryCard("Saldo", money(netMinor, currencyCode), modifier = Modifier.weight(1.15f), emphasize = true)
+        SummaryCard("Ingresos", money(incomeMinor, currencyCode), modifier = Modifier.weight(1f))
+        SummaryCard("Gastos", money(expenseMinor, currencyCode), modifier = Modifier.weight(1f))
     }
 }
 
@@ -299,13 +334,13 @@ private fun SummaryCard(title: String, amount: String, modifier: Modifier = Modi
 }
 
 @Composable
-private fun JournalScreen(rows: List<JournalRow>, onFilterClick: () -> Unit) {
+private fun JournalScreen(rows: List<JournalRow>, currencyCode: String, onFilterClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Diario", color = BookInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
             Text("Movimientos del libro", color = BookMuted, fontSize = 12.sp)
         }
-        Text("USD · LOCAL", color = BookGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text("$currencyCode · LOCAL", color = BookGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
     Spacer(Modifier.height(12.dp))
 
@@ -372,13 +407,15 @@ private fun LedgerTable(rows: List<JournalRow>) {
                         TableCell(row.credit, 92.dp, align = TextAlign.End, color = if (row.credit == "—") BookMuted else BookInk)
                     }
                 }
-                Row(modifier = Modifier.background(BookGreenSoft), verticalAlignment = Alignment.CenterVertically) {
-                    TableCell("", 34.dp, isHeader = true)
-                    TableCell("Total", 66.dp, isHeader = true)
-                    TableCell("", 132.dp, isHeader = true)
-                    TableCell("", 126.dp, isHeader = true)
-                    TableCell(money(rows.sumOf { it.debitMinor }), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
-                    TableCell(money(rows.sumOf { it.creditMinor }), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                rows.groupBy { it.currencyCode }.toSortedMap().forEach { (rowCurrency, currencyRows) ->
+                    Row(modifier = Modifier.background(BookGreenSoft), verticalAlignment = Alignment.CenterVertically) {
+                        TableCell("", 34.dp, isHeader = true)
+                        TableCell("Total", 66.dp, isHeader = true)
+                        TableCell(rowCurrency, 132.dp, isHeader = true)
+                        TableCell("", 126.dp, isHeader = true)
+                        TableCell(money(UsdMoney.sumMinorUnits(currencyRows.map { it.debitMinor }), rowCurrency), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                        TableCell(money(UsdMoney.sumMinorUnits(currencyRows.map { it.creditMinor }), rowCurrency), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                    }
                 }
             }
         }
@@ -428,13 +465,14 @@ private fun TableCell(
 @Composable
 private fun NewEntryDialog(
     accounts: List<AccountEntity>,
+    currencyCode: String,
     onDismiss: () -> Unit,
     onSave: suspend (EntryDraft) -> Unit,
 ) {
     var kind by rememberSaveable { mutableStateOf(EntryKind.EXPENSE) }
     var description by rememberSaveable { mutableStateOf("") }
     var amountText by rememberSaveable { mutableStateOf("") }
-    var dateText by rememberSaveable { mutableStateOf(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))) }
+    var dateText by rememberSaveable { mutableStateOf(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/uuuu"))) }
     var categoryCode by rememberSaveable { mutableStateOf("") }
     var paymentCode by rememberSaveable { mutableStateOf("1000") }
     var errorText by rememberSaveable { mutableStateOf<String?>(null) }
@@ -481,8 +519,8 @@ private fun NewEntryDialog(
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it; errorText = null },
-                    label = { Text("Importe en USD") },
-                    placeholder = { Text("Ej. 28,50") },
+                    label = { Text("Importe en $currencyCode") },
+                    placeholder = { Text("Ej. 28,50 o 1.234,56") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
@@ -506,7 +544,7 @@ private fun NewEntryDialog(
                     selectedCode = paymentCode,
                     onSelected = { paymentCode = it },
                 )
-                Text("El sistema generará las dos líneas del asiento y comprobará que cuadren.", color = BookMuted, fontSize = 11.sp)
+                Text("Se registrará en $currencyCode. El sistema genera las dos líneas y comprueba que cuadren; no convierte moneda.", color = BookMuted, fontSize = 11.sp)
                 errorText?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
             }
         },
@@ -514,9 +552,11 @@ private fun NewEntryDialog(
             TextButton(
                 enabled = !saving && accounts.isNotEmpty(),
                 onClick = {
-                    val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode)
+                    val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode, currencyCode)
                     if (draft == null) {
-                        errorText = "Revisa concepto, importe positivo y fecha válida. Usa hasta dos decimales."
+                        val amountError = runCatching { UsdMoney.parseMinorUnits(amountText) }.exceptionOrNull()
+                        errorText = amountError?.message
+                            ?: "Revisa el concepto y la fecha; usa formato dd/mm/aaaa."
                     } else {
                         scope.launch {
                             saving = true
@@ -588,15 +628,80 @@ private fun parseDraft(
     dateText: String,
     categoryCode: String,
     paymentCode: String,
+    currencyCode: String,
 ): EntryDraft? {
     if (description.isBlank() || categoryCode.isBlank() || paymentCode.isBlank()) return null
     val date = runCatching {
-        LocalDate.parse(dateText.trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        LocalDate.parse(
+            dateText.trim(),
+            DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        )
     }.getOrNull() ?: return null
     val amount = runCatching {
-        AccountingRules.parseMinorUnits(amountText)
+        UsdMoney.parseMinorUnits(amountText)
     }.getOrNull() ?: return null
-    return EntryDraft(date.toString(), description.trim(), kind, categoryCode, paymentCode, amount)
+    return EntryDraft(date.toString(), description.trim(), kind, categoryCode, paymentCode, amount, currencyCode)
+}
+
+@Composable
+private fun BookSettingsScreen(
+    bookName: String,
+    currencyCode: String,
+    onSaveName: suspend (String) -> Unit,
+) {
+    var nameInput by rememberSaveable(bookName) { mutableStateOf(bookName) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Configuración del libro", color = BookInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Nombre", color = BookMuted, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = nameInput,
+                    onValueChange = { nameInput = it; errorMessage = null },
+                    label = { Text("Nombre del libro") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+                TextButton(
+                    enabled = !saving && nameInput.trim() != bookName,
+                    onClick = {
+                        scope.launch {
+                            saving = true
+                            try {
+                                onSaveName(nameInput)
+                                errorMessage = null
+                            } catch (error: Exception) {
+                                errorMessage = error.message ?: "No se pudo guardar el nombre."
+                            } finally {
+                                saving = false
+                            }
+                        }
+                    },
+                ) { Text(if (saving) "Guardando…" else "Guardar nombre") }
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Moneda funcional", color = BookMuted, fontSize = 12.sp)
+                Text("$currencyCode · Dólar estadounidense", color = BookInk, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Esta versión trabaja únicamente en USD. Cada importe se guarda como centavos enteros; no convierte ni mezcla monedas.",
+                    color = BookMuted,
+                    fontSize = 12.sp,
+                )
+                Text(
+                    "Para evitar confusiones, 1,234.56 y 1.234,56 se aceptan. Un número como 1.234 se considera ambiguo y se pedirá escribirlo de otra forma.",
+                    color = BookMuted,
+                    fontSize = 12.sp,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -635,8 +740,9 @@ private fun EntryWithLines.toJournalRows(accounts: List<AccountEntity>): List<Jo
             date = dateLabel,
             concept = entry.description,
             account = accountName,
-            debit = if (line.debitMinor == 0L) "—" else money(line.debitMinor),
-            credit = if (line.creditMinor == 0L) "—" else money(line.creditMinor),
+            debit = if (line.debitMinor == 0L) "—" else money(line.debitMinor, line.currencyCode),
+            credit = if (line.creditMinor == 0L) "—" else money(line.creditMinor, line.currencyCode),
+            currencyCode = line.currencyCode,
             debitMinor = line.debitMinor,
             creditMinor = line.creditMinor,
         )
@@ -649,9 +755,17 @@ private data class JournalRow(
     val account: String,
     val debit: String,
     val credit: String,
+    val currencyCode: String,
     val debitMinor: Long = 0,
     val creditMinor: Long = 0,
 )
 
-private fun money(amountMinor: Long): String =
-    "$ " + BigDecimal.valueOf(amountMinor, 2).setScale(2).toPlainString().replace('.', ',')
+/** Historical non-USD v1 rows are display-only, carry their stored currency code, and are never converted. */
+private fun money(amountMinor: Long, currencyCode: String = UsdMoney.CURRENCY_CODE): String {
+    val exactTwoPlaceAmount = UsdMoney.format(amountMinor).removePrefix("US$ ")
+    return if (currencyCode == UsdMoney.CURRENCY_CODE) {
+        "US$ $exactTwoPlaceAmount"
+    } else {
+        "$currencyCode $exactTwoPlaceAmount"
+    }
+}

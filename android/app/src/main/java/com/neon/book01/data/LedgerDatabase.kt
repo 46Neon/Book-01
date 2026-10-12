@@ -10,6 +10,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Embedded
 import androidx.room.Relation
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Entity(tableName = "accounts")
 data class AccountEntity(
@@ -66,15 +68,36 @@ data class EntryWithLines(
     val lines: List<JournalLineEntity>,
 )
 
+@Entity(tableName = "book_settings")
+data class BookSettingsEntity(
+    @PrimaryKey val id: Int = 1,
+    val bookName: String,
+    val baseCurrency: String = "USD",
+)
+
 @Database(
-    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class],
-    version = 1,
+    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class],
+    version = 2,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
     abstract fun ledgerDao(): LedgerDao
 
     companion object {
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `book_settings` (" +
+                        "`id` INTEGER NOT NULL, `bookName` TEXT NOT NULL, " +
+                        "`baseCurrency` TEXT NOT NULL, PRIMARY KEY(`id`))",
+                )
+                database.execSQL(
+                    "INSERT OR IGNORE INTO `book_settings` (`id`, `bookName`, `baseCurrency`) " +
+                        "VALUES (1, 'Libro de prueba', 'USD')",
+                )
+            }
+        }
+
         @Volatile
         private var instance: LedgerDatabase? = null
 
@@ -84,7 +107,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
     }
 }

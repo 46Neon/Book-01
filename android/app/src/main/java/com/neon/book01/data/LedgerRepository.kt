@@ -3,6 +3,7 @@ package com.neon.book01.data
 import androidx.room.withTransaction
 import com.neon.book01.domain.AccountingRules
 import com.neon.book01.domain.EntryKind
+import com.neon.book01.domain.UsdMoney
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +14,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
     fun observeEntries(): Flow<List<EntryWithLines>> = dao.observeEntries()
 
     fun observeAccounts(): Flow<List<AccountEntity>> = dao.observeAccounts()
+
+    fun observeBookSettings(): Flow<BookSettingsEntity?> = dao.observeBookSettings()
 
     suspend fun initializeBook() {
         dao.insertAccounts(
@@ -25,6 +28,16 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 AccountEntity(code = "5300", name = "Otros gastos", type = "EXPENSE"),
             ),
         )
+        dao.insertBookSettings(BookSettingsEntity(id = 1, bookName = "Libro de prueba", baseCurrency = "USD"))
+    }
+
+    suspend fun renameBook(newName: String) {
+        val normalizedName = newName.trim()
+        require(normalizedName.length in 2..60) { "El nombre debe tener entre 2 y 60 caracteres." }
+        dao.insertBookSettings(BookSettingsEntity(id = 1, bookName = "Libro de prueba", baseCurrency = UsdMoney.CURRENCY_CODE))
+        val current = dao.getBookSettings()
+            ?: error("No se pudo inicializar la configuración del libro.")
+        dao.updateBookSettings(current.copy(bookName = normalizedName))
     }
 
     suspend fun recordSimpleEntry(
@@ -34,8 +47,11 @@ class LedgerRepository(private val database: LedgerDatabase) {
         categoryAccountCode: String,
         paymentAccountCode: String,
         amountMinor: Long,
-        currencyCode: String = "USD",
+        currencyCode: String = UsdMoney.CURRENCY_CODE,
     ) {
+        require(currencyCode == UsdMoney.CURRENCY_CODE) {
+            "Esta versión registra únicamente en dólares estadounidenses (USD)."
+        }
         val category = dao.getAccount(categoryAccountCode)
             ?: throw IllegalArgumentException("La categoría seleccionada no existe.")
         val payment = dao.getAccount(paymentAccountCode)

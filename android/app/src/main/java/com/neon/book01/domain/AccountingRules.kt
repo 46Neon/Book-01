@@ -1,8 +1,5 @@
 package com.neon.book01.domain
 
-import java.math.BigDecimal
-import java.math.RoundingMode
-
 enum class EntryKind {
     INCOME,
     EXPENSE,
@@ -17,15 +14,6 @@ data class PostingLine(
 
 /** Deterministic rules for the first simple cash/bank income and expense workflow. */
 object AccountingRules {
-    fun parseMinorUnits(rawAmount: String): Long {
-        val amount = BigDecimal(rawAmount.trim().replace(',', '.'))
-            .setScale(2, RoundingMode.UNNECESSARY)
-            .movePointRight(2)
-            .longValueExact()
-        require(amount > 0) { "El importe debe ser mayor que cero." }
-        return amount
-    }
-
     fun simpleCashEntry(
         kind: EntryKind,
         description: String,
@@ -38,7 +26,9 @@ object AccountingRules {
     ): List<PostingLine> {
         require(description.isNotBlank()) { "Escribe una descripción." }
         require(amountMinor > 0) { "El importe debe ser mayor que cero." }
-        require(currencyCode.isNotBlank()) { "Selecciona la moneda del libro." }
+        require(currencyCode == UsdMoney.CURRENCY_CODE) {
+            "Esta versión registra únicamente en dólares estadounidenses (USD)."
+        }
         require(paymentAccountType == "ASSET") { "Selecciona una cuenta de caja o banco." }
         require(
             (kind == EntryKind.EXPENSE && categoryAccountType == "EXPENSE") ||
@@ -62,13 +52,19 @@ object AccountingRules {
     fun requireBalanced(lines: List<PostingLine>) {
         require(lines.isNotEmpty()) { "El asiento debe tener al menos una línea." }
         require(lines.all { it.debitMinor >= 0 && it.creditMinor >= 0 }) { "Los importes no pueden ser negativos." }
+        require(lines.all { it.currencyCode == UsdMoney.CURRENCY_CODE }) {
+            "Esta versión admite únicamente líneas en USD."
+        }
         require(lines.all { (it.debitMinor == 0L) xor (it.creditMinor == 0L) }) {
             "Cada línea debe ser débito o crédito, no ambos."
         }
         require(lines.map { it.currencyCode }.distinct().size == 1) {
             "Las líneas del asiento deben usar la misma moneda en esta versión."
         }
-        require(lines.sumOf { it.debitMinor } == lines.sumOf { it.creditMinor }) {
+        require(
+            UsdMoney.sumMinorUnits(lines.map { it.debitMinor }) ==
+                UsdMoney.sumMinorUnits(lines.map { it.creditMinor }),
+        ) {
             "El asiento no está balanceado."
         }
     }

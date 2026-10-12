@@ -25,7 +25,7 @@ La Parte 1 expondrá una API documentada para que el chatbot consulte y proponga
 
 ## Estado actual
 
-La APK de depuración muestra el Diario y permite guardar localmente ingresos y gastos sencillos, generando sus dos líneas balanceadas. Usa datos de prueba y un plan de cuentas/moneda de demostración. Todavía no es un sistema contable de producción: faltan configuración de libro, edición/reversiones, backend, sincronización, reportes completos y validación fiscal local.
+La APK de depuración muestra el Diario y permite guardar localmente ingresos y gastos sencillos, generando sus dos líneas balanceadas. El libro inicial trabaja únicamente en USD: los importes se almacenan como centavos enteros (`Long`), el análisis decimal es exacto con `BigDecimal` (sin `Double`), y los importes se presentan con la etiqueta explícita `US$` y dos decimales. Acepta formatos estadounidense y español inequívocos; rechaza, en vez de adivinar, entradas ambiguas como `1.234`. No hay conversión de cambio ni soporte multi-moneda. La actualización de Room de v1 a v2 crea la configuración USD conservando los asientos y líneas existentes; si hay registros previos con otro código, se muestran con su código original y se excluyen de los totales USD, sin conversión. Solo se pueden contabilizar movimientos nuevos en USD. Es un prototipo, no un sistema contable de producción: faltan configuración fiscal, edición/reversiones y auditoría completa, backend, sincronización, reportes completos y validación profesional.
 
 ## Seguridad
 
