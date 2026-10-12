@@ -26,6 +26,7 @@ object UsdMoney {
             input.startsWith("$") -> input.substring(1).trim()
             else -> input
         }
+        if (input.startsWith('.') || input.startsWith(',')) input = "0$input"
         require(input.isNotEmpty()) { "Escribe un importe en USD." }
         require(!input.startsWith('-') && !input.startsWith('+')) { "El importe debe ser positivo." }
         require(input.none { it.isWhitespace() }) { "No uses espacios dentro del importe." }
