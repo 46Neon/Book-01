@@ -84,11 +84,17 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Reclaim runner space for emulator userdata
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /home/runner
+
       - name: Run on-device Room migration tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
           target: google_apis
           arch: x86_64
+          disk-size: 4G
           disable-animations: true
           script: gradle :app:connectedDebugAndroidTest
