@@ -12,7 +12,7 @@ Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La interfaz
 - Plan de cuentas en tabla: muestra todas las cuentas para conservar referencias históricas y permite agregar cuentas con código único, nombre, tipo y clasificación opcional como Caja/Banco.
 - Mayor por cuenta con filas cronológicas, debe/haber, saldo corrido D/H y totales del rango en USD; excluye borradores y no mezcla otras monedas.
 - Balance de comprobación por cuenta, con totales de débito/crédito, naturaleza D/H y verificación de equilibrio en USD.
-- Filtros opcionales inclusivos Desde/Hasta para el Mayor y el Balance; formato estricto AAAA-MM-DD, extremos vacíos sin límite e inversión/formato inválidos rechazados. El saldo corrido del Mayor comienza en cero dentro del rango filtrado.
+- Filtros opcionales inclusivos Desde/Hasta para el Mayor y el Balance; formato estricto AAAA-MM-DD, extremos vacíos sin límite e inversión/formato inválidos rechazados. El saldo inicial del Mayor incluye los movimientos anteriores a «Desde»; los débitos/créditos del periodo solo suman las filas filtradas.
 
 ## Todavía pendiente
 
