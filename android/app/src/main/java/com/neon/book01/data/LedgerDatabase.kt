@@ -23,7 +23,7 @@ data class AccountEntity(
     @ColumnInfo(defaultValue = "0") val cashOrBank: Boolean = false,
 )
 
-@Entity(tableName = "journal_entries")
+@Entity(tableName = "journal_entries", indices = [Index(value = ["reversalOfEntryId"], unique = true)])
 data class JournalEntryEntity(
     @PrimaryKey val id: String,
     val entryDate: String,
@@ -35,6 +35,7 @@ data class JournalEntryEntity(
     val amountMinor: Long,
     val status: String,
     val createdAt: String,
+    val reversalOfEntryId: String? = null,
 )
 
 @Entity(
@@ -77,9 +78,27 @@ data class BookSettingsEntity(
     val baseCurrency: String = "USD",
 )
 
+@Entity(
+    tableName = "audit_events",
+    foreignKeys = [
+        ForeignKey(entity = JournalEntryEntity::class, parentColumns = ["id"], childColumns = ["entryId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = JournalEntryEntity::class, parentColumns = ["id"], childColumns = ["relatedEntryId"], onDelete = ForeignKey.RESTRICT),
+    ],
+    indices = [Index("entryId"), Index("relatedEntryId")],
+)
+data class AuditEventEntity(
+    @PrimaryKey val id: String,
+    val entryId: String,
+    val eventType: String,
+    val occurredAt: String,
+    val eventDate: String,
+    val reason: String,
+    val relatedEntryId: String? = null,
+)
+
 @Database(
-    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class],
-    version = 3,
+    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class],
+    version = 4,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -108,6 +127,33 @@ abstract class LedgerDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `journal_entries` ADD COLUMN `reversalOfEntryId` TEXT")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_journal_entries_reversalOfEntryId` ON `journal_entries` (`reversalOfEntryId`)")
+                createAuditTable(database)
+                createAuditGuards(database)
+            }
+        }
+
+        private fun createAuditTable(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `audit_events` (" +
+                    "`id` TEXT NOT NULL, `entryId` TEXT NOT NULL, `eventType` TEXT NOT NULL, " +
+                    "`occurredAt` TEXT NOT NULL, `eventDate` TEXT NOT NULL, `reason` TEXT NOT NULL, " +
+                    "`relatedEntryId` TEXT, PRIMARY KEY(`id`), " +
+                    "FOREIGN KEY(`entryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, " +
+                    "FOREIGN KEY(`relatedEntryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT)",
+            )
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_events_entryId` ON `audit_events` (`entryId`)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_events_relatedEntryId` ON `audit_events` (`relatedEntryId`)")
+        }
+
+        private fun createAuditGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `audit_events_no_update` BEFORE UPDATE ON `audit_events` BEGIN SELECT RAISE(ABORT, 'audit_events is append-only'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `audit_events_no_delete` BEFORE DELETE ON `audit_events` BEGIN SELECT RAISE(ABORT, 'audit_events is append-only'); END")
+        }
+
         @Volatile
         private var instance: LedgerDatabase? = null
 
@@ -117,7 +163,12 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            createAuditGuards(db)
+                        }
+                    }).build().also { instance = it }
             }
     }
 }
