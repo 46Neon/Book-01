@@ -1,6 +1,6 @@
 # Android app
 
-Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicación conserva sus cinco pestañas (Diario, Mayor, Cuentas, Balance y Más); desde «Más» se accede a configuración, trazabilidad y estados financieros.
+Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicación conserva sus cinco pestañas (Diario, Mayor, Cuentas, Balance y Más); desde «Más» se accede a configuración, trazabilidad, estados financieros y exportación cifrada.
 
 ## Funciones del prototipo
 
@@ -13,10 +13,13 @@ Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicaci
 - Reversas como nuevos asientos con débitos/créditos exactamente opuestos, fecha y motivo, vínculo al asiento original y auditoría local append-only; no se permite reversar dos veces ni reversar una reversa.
 - Filtros de fecha estrictos `AAAA-MM-DD`, límites inclusivos y rechazo de fechas inválidas o rangos invertidos. Los movimientos de reversa afectan las cifras en su fecha efectiva de contabilización.
 - Migración Room aditiva v1→v6, incluida la instantánea histórica de nombres y metadatos inmutables de cierres. Un rango sin líneas P&L se guarda como cierre de metadatos sin asiento ficticio; el cierre inclusivo bloquea fechas y es irreversible en este prototipo: no hay reapertura ni reversa ordinaria del asiento de cierre.
+- Exportación offline de una instantánea consistente de Room v6 a un URI escogido por la persona mediante SAF/CreateDocument. El paquete incluye configuración, cuentas, asientos, líneas con instantáneas de nombres, auditorías y cierres; conserva IDs, relaciones y centavos `Long`. Usa un formato versionado con PBKDF2-HMAC-SHA-256 y AES-256-GCM, sal/nonce aleatorios nuevos por exportación, y frase introducida y confirmada en el momento.
 
 ## Límites y advertencia
 
-Es un prototipo local, no un sistema listo para producción ni una herramienta de asesoría o declaración fiscal. El cierre no habilita reapertura y es una implementación informativa básica, pendiente de revisión profesional. No se afirma cumplimiento contable, fiscal o legal en Venezuela ni en otra jurisdicción. Faltan borradores, usuarios/roles, backend/API de producción, sincronización, respaldo/restauración, importación/exportación, hardening y revisión profesional. GitHub Actions [run 38316535052](https://github.com/46Neon/Book-01/actions/runs/38316535052) ejecutó en emulador las 13 pruebas instrumentadas, incluida la migración Room v1→v6; todas pasaron. Esto es distinto de solo compilar las fuentes de Android-test y no sustituye revisión de producción.
+Es un prototipo local, no un sistema listo para producción ni una herramienta de asesoría o declaración fiscal. El cierre no habilita reapertura y es una implementación informativa básica, pendiente de revisión profesional. No se afirma cumplimiento contable, fiscal o legal en Venezuela ni en otra jurisdicción. Faltan borradores, usuarios/roles, backend/API de producción, sincronización, **importación/restauración**, hardening y revisión profesional. El exportador añadido no constituye una política de respaldo de producción: se requiere una revisión independiente de criptografía, manejo de frase/archivo, recuperación, retención y amenazas antes de cualquier uso real. Las frases perdidas no se pueden recuperar; guarda la frase aparte del archivo. La aplicación no sube ni comparte el archivo automáticamente; la ubicación la elige la persona.
+
+GitHub Actions [run 38316535052](https://github.com/46Neon/Book-01/actions/runs/38316535052) ejecutó en emulador las 13 pruebas instrumentadas, incluida la migración Room v1→v6; todas pasaron. Esto antecede al cambio de exportación. El exportador y sus nuevas pruebas todavía deben verificarse con pruebas unitarias, compilación de Android-test y ensamblado debug; no se afirma que estén verificados hasta completar esas comprobaciones y, preferiblemente, una prueba en dispositivo.
 
 USD se conserva como centavos enteros y se maneja con aritmética exacta, sin coma flotante ni conversión de monedas. Use datos ficticios en desarrollo; no guarde libros reales ni secretos en el repositorio.
 

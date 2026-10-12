@@ -2,7 +2,9 @@ package com.neon.book01
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -62,6 +64,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -80,6 +84,7 @@ import com.neon.book01.data.AuditEventEntity
 import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.PeriodCloseEntity
+import com.neon.book01.data.LedgerBackupCodec
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.AccountRules
@@ -166,6 +171,8 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var showReversalDialog by rememberSaveable { mutableStateOf(false) }
     var showAuditHistory by rememberSaveable { mutableStateOf(false) }
     var showFinancialStatements by rememberSaveable { mutableStateOf(false) }
+    var showBackupDialog by remember { mutableStateOf(false) }
+    var backupDestination by remember { mutableStateOf<android.net.Uri?>(null) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var auditEvents by remember { mutableStateOf<List<AuditEventEntity>>(emptyList()) }
     var accountAuditEvents by remember { mutableStateOf<List<AccountAuditEventEntity>>(emptyList()) }
@@ -174,6 +181,17 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var bookSettings by remember { mutableStateOf<BookSettingsEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val createBackupDocument = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/vnd.book01.encrypted-backup"),
+    ) { uri ->
+        if (uri == null) {
+            backupDestination = null
+        } else {
+            backupDestination = uri
+            showBackupDialog = true
+        }
+    }
 
     LaunchedEffect(repository) {
         repository.initializeBook()
@@ -298,6 +316,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         },
                         onOpenAudit = { showAuditHistory = true },
                         onOpenStatements = { showFinancialStatements = true },
+                        onOpenBackup = { createBackupDocument.launch("Book-01-backup-${LocalDate.now()}.b01") },
                     )
                 }
             } else {
@@ -352,6 +371,35 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             },
         )
     }
+    if (showBackupDialog) {
+        BackupPassphraseDialog(
+            onDismiss = {
+                showBackupDialog = false
+                val unusedTarget = backupDestination
+                backupDestination = null
+                if (unusedTarget != null) {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        runCatching { android.provider.DocumentsContract.deleteDocument(context.contentResolver, unusedTarget) }
+                    }
+                }
+            },
+            onCreate = { passphrase ->
+                val destination = backupDestination ?: throw IllegalStateException("Elige primero una ubicación para la copia.")
+                withContext(Dispatchers.IO) {
+                    val encrypted = LedgerBackupCodec.encrypt(repository.createBackupSnapshot(), passphrase)
+                    try {
+                        val output = context.contentResolver.openOutputStream(destination, "w")
+                            ?: throw IllegalStateException("No se pudo abrir la ubicación elegida.")
+                        output.use { it.write(encrypted) }
+                    } finally {
+                        encrypted.fill(0)
+                    }
+                }
+                backupDestination = null
+                snackbarHostState.showSnackbar("Copia cifrada guardada en la ubicación elegida.")
+            },
+        )
+    }
     if (showReversalDialog) {
         val reversedEntryIds = entries.mapNotNull { it.entry.reversalOfEntryId }.toSet()
         val eligibleEntries = entries.filter {
@@ -368,6 +416,82 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             },
         )
     }
+}
+
+@Composable
+private fun BackupPassphraseDialog(
+    onDismiss: () -> Unit,
+    onCreate: suspend (CharArray) -> Unit,
+) {
+    var passphrase by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text("Exportar copia cifrada") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text(
+                    "Se exportará una instantánea completa, incluidos asientos, cuentas, auditorías y cierres. Elige dónde guardarla en el siguiente paso. No se carga ni comparte automáticamente.",
+                    color = BookMuted,
+                    fontSize = 12.sp,
+                )
+                Text(
+                    "Usa una frase larga (mínimo 12 caracteres), confirma que la recuerdas y guárdala aparte: no se almacena ni se puede recuperar. La restauración todavía no está disponible.",
+                    color = BookInk,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+                OutlinedTextField(
+                    value = passphrase,
+                    onValueChange = { if (it.length <= 1024) { passphrase = it; errorMessage = null } },
+                    label = { Text("Frase de cifrado") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = confirmation,
+                    onValueChange = { if (it.length <= 1024) { confirmation = it; errorMessage = null } },
+                    label = { Text("Confirma la frase") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !saving && passphrase.length >= 12 && passphrase == confirmation,
+                onClick = {
+                    val secret = passphrase.toCharArray()
+                    scope.launch {
+                        saving = true
+                        try {
+                            onCreate(secret)
+                            passphrase = ""
+                            confirmation = ""
+                            onDismiss()
+                        } catch (error: Exception) {
+                            errorMessage = error.message ?: "No se pudo preparar la copia cifrada."
+                        } finally {
+                            secret.fill('\u0000')
+                            saving = false
+                        }
+                    }
+                },
+            ) { Text(if (saving) "Preparando…" else "Continuar") }
+        },
+        dismissButton = {
+            TextButton(enabled = !saving, onClick = onDismiss) { Text("Cancelar") }
+        },
+    )
 }
 
 @Composable
@@ -1686,6 +1810,7 @@ private fun BookSettingsScreen(
     onSaveName: suspend (String) -> Unit,
     onOpenAudit: () -> Unit,
     onOpenStatements: () -> Unit,
+    onOpenBackup: () -> Unit,
 ) {
     var nameInput by rememberSaveable(bookName) { mutableStateOf(bookName) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -1737,6 +1862,17 @@ private fun BookSettingsScreen(
                     color = BookMuted,
                     fontSize = 12.sp,
                 )
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Copia de seguridad cifrada", color = BookInk, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Exporta una instantánea completa del libro cifrada. Se guardará solo donde tú elijas; no se sube ni comparte automáticamente. La frase no se almacena y no se puede recuperar. Importación/restauración aún no disponible.",
+                    color = BookMuted,
+                    fontSize = 12.sp,
+                )
+                TextButton(onClick = onOpenBackup) { Text("Exportar copia cifrada") }
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {

@@ -18,6 +18,15 @@ interface LedgerDao {
     @Transaction
     suspend fun getAllEntries(): List<EntryWithLines>
 
+    @Query("SELECT * FROM audit_events ORDER BY id")
+    suspend fun getAllAuditEvents(): List<AuditEventEntity>
+
+    @Query("SELECT * FROM account_audit_events ORDER BY id")
+    suspend fun getAllAccountAuditEvents(): List<AccountAuditEventEntity>
+
+    @Query("SELECT * FROM period_closes ORDER BY id")
+    suspend fun getAllPeriodCloses(): List<PeriodCloseEntity>
+
     @Query("SELECT * FROM audit_events ORDER BY occurredAt DESC")
     fun observeAuditEvents(): Flow<List<AuditEventEntity>>
 

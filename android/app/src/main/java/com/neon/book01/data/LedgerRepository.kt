@@ -29,6 +29,20 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     suspend fun getPeriodCloses(): List<PeriodCloseEntity> = dao.getPeriodCloses()
 
+    /** Collect every table under one Room transaction so the encrypted file is a coherent snapshot. */
+    suspend fun createBackupSnapshot(): LedgerBackupSnapshot = database.withTransaction {
+        val entriesWithLines = dao.getAllEntries()
+        LedgerBackupSnapshot(
+            bookSettings = dao.getBookSettings(),
+            accounts = dao.getAllAccounts(),
+            journalEntries = entriesWithLines.map { it.entry },
+            journalLines = entriesWithLines.flatMap { it.lines },
+            auditEvents = dao.getAllAuditEvents(),
+            accountAuditEvents = dao.getAllAccountAuditEvents(),
+            periodCloses = dao.getAllPeriodCloses(),
+        )
+    }
+
     fun observeAccounts(): Flow<List<AccountEntity>> = dao.observeAccounts()
 
     fun observeBookSettings(): Flow<BookSettingsEntity?> = dao.observeBookSettings()
