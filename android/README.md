@@ -20,7 +20,7 @@ El prototipo usa un plan de cuentas de demostración y moneda USD fija. Aún no 
 Requisitos: JDK 17, Android SDK con API 36 y Gradle 8.13. Desde la raíz del repositorio:
 
 ```sh
-gradle :app:assembleDebug
+gradle :app:testDebugUnitTest :app:assembleDebug
 ```
 
 La compilación de GitHub Actions genera el APK de depuración como artefacto.
