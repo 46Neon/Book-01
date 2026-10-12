@@ -26,7 +26,9 @@ object AccountingRules {
     ): List<PostingLine> {
         require(description.isNotBlank()) { "Escribe una descripción." }
         require(amountMinor > 0) { "El importe debe ser mayor que cero." }
-        require(currencyCode.isNotBlank()) { "Selecciona la moneda del libro." }
+        require(currencyCode == UsdMoney.CURRENCY_CODE) {
+            "Esta versión registra únicamente en dólares estadounidenses (USD)."
+        }
         require(paymentAccountType == "ASSET") { "Selecciona una cuenta de caja o banco." }
         require(
             (kind == EntryKind.EXPENSE && categoryAccountType == "EXPENSE") ||
@@ -50,6 +52,9 @@ object AccountingRules {
     fun requireBalanced(lines: List<PostingLine>) {
         require(lines.isNotEmpty()) { "El asiento debe tener al menos una línea." }
         require(lines.all { it.debitMinor >= 0 && it.creditMinor >= 0 }) { "Los importes no pueden ser negativos." }
+        require(lines.all { it.currencyCode == UsdMoney.CURRENCY_CODE }) {
+            "Esta versión admite únicamente líneas en USD."
+        }
         require(lines.all { (it.debitMinor == 0L) xor (it.creditMinor == 0L) }) {
             "Cada línea debe ser débito o crédito, no ambos."
         }

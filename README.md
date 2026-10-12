@@ -12,7 +12,6 @@ La Parte 1 expondrá una API documentada para que el chatbot consulte y proponga
 
 - Pestañas de Diario, Mayor, Cuentas, Balance y Resultados.
 - Filas, columnas, encabezados, totales y navegación inspirados en hojas de cálculo.
-- Plan de cuentas tipo hoja de cálculo con alta de cuentas; los códigos y tipos se mantienen para proteger el histórico.
 - Balance de comprobación local por cuenta en USD; confirma que débitos y créditos totales cuadren.
 - Presentación adaptada a teléfono y tablet.
 - Captura local y, más adelante, sincronización segura.
@@ -27,7 +26,7 @@ La Parte 1 expondrá una API documentada para que el chatbot consulte y proponga
 
 ## Estado actual
 
-La APK permite registrar localmente ingresos y gastos sencillos, agregar cuentas al plan y consultar el balance de comprobación. El libro inicial trabaja en USD: los importes se almacenan como centavos enteros (`Long`), se analizan con `BigDecimal` (sin `Double`) y se muestran como `US$` con dos decimales. Acepta formatos estadounidense y español inequívocos y rechaza entradas ambiguas. No convierte ni mezcla monedas. Las migraciones Room v1→v2→v3 conservan asientos y cuentas y añaden la configuración USD y la clasificación de Caja/Banco. Sigue siendo un prototipo: faltan Mayor completo, edición/reversas y auditoría, backend/API, sincronización, reportes completos y validación profesional; no usar todavía para libros reales.
+La APK de depuración muestra el Diario, el Plan de cuentas en cuadrícula y el Balance de comprobación local; permite guardar ingresos y gastos sencillos, generando dos líneas balanceadas. Se pueden agregar cuentas con código, nombre y clasificación. El libro inicial trabaja únicamente en USD: los importes se almacenan como centavos enteros (`Long`), el análisis decimal es exacto con `BigDecimal` (sin `Double`), y se presentan con la etiqueta `US$` y dos decimales. Acepta formatos estadounidense y español inequívocos; rechaza entradas ambiguas como `1.234`. No hay conversión ni soporte multi-moneda. Room migra v1→v2→v3 de forma aditiva: configura USD, agrega el indicador Caja/Banco y conserva las cuentas y los asientos; marca las cuentas iniciales 1000/1010 como Caja/Banco. Las cuentas son add-only por ahora: no se pueden renombrar, reclasificar, desactivar ni borrar, y el histórico no se sobrescribe. Los registros heredados con otro código de moneda permanecen en su moneda original, no se convierten y se excluyen de los totales USD; solo se pueden contabilizar movimientos nuevos en USD. Es un prototipo, no un sistema contable de producción: faltan configuración fiscal, borradores, reversas y auditoría completa, backend/API, sincronización, Mayor y estados financieros completos, controles de periodo, importación/exportación, copias de seguridad y validación profesional.
 
 ## Seguridad
 

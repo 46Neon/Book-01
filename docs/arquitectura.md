@@ -36,7 +36,9 @@ El bloque de chatbot/MCP se muestra solo para definir el límite de integración
 - `audit_events`: actor, acción, objeto, momento, resultado y referencia de corrección.
 - `sync_outbox`: operaciones pendientes con clave idempotente y estado de sincronización.
 
-Usar identificadores estables. En Android, los importes USD se guardan como centavos enteros (`Long`) y se convierten/validan con `BigDecimal`; en la API se transmitirán como decimal exacto junto con código ISO de moneda. Nunca usar coma flotante binaria para cálculos monetarios. La versión inicial del libro fija USD como moneda funcional y no convierte ni mezcla monedas; agregar otra moneda requerirá precisión, reglas de cambio y migraciones explícitas.
+Usar identificadores estables. En Android, los importes USD se guardan como centavos enteros (`Long`) y el texto se analiza con semántica decimal exacta (`BigDecimal`), sin coma flotante binaria. La presentación usa la etiqueta explícita `US$` y dos decimales; las formas numéricas ambiguas se rechazan, no se interpretan por inferencia. En la API futura se transmitirán valores decimales exactos junto con el código ISO de moneda. La versión inicial del libro admite únicamente USD: no convierte ni mezcla monedas. Agregar otra moneda requerirá precisión, reglas de cambio y migraciones explícitas.
+
+La base local Room está en versión 3. La migración 1→2 crea `book_settings` con el libro inicial en USD; la migración 2→3 agrega `cashOrBank` a las cuentas y marca los códigos iniciales `1000` (Caja) y `1010` (Banco). Ambas son aditivas y conservan las cuentas, asientos y líneas ya almacenados. El catálogo actual permite agregar cuentas y las expone también cuando están inactivas para resolver el historial; no permite editar ni borrar cuentas. Las pantallas de captura solo ofrecen categorías activas y cuentas activas marcadas Caja/Banco. Si quedan registros heredados con otro código de moneda, la UI los muestra con el código original y los excluye de los totales USD; no los convierte. Solo se admiten nuevos asientos en USD.
 
 ## Sincronización
 

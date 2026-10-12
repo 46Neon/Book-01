@@ -10,10 +10,10 @@
 - Formulario local para ingreso o gasto simple: descripción, importe, fecha, categoría y cuenta de efectivo/banco.
 - La capa de dominio genera las dos líneas contables, valida el tipo de cuenta y comprueba débito = crédito.
 - La escritura del asiento y sus líneas se realiza en una transacción local.
-- Reglas contables y de altas de cuentas separadas en el dominio, con pruebas unitarias para partida doble, tipos/códigos de cuenta, balance y precisión/formato USD.
+- Reglas contables separadas en el dominio y pruebas unitarias para ingreso, gasto, cuenta incompatible, balance y parseo/formato USD.
 - Moneda funcional del libro persistida como USD en Room, con migraciones 1→2→3 que conservan los asientos y cuentas existentes.
 - Importes USD representados como centavos enteros (`Long`), analizados con `BigDecimal` exacto y sin coma flotante binaria; salida rotulada `US$` con dos decimales. Admite formas inequívocas estadounidense y española; rechaza más de dos decimales y entradas ambiguas en vez de adivinarlas.
-- Migraciones Room 1→2→3 agregan configuración USD y el indicador de cuentas de Caja/Banco sin borrar asientos ni líneas; las cuentas 1000/1010 existentes quedan marcadas para cobros/pagos.
+- Migraciones Room 1→2→3 agregan configuración USD y el indicador de cuentas de Caja/Banco sin borrar asientos ni líneas; las cuentas 1000/1010 existentes quedan marcadas para cobros/pagos. Hay una prueba instrumentada de migración v1→v3 que comprueba la conservación de registros y ambas marcas, pero todavía requiere una ejecución exitosa en emulador.
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
 - Balance de comprobación local por cuenta: débitos/créditos exactos, naturaleza de saldo D/H y comprobación de que el total cuadra; rechaza mezclar monedas en el reporte USD.
 - GitHub Actions compila el APK de depuración.

@@ -1,30 +1,27 @@
 # Android app
 
-Módulo Android de Book-01 en Kotlin + Jetpack Compose. La interfaz conserva una organización familiar de hoja de cálculo —pestañas, tablas, encabezados, filtros y totales— adaptada a pantallas móviles.
+Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La interfaz usa pestañas, tablas, encabezados, filtros visuales y totales para conservar la familiaridad de una hoja de cálculo, adaptándola a pantallas móviles.
 
 ## Ya funciona en el prototipo
 
-- Diario con líneas de asiento separadas y alta de ingresos/gastos simples.
-- Plan de cuentas tipo tabla y creación de cuentas con código, nombre, tipo y marca opcional para Caja/Banco.
-- Validación de datos y generación de débitos/créditos balanceados.
-- Persistencia local en Room/SQLite.
-- Balance de comprobación por cuenta, con débitos, créditos, naturaleza D/H y verificación de equilibrio en USD.
-- Totales de ingresos, gastos y neto, calculados en centavos.
+- Pantalla Diario con filas de asiento en dos líneas contables y totales locales.
+- Alta de ingreso o gasto sencillo mediante formulario.
+- Validación de descripción, fecha, importe positivo y precisión de dos decimales.
+- Generación automática de débito/crédito balanceados para ingreso o gasto pagado/cobrado en cuentas activas marcadas Caja/Banco.
+- Persistencia local en Room/SQLite, con migraciones aditivas hasta versión 3.
+- Plan de cuentas en tabla: muestra todas las cuentas para conservar referencias históricas y permite agregar cuentas con código único, nombre, tipo y clasificación opcional como Caja/Banco.
+- Balance de comprobación por cuenta, con totales de débito/crédito, naturaleza D/H y verificación de equilibrio en USD.
 
-## Manejo de USD y límites
+## Todavía pendiente
 
-El libro inicial usa USD como moneda funcional. Los importes se almacenan en centavos enteros (`Long`) y se analizan con `BigDecimal`, nunca con coma flotante binaria. Se muestran como `US$` con dos decimales. Se aceptan formatos inequívocos estadounidense y español; los valores ambiguos o con más de dos decimales se rechazan. No se convierten ni se mezclan monedas.
-
-Las migraciones Room 1→2→3 conservan los asientos y las cuentas existentes y marcan Caja/Banco para registros nuevos. Las cuentas existentes no se pueden borrar ni cambiar de código/tipo; todavía faltan edición controlada y desactivación.
-
-Aún faltan libro mayor completo, reversas e historial de auditoría, configuración fiscal, cierres, conciliación, exportación, sincronización, backend/API y validación profesional. No usar esta versión para libros reales.
+El prototipo usa un plan de cuentas inicial ampliable y admite únicamente USD como moneda funcional. Los importes se guardan como centavos enteros (`Long`) y se analizan con semántica decimal exacta mediante `BigDecimal`, nunca con coma flotante binaria. La salida siempre se etiqueta `US$` y muestra dos decimales. Acepta `1,234.56`, `1.234,56`, `28,50` y `USD 28.50`; rechaza formatos ambiguos como `1.234` en vez de adivinar el valor. No hay conversión de cambio ni mezcla de monedas. Las migraciones Room 1→2→3 agregan la configuración USD y la clasificación Caja/Banco, preservando los datos existentes y marcando los códigos iniciales 1000 y 1010. Las cuentas nuevas son aditivas; nombres y tipos no se editan y no hay baja de cuentas todavía. Los asientos v1 con otra moneda conservan su código, no se convierten y se excluyen de los totales USD; no se pueden crear asientos nuevos en otra moneda. Aún faltan configuración fiscal, flujo de borrador, reversas y auditoría completa, cierres, conciliación, exportación, sincronización, backend/API, Mayor y estados financieros completos, localización profesional y validación de especialistas. No usar para libros reales.
 
 ## Compilar
 
-Requisitos: JDK 17, Android SDK API 36 y Gradle 8.13. Desde la raíz:
+Requisitos: JDK 17, Android SDK con API 36 y Gradle 8.13. Desde la raíz del repositorio:
 
 ```sh
 gradle :app:testDebugUnitTest :app:assembleDebug
 ```
 
-GitHub Actions publica el APK de depuración como artefacto. La prueba de migración en emulador se ejecuta manualmente.
+La compilación de GitHub Actions genera el APK de depuración como artefacto.

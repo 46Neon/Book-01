@@ -33,6 +33,7 @@ class LedgerMigrationTest {
             assertEquals(100L, db.longValue("SELECT amountMinor FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals("USD", db.stringValue("SELECT currencyCode FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1000'"))
+            assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1010'"))
             assertEquals(0L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '4000'"))
         } finally {
             upgraded.close()
@@ -61,6 +62,7 @@ class LedgerMigrationTest {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_journal_lines_entryId ON journal_lines(entryId)")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_journal_lines_accountCode ON journal_lines(accountCode)")
             db.execSQL("INSERT INTO accounts VALUES ('1000', 'Caja', 'ASSET', 1)")
+            db.execSQL("INSERT INTO accounts VALUES ('1010', 'Banco', 'ASSET', 1)")
             db.execSQL("INSERT INTO accounts VALUES ('4000', 'Ingresos', 'INCOME', 1)")
             db.execSQL("INSERT INTO journal_entries VALUES ('entry-v1', '2026-01-01', 'Ingreso de prueba', 'INCOME', '4000', '1000', 'USD', 100, 'POSTED', '2026-01-01T00:00:00Z')")
             db.execSQL("INSERT INTO journal_lines VALUES ('line-1', 'entry-v1', '1000', 100, 0, 'USD')")
