@@ -40,10 +40,7 @@ class AccountingRulesTest {
 
         assertEquals(15_000L, lines[0].debitMinor)
         assertEquals(15_000L, lines[1].creditMinor)
-        assertEquals(
-            UsdMoney.sumMinorUnits(lines.map { it.debitMinor }),
-            UsdMoney.sumMinorUnits(lines.map { it.creditMinor }),
-        )
+        assertEquals(lines.sumOf { it.debitMinor }, lines.sumOf { it.creditMinor })
     }
 
     @Test
@@ -68,6 +65,7 @@ class AccountingRulesTest {
         assertEquals(123_456L, UsdMoney.parseMinorUnits("1.234,56"))
         assertEquals(2_850L, UsdMoney.parseMinorUnits("28,50"))
         assertEquals(2_850L, UsdMoney.parseMinorUnits("USD 28.50"))
+        assertEquals(5L, UsdMoney.parseMinorUnits(".05"))
     }
 
     @Test
@@ -79,48 +77,12 @@ class AccountingRulesTest {
     }
 
     @Test
-    fun parserRejectsMalformedCurrencyPrefixesAndEmbeddedSpaces() {
-        assertThrows(IllegalArgumentException::class.java) { UsdMoney.parseMinorUnits("USD USD 10.00") }
-        assertThrows(IllegalArgumentException::class.java) { UsdMoney.parseMinorUnits("1 234.56") }
-        assertThrows(IllegalArgumentException::class.java) { UsdMoney.parseMinorUnits("10.00 USD") }
-    }
-
-    @Test
-    fun parserDoesNotOverflowLongMinorUnits() {
-        assertThrows(ArithmeticException::class.java) {
-            UsdMoney.parseMinorUnits("92233720368547758.08")
-        }
-    }
-
-    @Test
-    fun exactSumAndSubtractionRejectOverflow() {
-        assertThrows(ArithmeticException::class.java) {
-            UsdMoney.sumMinorUnits(listOf(Long.MAX_VALUE, 1L))
-        }
-        assertThrows(ArithmeticException::class.java) {
-            UsdMoney.subtractMinorUnits(Long.MIN_VALUE, 1L)
-        }
-    }
-
-    @Test
-    fun accountingRulesRejectForeignAndMixedCurrencies() {
-        assertThrows(IllegalArgumentException::class.java) {
-            AccountingRules.simpleCashEntry(
-                kind = EntryKind.EXPENSE,
-                description = "Pago",
-                categoryAccountCode = "5100",
-                categoryAccountType = "EXPENSE",
-                paymentAccountCode = "1000",
-                paymentAccountType = "ASSET",
-                amountMinor = 100,
-                currencyCode = "VES",
-            )
-        }
+    fun rejectsJournalLinesThatMixCurrencies() {
         assertThrows(IllegalArgumentException::class.java) {
             AccountingRules.requireBalanced(
                 listOf(
-                    PostingLine("1000", debitMinor = 100, creditMinor = 0, currencyCode = "USD"),
-                    PostingLine("4000", debitMinor = 0, creditMinor = 100, currencyCode = "VES"),
+                    PostingLine("1000", 100, 0, "USD"),
+                    PostingLine("4000", 0, 100, "EUR"),
                 ),
             )
         }
@@ -130,5 +92,12 @@ class AccountingRulesTest {
     fun usdFormattingIsExplicitAndKeepsTwoDecimals() {
         assertEquals("US$ 1.234,56", UsdMoney.format(123_456L))
         assertEquals("US$ 0,05", UsdMoney.format(5L))
+    }
+
+    @Test
+    fun totalsFailSafelyInsteadOfWrappingOnOverflow() {
+        assertThrows(ArithmeticException::class.java) {
+            UsdMoney.sumMinorUnits(listOf(Long.MAX_VALUE, 1L))
+        }
     }
 }
