@@ -1,6 +1,7 @@
 package com.neon.book01.data
 
 import androidx.room.withTransaction
+import com.neon.book01.domain.AccountRules
 import com.neon.book01.domain.AccountingRules
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.UsdMoney
@@ -20,8 +21,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
     suspend fun initializeBook() {
         dao.insertAccounts(
             listOf(
-                AccountEntity(code = "1000", name = "Caja", type = "ASSET"),
-                AccountEntity(code = "1010", name = "Banco", type = "ASSET"),
+                AccountEntity(code = "1000", name = "Caja", type = "ASSET", cashOrBank = true),
+                AccountEntity(code = "1010", name = "Banco", type = "ASSET", cashOrBank = true),
                 AccountEntity(code = "2000", name = "Cuentas por pagar", type = "LIABILITY"),
                 AccountEntity(code = "3000", name = "Capital", type = "EQUITY"),
                 AccountEntity(code = "4000", name = "Ingresos", type = "INCOME"),
@@ -44,6 +45,20 @@ class LedgerRepository(private val database: LedgerDatabase) {
         }
     }
 
+    suspend fun createAccount(code: String, name: String, type: String, cashOrBank: Boolean) {
+        val validated = AccountRules.validate(code, name, type, cashOrBank)
+        require(dao.getAccount(validated.code) == null) { "Ya existe una cuenta con ese código." }
+        dao.insertAccount(
+            AccountEntity(
+                code = validated.code,
+                name = validated.name,
+                type = validated.type,
+                active = true,
+                cashOrBank = validated.cashOrBank,
+            ),
+        )
+    }
+
     suspend fun recordSimpleEntry(
         dateIso: String,
         description: String,
@@ -60,6 +75,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
             ?: throw IllegalArgumentException("La categoría seleccionada no existe.")
         val payment = dao.getAccount(paymentAccountCode)
             ?: throw IllegalArgumentException("La cuenta de pago seleccionada no existe.")
+        require(category.active) { "No se pueden registrar movimientos en una cuenta inactiva." }
+        require(payment.active && payment.cashOrBank) { "Selecciona una cuenta activa de Caja o Banco." }
 
         val entryId = UUID.randomUUID().toString()
         val postingLines = AccountingRules.simpleCashEntry(
