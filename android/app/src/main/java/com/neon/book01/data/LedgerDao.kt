@@ -14,7 +14,7 @@ interface LedgerDao {
     @Transaction
     fun observeEntries(): Flow<List<EntryWithLines>>
 
-    @Query("SELECT * FROM accounts WHERE active = 1 ORDER BY code")
+    @Query("SELECT * FROM accounts ORDER BY code")
     fun observeAccounts(): Flow<List<AccountEntity>>
 
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
@@ -22,6 +22,9 @@ interface LedgerDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAccounts(accounts: List<AccountEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAccount(account: AccountEntity)
 
     @Query("SELECT * FROM book_settings WHERE id = 1 LIMIT 1")
     fun observeBookSettings(): Flow<BookSettingsEntity?>
