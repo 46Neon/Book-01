@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.neon.book01.domain.AccountRules
 import com.neon.book01.domain.AccountingRules
 import com.neon.book01.domain.EntryKind
+import com.neon.book01.domain.ReversalRules
 import com.neon.book01.domain.UsdMoney
 import java.time.Instant
 import java.util.UUID
@@ -13,6 +14,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
     private val dao = database.ledgerDao()
 
     fun observeEntries(): Flow<List<EntryWithLines>> = dao.observeEntries()
+
+    fun observeAuditEvents(): Flow<List<AuditEventEntity>> = dao.observeAuditEvents()
 
     fun observeAccounts(): Flow<List<AccountEntity>> = dao.observeAccounts()
 
@@ -116,6 +119,83 @@ class LedgerRepository(private val database: LedgerDatabase) {
         database.withTransaction {
             dao.insertEntry(entry)
             dao.insertLines(lines)
+            dao.insertAuditEvent(
+                AuditEventEntity(
+                    id = UUID.randomUUID().toString(),
+                    entryId = entryId,
+                    eventType = "POSTED",
+                    occurredAt = Instant.now().toString(),
+                    eventDate = dateIso,
+                    reason = "Registro inicial del asiento.",
+                ),
+            )
+        }
+    }
+
+    /** Add an exact counter-entry; the immutable original is never changed. */
+    suspend fun reversePostedEntry(originalEntryId: String, reversalDateIso: String, reason: String): String {
+        ReversalRules.validateRequest(reversalDateIso, reason)
+        val normalizedReason = reason.trim()
+        return database.withTransaction {
+            val original = dao.getEntry(originalEntryId)
+                ?: throw IllegalArgumentException("No se encontró el asiento original.")
+            ReversalRules.requireEligible(
+                status = original.status,
+                reversalOfEntryId = original.reversalOfEntryId,
+                alreadyReversed = dao.hasReversal(originalEntryId),
+            )
+            val sourceLines = dao.getLines(originalEntryId)
+            require(sourceLines.isNotEmpty()) { "El asiento original no tiene líneas para reversar." }
+            val inverseLines = ReversalRules.inverseLines(
+                sourceLines.map { ReversalRules.JournalLine(it.accountCode, it.debitMinor, it.creditMinor, it.currencyCode) },
+            )
+            val reversalId = UUID.randomUUID().toString()
+            val now = Instant.now().toString()
+            val reversalEntry = original.copy(
+                id = reversalId,
+                entryDate = reversalDateIso,
+                description = "Reversa de ${original.id}: $normalizedReason",
+                kind = "REVERSAL",
+                status = "POSTED",
+                createdAt = now,
+                reversalOfEntryId = original.id,
+            )
+            dao.insertEntry(reversalEntry)
+            dao.insertLines(
+                inverseLines.map { line ->
+                    JournalLineEntity(
+                        id = UUID.randomUUID().toString(),
+                        entryId = reversalId,
+                        accountCode = line.accountCode,
+                        debitMinor = line.debitMinor,
+                        creditMinor = line.creditMinor,
+                        currencyCode = line.currencyCode,
+                    )
+                },
+            )
+            dao.insertAuditEvent(
+                AuditEventEntity(
+                    id = UUID.randomUUID().toString(),
+                    entryId = reversalId,
+                    eventType = "REVERSAL_POSTED",
+                    occurredAt = now,
+                    eventDate = reversalDateIso,
+                    reason = normalizedReason,
+                    relatedEntryId = original.id,
+                ),
+            )
+            dao.insertAuditEvent(
+                AuditEventEntity(
+                    id = UUID.randomUUID().toString(),
+                    entryId = original.id,
+                    eventType = "REVERSED",
+                    occurredAt = now,
+                    eventDate = reversalDateIso,
+                    reason = normalizedReason,
+                    relatedEntryId = reversalId,
+                ),
+            )
+            reversalId
         }
     }
 }
