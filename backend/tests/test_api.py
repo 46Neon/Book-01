@@ -42,6 +42,14 @@ def json_response(payload, status=200, headers=None):
     return httpx.Response(status, json=payload, headers=headers)
 
 
+def test_healthz_is_liveness_only_and_does_not_call_supabase(monkeypatch):
+    client, calls = client_for(monkeypatch, lambda request: pytest.fail("health check must not reach Supabase"))
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == []
+
+
 def test_requires_bearer_before_any_upstream_request(monkeypatch):
     def responder(request):
         return json_response([])

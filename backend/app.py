@@ -205,6 +205,11 @@ def create_app() -> FastAPI:
         description="Proposed read-only contract for Part 2A. Draft for owner/backend review; not yet the repository's canonical API and not a substitute for server implementation.",
     )
 
+    @app.get("/healthz", include_in_schema=False)
+    async def healthz() -> dict[str, str]:
+        """Liveness check only; it does not expose or probe Supabase configuration."""
+        return {"status": "ok"}
+
     @app.exception_handler(HTTPException)
     async def handle_http_error(_request: Request, exc: HTTPException) -> JSONResponse:
         content = exc.detail if isinstance(exc.detail, dict) else error("request_error", str(exc.detail))

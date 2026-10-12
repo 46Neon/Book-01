@@ -8,7 +8,7 @@ This is a **testable, non-production scaffold** for the server-side conversation
 - `getTrialBalance` → `GET /books/{bookId}/reports/trial-balance`
 - `getIncomeStatement` → `GET /books/{bookId}/reports/income-statement`
 
-There is no SQL interface, arbitrary URL access, write operation, confirmation tool, or runtime mock accounting data. The service injects `bookId` from the authenticated request context into the accounting API URL; it is not a model argument. The caller's bearer token is sent only to the accounting API, which must perform the definitive user/book authorization check. The Groq key is server-side configuration only. Redirects are disabled so an accounting bearer is not forwarded across redirects.
+There is no SQL interface, arbitrary URL access, write operation, confirmation tool, or runtime mock accounting data. The request supplies `bookId`; it is not a model argument. Before sending the prompt to Groq, the service performs a small read-only account-list request with the caller's bearer token and that book ID. The accounting API validates the token and book membership and returns 401/403/404 before any model call if access is denied. The same bearer is sent only to the accounting API, never to Groq. The Groq key is server-side configuration only. Redirects are disabled so an accounting bearer is not forwarded across redirects.
 
 ## Current limitations and required Part 1 dependencies
 
@@ -65,3 +65,18 @@ python -m pytest
 ```
 
 Tests use only `httpx.MockTransport` and synthetic fixtures; they do not connect to Groq or an accounting backend. They cover authentication, upstream authorization denials, date/currency/argument validation, supported tools, scope injection, timeouts, malformed tool calls, and credential non-disclosure. These tests verify the scaffold, not the real Part 1 contract or production authorization.
+
+## Imagen de contenedor (sin despliegue)
+
+La imagen `Dockerfile` corre como usuario sin privilegios en el puerto `8080`; `/healthz` es solo una comprobación de vida del proceso. No incluye claves ni inicia llamadas a Groq al construir o arrancar.
+
+```sh
+docker build -t book01-chat-service:local part2/service
+docker run --rm -p 8080:8080 \\
+  -e ACCOUNTING_API_BASE_URL='https://<host>/api/v1' \\
+  -e GROQ_API_KEY='<configure en el gestor de secretos del host>' \\
+  -e SUPPORTED_CURRENCIES='USD' \\
+  book01-chat-service:local
+```
+
+Configura `GROQ_API_KEY` únicamente en el gestor seguro del entorno de ejecución después de aprobar el procesamiento con Groq. Nunca subas un `.env`; no uses `SUPABASE_SERVICE_ROLE_KEY` en este servicio. Esta guía no despliega la imagen ni configura HTTPS, CORS, inicio de sesión o un dominio.

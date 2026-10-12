@@ -57,3 +57,17 @@ python -m pytest backend/tests
 ```
 
 La suite usa `httpx.MockTransport`, no conecta a Supabase y no requiere credenciales: prueba bearer, aislamiento de libro, errores tipados/redacción, filtros/rangos inclusivos, USD, formas de contrato y cálculos exactos. Las pruebas de despliegue de JWT/RLS y el contrato real contra Supabase quedan pendientes.
+
+## Imagen de contenedor (sin despliegue)
+
+`Dockerfile` genera una imagen de runtime mínima, corre como usuario sin privilegios y escucha en el puerto `8080`. Incluye `/healthz` como liveness check; esa ruta solo indica que el proceso responde y no revela configuración ni confirma conexión con Supabase.
+
+```sh
+docker build -t book01-accounting-api:local backend
+docker run --rm -p 8080:8080 \\
+  -e SUPABASE_URL='https://<project-ref>.supabase.co' \\
+  -e SUPABASE_PUBLISHABLE_KEY='<publishable-key>' \\
+  book01-accounting-api:local
+```
+
+El contenedor no contiene secretos y no ejecuta migraciones. En un despliegue real, HTTPS debe terminar en un proxy/plataforma confiable; configura las variables desde su gestor seguro y no habilites una clave `service_role` para solicitudes de usuario.

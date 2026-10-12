@@ -1,0 +1,27 @@
+name: Build runtime containers
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'part2/service/**'
+      - '.github/workflows/container-images.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'part2/service/**'
+      - '.github/workflows/container-images.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build accounting API image (no push)
+        run: docker build --file backend/Dockerfile --tag book01-accounting-api:test backend
+      - name: Build conversational service image (no push)
+        run: docker build --file part2/service/Dockerfile --tag book01-chat-service:test part2/service
