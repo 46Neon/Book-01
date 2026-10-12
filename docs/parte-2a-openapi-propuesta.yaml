@@ -1,0 +1,392 @@
+openapi: 3.1.0
+info:
+  title: Book-01 Accounting Read API (proposal)
+  version: 0.1.0-draft
+  description: >-
+    Proposed read-only contract for Part 2A. Draft for owner/backend review;
+    not yet the repository's canonical API and not a substitute for server implementation.
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: api.example.invalid
+security:
+  - bearerAuth: []
+tags:
+  - name: Accounts
+  - name: Journal
+  - name: Reports
+paths:
+  /books/{bookId}/accounts:
+    get:
+      tags: [Accounts]
+      operationId: listBookAccounts
+      summary: List accounts visible in the selected book
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+        - name: activeOnly
+          in: query
+          schema: { type: boolean, default: true }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Authorized account page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Account' }
+                  nextCursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /books/{bookId}/journal-entries:
+    get:
+      tags: [Journal]
+      operationId: listJournalEntries
+      summary: List posted or draft journal entries with their lines
+      description: >-
+        Date range is mandatory and inclusive. The server must authorize access to
+        bookId and apply every filter before returning rows or totals. Amounts are
+        exact decimal strings; this endpoint is read-only in Part 2A.
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+        - name: dateFrom
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: dateTo
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: accountId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: counterpartyId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          description: Defaults to posted entries; drafts are excluded unless explicitly requested.
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/EntryStatus' }
+          example: [posted]
+          style: form
+          explode: true
+        - name: currency
+          in: query
+          schema: { $ref: '#/components/schemas/CurrencyCode' }
+        - name: search
+          in: query
+          description: Bounded text search over authorized entry descriptions/references.
+          schema: { type: string, maxLength: 120 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Filtered entries and totals in the requested scope
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [period, appliedFilters, items, totals, nextCursor]
+                properties:
+                  period: { $ref: '#/components/schemas/DateRange' }
+                  appliedFilters: { $ref: '#/components/schemas/AppliedFilters' }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/JournalEntry' }
+                  totals: { $ref: '#/components/schemas/JournalTotals' }
+                  nextCursor: { type: [string, 'null'] }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /books/{bookId}/accounts/{accountId}/balance:
+    get:
+      tags: [Accounts, Reports]
+      operationId: getAccountBalance
+      summary: Get the balance of one account as of an accounting date
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+        - name: accountId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: asOf
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: currency
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/CurrencyCode' }
+      responses:
+        '200':
+          description: Balance calculated by the accounting backend
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountBalance' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /books/{bookId}/reports/trial-balance:
+    get:
+      tags: [Reports]
+      operationId: getTrialBalance
+      summary: Get a trial balance for an explicit accounting date range
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+        - name: dateFrom
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: dateTo
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: currency
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/CurrencyCode' }
+      responses:
+        '200':
+          description: Trial balance and totals, calculated by the backend
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrialBalance' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /books/{bookId}/reports/income-statement:
+    get:
+      tags: [Reports]
+      operationId: getIncomeStatement
+      summary: Get income, cost and expense totals for a date range
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+        - name: dateFrom
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: dateTo
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/AccountingDate' }
+        - name: currency
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/CurrencyCode' }
+      responses:
+        '200':
+          description: Income statement, calculated by the accounting backend
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IncomeStatement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    BookId:
+      name: bookId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    AccountingDate:
+      type: string
+      format: date
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      description: Calendar date in ISO 8601; no local timezone conversion.
+    CurrencyCode:
+      type: string
+      pattern: '^[A-Z]{3}$'
+      example: USD
+    DateRange:
+      type: object
+      required: [from, to]
+      properties:
+        from: { $ref: '#/components/schemas/AccountingDate' }
+        to: { $ref: '#/components/schemas/AccountingDate' }
+    EntryStatus:
+      type: string
+      enum: [draft, posted, reversed, voided]
+    Account:
+      type: object
+      required: [id, code, name, type, active]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, maxLength: 40 }
+        name: { type: string, maxLength: 160 }
+        type:
+          type: string
+          enum: [asset, liability, equity, income, cost, expense]
+        active: { type: boolean }
+        parentAccountId: { type: [string, 'null'], format: uuid }
+    JournalLine:
+      type: object
+      required: [id, accountId, debit, credit, currency]
+      properties:
+        id: { type: string, format: uuid }
+        accountId: { type: string, format: uuid }
+        debit:
+          type: string
+          pattern: '^(0|[1-9]\d*)(\.\d+)?$'
+          description: >-
+            Non-negative exact decimal string; never JSON floating point. At most one
+            of debit and credit may be greater than zero on a line; backend validates it.
+        credit:
+          type: string
+          pattern: '^(0|[1-9]\d*)(\.\d+)?$'
+          description: Non-negative exact decimal string; never JSON floating point.
+        currency: { $ref: '#/components/schemas/CurrencyCode' }
+        counterpartyId: { type: [string, 'null'], format: uuid }
+    JournalEntry:
+      type: object
+      required: [id, reference, date, description, status, lines]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string, maxLength: 80 }
+        date: { $ref: '#/components/schemas/AccountingDate' }
+        description: { type: string, maxLength: 500 }
+        status: { $ref: '#/components/schemas/EntryStatus' }
+        reversalOfEntryId: { type: [string, 'null'], format: uuid }
+        lines:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/JournalLine' }
+    AppliedFilters:
+      type: object
+      required: [dateFrom, dateTo]
+      properties:
+        dateFrom: { $ref: '#/components/schemas/AccountingDate' }
+        dateTo: { $ref: '#/components/schemas/AccountingDate' }
+        accountId: { type: [string, 'null'], format: uuid }
+        counterpartyId: { type: [string, 'null'], format: uuid }
+        status:
+          type: array
+          items: { $ref: '#/components/schemas/EntryStatus' }
+        currency: { type: [string, 'null'], $ref: '#/components/schemas/CurrencyCode' }
+        search: { type: [string, 'null'] }
+    MoneyTotal:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: string, pattern: '^-?(0|[1-9]\d*)(\.\d+)?$' }
+        currency: { $ref: '#/components/schemas/CurrencyCode' }
+    JournalTotals:
+      type: object
+      required: [debits, credits]
+      properties:
+        debits: { $ref: '#/components/schemas/MoneyTotal' }
+        credits: { $ref: '#/components/schemas/MoneyTotal' }
+    AccountBalance:
+      type: object
+      required: [bookId, accountId, asOf, balance, currency]
+      properties:
+        bookId: { type: string, format: uuid }
+        accountId: { type: string, format: uuid }
+        asOf: { $ref: '#/components/schemas/AccountingDate' }
+        balance: { type: string, pattern: '^-?(0|[1-9]\d*)(\.\d+)?$' }
+        currency: { $ref: '#/components/schemas/CurrencyCode' }
+        normalSide: { type: string, enum: [debit, credit] }
+    TrialBalance:
+      type: object
+      required: [period, currency, rows, totals]
+      properties:
+        period: { $ref: '#/components/schemas/DateRange' }
+        currency: { $ref: '#/components/schemas/CurrencyCode' }
+        rows:
+          type: array
+          items:
+            type: object
+            required: [accountId, code, name, debitBalance, creditBalance]
+            properties:
+              accountId: { type: string, format: uuid }
+              code: { type: string }
+              name: { type: string }
+              debitBalance: { $ref: '#/components/schemas/MoneyTotal' }
+              creditBalance: { $ref: '#/components/schemas/MoneyTotal' }
+        totals:
+          type: object
+          required: [debits, credits, balanced]
+          properties:
+            debits: { $ref: '#/components/schemas/MoneyTotal' }
+            credits: { $ref: '#/components/schemas/MoneyTotal' }
+            balanced: { type: boolean }
+    IncomeStatement:
+      type: object
+      required: [period, currency, income, costs, expenses, netResult]
+      properties:
+        period: { $ref: '#/components/schemas/DateRange' }
+        currency: { $ref: '#/components/schemas/CurrencyCode' }
+        income: { type: array, items: { $ref: '#/components/schemas/ReportLine' } }
+        costs: { type: array, items: { $ref: '#/components/schemas/ReportLine' } }
+        expenses: { type: array, items: { $ref: '#/components/schemas/ReportLine' } }
+        netResult: { $ref: '#/components/schemas/MoneyTotal' }
+    ReportLine:
+      type: object
+      required: [accountId, code, name, amount]
+      properties:
+        accountId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        amount: { $ref: '#/components/schemas/MoneyTotal' }
+    ApiError:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
+        details: { type: object, additionalProperties: true }
+    BadRequest:
+      description: Malformed request or invalid filters
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Forbidden:
+      description: Authenticated user cannot access this book or resource
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    NotFound:
+      description: Book or resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    ValidationError:
+      description: Valid request syntax but unsupported accounting filters or period
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
