@@ -294,7 +294,7 @@ object LedgerBackupCodec {
 
     private fun DataOutputStream.writeNullableString(value: String?) {
         writeBoolean(value != null)
-        value?.let(::writeString)
+        value?.let { writeString(it) }
     }
 
     private fun DataInputStream.readNullableString(): String? = if (readBoolean()) readString() else null
