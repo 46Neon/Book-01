@@ -45,6 +45,7 @@ class GeneralLedgerCalculatorTest {
             accountCode = "1000",
             entries = listOf(
                 entry("before", "2026-01-09", "a", debit = 90, credit = 0),
+                entry("before-eur", "2026-01-08", "a0", debit = 9_999, credit = 0, currency = "EUR"),
                 entry("start", "2026-01-10", "b", debit = 100, credit = 0),
                 entry("inside", "2026-01-11", "c", debit = 0, credit = 25),
                 entry("end", "2026-01-12", "d", debit = 40, credit = 0),
@@ -55,10 +56,11 @@ class GeneralLedgerCalculatorTest {
         )
 
         assertEquals(listOf("start", "inside", "end"), report.rows.map { it.entryId })
-        assertEquals(listOf(100L, 75L, 115L), report.rows.map { it.runningBalanceMinor })
+        assertEquals(90L, report.openingBalanceMinor)
+        assertEquals(listOf(190L, 165L, 205L), report.rows.map { it.runningBalanceMinor })
         assertEquals(140L, report.totalDebitMinor)
         assertEquals(25L, report.totalCreditMinor)
-        assertEquals(115L, report.closingBalanceMinor)
+        assertEquals(205L, report.closingBalanceMinor)
     }
 
     @Test
@@ -69,16 +71,39 @@ class GeneralLedgerCalculatorTest {
             entry("last", "2026-01-03", "c", debit = 3, credit = 0),
         )
 
-        assertEquals(
-            listOf("middle", "last"),
-            GeneralLedgerCalculator.calculate("1000", entries, startDate = "2026-01-02", endDate = "").rows.map { it.entryId },
+        val fromMiddle = GeneralLedgerCalculator.calculate("1000", entries, startDate = "2026-01-02", endDate = "")
+        assertEquals(listOf("middle", "last"), fromMiddle.rows.map { it.entryId })
+        assertEquals(1L, fromMiddle.openingBalanceMinor)
+        assertEquals(listOf(3L, 6L), fromMiddle.rows.map { it.runningBalanceMinor })
+        assertEquals(6L, fromMiddle.closingBalanceMinor)
+
+        val throughMiddle = GeneralLedgerCalculator.calculate("1000", entries, startDate = " ", endDate = "2026-01-02")
+        assertEquals(listOf("first", "middle"), throughMiddle.rows.map { it.entryId })
+        assertEquals(0L, throughMiddle.openingBalanceMinor)
+        assertEquals(3L, throughMiddle.closingBalanceMinor)
+
+        val unbounded = GeneralLedgerCalculator.calculate("1000", entries, startDate = null, endDate = null)
+        assertEquals(listOf("first", "middle", "last"), unbounded.rows.map { it.entryId })
+        assertEquals(0L, unbounded.openingBalanceMinor)
+        assertEquals(6L, unbounded.closingBalanceMinor)
+    }
+
+    @Test
+    fun periodWithoutMovementsStillShowsPriorBalance() {
+        val prior = entry("prior", "2026-01-01", "a", debit = 12_345, credit = 0)
+
+        val report = GeneralLedgerCalculator.calculate(
+            accountCode = "1000",
+            entries = listOf(prior),
+            startDate = "2026-02-01",
+            endDate = "2026-02-28",
         )
-        assertEquals(
-            listOf("first", "middle"),
-            GeneralLedgerCalculator.calculate("1000", entries, startDate = " ", endDate = "2026-01-02").rows.map { it.entryId },
-        )
-        assertEquals(listOf("first", "middle", "last"),
-            GeneralLedgerCalculator.calculate("1000", entries, startDate = null, endDate = null).rows.map { it.entryId })
+
+        assertEquals(emptyList<String>(), report.rows.map { it.entryId })
+        assertEquals(12_345L, report.openingBalanceMinor)
+        assertEquals(0L, report.totalDebitMinor)
+        assertEquals(0L, report.totalCreditMinor)
+        assertEquals(12_345L, report.closingBalanceMinor)
     }
 
     @Test
