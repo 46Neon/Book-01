@@ -112,9 +112,27 @@ data class AccountAuditEventEntity(
     val newActive: Boolean,
 )
 
+@Entity(
+    tableName = "period_closes",
+    foreignKeys = [
+        ForeignKey(entity = JournalEntryEntity::class, parentColumns = ["id"], childColumns = ["closingEntryId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["retainedEarningsAccountCode"], onDelete = ForeignKey.RESTRICT),
+    ],
+    indices = [Index(value = ["closingEntryId"], unique = true), Index("retainedEarningsAccountCode"), Index("startDate"), Index("endDate")],
+)
+data class PeriodCloseEntity(
+    @PrimaryKey val id: String,
+    val startDate: String,
+    val endDate: String,
+    val retainedEarningsAccountCode: String,
+    val netResultMinor: Long,
+    val closingEntryId: String,
+    val closedAt: String,
+)
+
 @Database(
-    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class],
-    version = 5,
+    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class],
+    version = 6,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -202,6 +220,22 @@ abstract class LedgerDatabase : RoomDatabase() {
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_no_delete` BEFORE DELETE ON `journal_entries` BEGIN SELECT RAISE(ABORT, 'journal entries cannot be deleted'); END")
         }
 
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `period_closes` (`id` TEXT NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, `retainedEarningsAccountCode` TEXT NOT NULL, `netResultMinor` INTEGER NOT NULL, `closingEntryId` TEXT NOT NULL, `closedAt` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`closingEntryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`retainedEarningsAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_period_closes_closingEntryId` ON `period_closes` (`closingEntryId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_period_closes_retainedEarningsAccountCode` ON `period_closes` (`retainedEarningsAccountCode`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_period_closes_startDate` ON `period_closes` (`startDate`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_period_closes_endDate` ON `period_closes` (`endDate`)")
+                createPeriodCloseGuards(database)
+            }
+        }
+
+        private fun createPeriodCloseGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `period_closes_no_update` BEFORE UPDATE ON `period_closes` BEGIN SELECT RAISE(ABORT, 'period_closes is append-only'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `period_closes_no_delete` BEFORE DELETE ON `period_closes` BEGIN SELECT RAISE(ABORT, 'period_closes is append-only'); END")
+        }
+
         @Volatile
         private var instance: LedgerDatabase? = null
 
@@ -211,12 +245,13 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             createAuditGuards(db)
                             createAccountAuditGuards(db)
                             createImmutableLedgerGuards(db)
+                            createPeriodCloseGuards(db)
                         }
                     }).build().also { instance = it }
             }

@@ -8,7 +8,10 @@ data class StatementPostingLine(
     val currencyCode: String,
     val entryDate: String,
     val entryStatus: String,
+    val entryKind: String = "",
 )
+
+data class ClosedPeriodRange(val startDate: String, val endDate: String)
 
 data class StatementAccountBalance(
     val accountCode: String,
@@ -63,7 +66,7 @@ object FinancialStatementsCalculator {
     ): IncomeStatementReport {
         val dates = PostingDateRange.parse(startDate, endDate)
         val accountByCode = validateAccounts(accounts)
-        val included = selectUsdPosted(postings).filter { dates.includes(it.entryDate) }
+        val included = selectUsdPosted(postings).filter { it.entryKind != "PERIOD_CLOSE" && dates.includes(it.entryDate) }
         val (_, incomeAndExpenseAccounts) = accountBalances(accountByCode, included)
         val incomeLines = incomeAndExpenseAccounts.filter { it.accountType == "INCOME" }
         val expenseLines = incomeAndExpenseAccounts.filter { it.accountType == "EXPENSE" }
@@ -88,10 +91,17 @@ object FinancialStatementsCalculator {
         accounts: List<ReportAccount>,
         postings: List<StatementPostingLine>,
         asOfDate: String,
+        closedPeriods: List<ClosedPeriodRange> = emptyList(),
     ): BalanceSheetReport {
         val throughDate = PostingDateRange.parse(null, asOfDate).endInclusive!!
         val accountByCode = validateAccounts(accounts)
-        val included = selectUsdPosted(postings).filter { !parsePostingDate(it.entryDate).isAfter(throughDate) }
+        val included = selectUsdPosted(postings).filter { line ->
+            if (parsePostingDate(line.entryDate).isAfter(throughDate)) return@filter false
+            val isPAndL = accountByCode[line.accountCode]?.type in setOf("INCOME", "EXPENSE")
+            if (!isPAndL) return@filter true
+            if (line.entryKind == "PERIOD_CLOSE") return@filter false
+            closedPeriods.none { it.endDate <= throughDate.toString() && line.entryDate >= it.startDate && line.entryDate <= it.endDate }
+        }
         val balances = accountBalances(accountByCode, included)
         val assets = balances.first.filter { it.accountType == "ASSET" }
         val liabilities = balances.first.filter { it.accountType == "LIABILITY" }

@@ -24,6 +24,18 @@ interface LedgerDao {
     @Query("SELECT * FROM account_audit_events ORDER BY occurredAt DESC")
     fun observeAccountAuditEvents(): Flow<List<AccountAuditEventEntity>>
 
+    @Query("SELECT * FROM period_closes ORDER BY startDate")
+    fun observePeriodCloses(): Flow<List<PeriodCloseEntity>>
+
+    @Query("SELECT * FROM period_closes ORDER BY startDate")
+    suspend fun getPeriodCloses(): List<PeriodCloseEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM period_closes WHERE :dateIso BETWEEN startDate AND endDate)")
+    suspend fun isDateClosed(dateIso: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM period_closes WHERE startDate <= :endDate AND endDate >= :startDate)")
+    suspend fun hasOverlappingClose(startDate: String, endDate: String): Boolean
+
     @Query("SELECT * FROM journal_entries WHERE id = :entryId LIMIT 1")
     suspend fun getEntry(entryId: String): JournalEntryEntity?
 
@@ -35,6 +47,9 @@ interface LedgerDao {
 
     @Query("SELECT * FROM accounts ORDER BY code")
     fun observeAccounts(): Flow<List<AccountEntity>>
+
+    @Query("SELECT * FROM accounts ORDER BY code")
+    suspend fun getAllAccounts(): List<AccountEntity>
 
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
     suspend fun getAccount(code: String): AccountEntity?
@@ -74,4 +89,7 @@ interface LedgerDao {
 
     @Insert
     suspend fun insertAccountAuditEvent(event: AccountAuditEventEntity)
+
+    @Insert
+    suspend fun insertPeriodClose(periodClose: PeriodCloseEntity)
 }

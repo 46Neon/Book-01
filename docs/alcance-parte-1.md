@@ -37,6 +37,10 @@ Crear el libro contable y su APK Android antes de integrar la experiencia de cha
 - Guardar fechas, moneda y cantidades con precisión explícita; evitar `float`/`double` para importes.
 - Periodos, zonas horarias, precisión monetaria y localización deben configurarse, no codificarse como una regla fiscal universal.
 
+## Hito de cierre de periodos en el prototipo
+
+El prototipo local admite cierres de rango inclusivo como un asiento USD nuevo, balanceado e inmutable, transferido a una cuenta activa de patrimonio. Metadatos y auditoría se escriben atómicamente; los rangos superpuestos se rechazan; contabilizaciones nuevas y reversas no pueden fecharse dentro de un periodo cerrado. El estado de resultados conserva la actividad anterior al cierre, mientras el balance general excluye esos resultados del acumulado corriente y mantiene el saldo transferido a patrimonio. No existe reapertura. El hito no completa la Parte 1: requiere verificación automatizada nueva, revisión profesional y el trabajo pendiente indicado en el estado de implementación.
+
 ## Fuera del alcance de Parte 1
 
 - Chat conversacional, prompts, Groq, búsqueda web, MCP y herramientas de IA.

@@ -79,6 +79,7 @@ import com.neon.book01.data.AccountAuditEventEntity
 import com.neon.book01.data.AuditEventEntity
 import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
+import com.neon.book01.data.PeriodCloseEntity
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.AccountRules
@@ -87,6 +88,7 @@ import com.neon.book01.domain.GeneralLedgerCalculator
 import com.neon.book01.domain.IncomeStatementReport
 import com.neon.book01.domain.BalanceSheetReport
 import com.neon.book01.domain.FinancialStatementsCalculator
+import com.neon.book01.domain.ClosedPeriodRange
 import com.neon.book01.domain.OperatingSummaryCalculator
 import com.neon.book01.domain.ReportAccount
 import com.neon.book01.domain.ReportPostingLine
@@ -162,6 +164,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var auditEvents by remember { mutableStateOf<List<AuditEventEntity>>(emptyList()) }
     var accountAuditEvents by remember { mutableStateOf<List<AccountAuditEventEntity>>(emptyList()) }
+    var periodCloses by remember { mutableStateOf<List<PeriodCloseEntity>>(emptyList()) }
     var accounts by remember { mutableStateOf<List<AccountEntity>>(emptyList()) }
     var bookSettings by remember { mutableStateOf<BookSettingsEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -172,6 +175,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
         launch { repository.observeEntries().collect { entries = it } }
         launch { repository.observeAuditEvents().collect { auditEvents = it } }
         launch { repository.observeAccountAuditEvents().collect { accountAuditEvents = it } }
+        launch { repository.observePeriodCloses().collect { periodCloses = it } }
         launch { repository.observeAccounts().collect { accounts = it } }
         launch { repository.observeBookSettings().collect { bookSettings = it } }
     }
@@ -275,6 +279,8 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                     FinancialStatementsScreen(
                         accounts = accounts,
                         entries = entries,
+                        periodCloses = periodCloses,
+                        onClosePeriod = { start, end, equity -> withContext(Dispatchers.IO) { repository.closePeriod(start, end, equity) } },
                         onBack = { showFinancialStatements = false },
                     )
                 } else {
@@ -299,6 +305,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     if (showEntryDialog) {
         NewEntryDialog(
             accounts = accounts,
+            closedPeriods = periodCloses.map { ClosedPeriodRange(it.startDate, it.endDate) },
             currencyCode = currencyCode,
             onDismiss = { showEntryDialog = false },
             onSave = { draft ->
@@ -343,10 +350,11 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     if (showReversalDialog) {
         val reversedEntryIds = entries.mapNotNull { it.entry.reversalOfEntryId }.toSet()
         val eligibleEntries = entries.filter {
-            it.entry.status == "POSTED" && it.entry.reversalOfEntryId == null && it.entry.id !in reversedEntryIds
+            it.entry.status == "POSTED" && it.entry.kind != "PERIOD_CLOSE" && it.entry.reversalOfEntryId == null && it.entry.id !in reversedEntryIds
         }
         ReversalDialog(
             entries = eligibleEntries,
+            closedPeriods = periodCloses.map { ClosedPeriodRange(it.startDate, it.endDate) },
             onDismiss = { showReversalDialog = false },
             onSave = { entryId, reversalDate, reason ->
                 withContext(Dispatchers.IO) { repository.reversePostedEntry(entryId, reversalDate, reason) }
@@ -563,6 +571,7 @@ private fun TableCell(
 @Composable
 private fun NewEntryDialog(
     accounts: List<AccountEntity>,
+    closedPeriods: List<ClosedPeriodRange>,
     currencyCode: String,
     onDismiss: () -> Unit,
     onSave: suspend (EntryDraft) -> Unit,
@@ -657,6 +666,8 @@ private fun NewEntryDialog(
                     val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode, currencyCode)
                     if (draft == null) {
                         errorText = "Revisa concepto y fecha; para USD usa, por ejemplo, 1234.56, 1,234.56 o 1.234,56 (máximo 2 decimales)."
+                    } else if (closedPeriods.any { draft.dateIso >= it.startDate && draft.dateIso <= it.endDate }) {
+                        errorText = "La fecha elegida pertenece a un periodo cerrado. Selecciona una fecha abierta."
                     } else {
                         scope.launch {
                             saving = true
@@ -1260,6 +1271,8 @@ private fun TrialBalanceScreen(
 private fun FinancialStatementsScreen(
     accounts: List<AccountEntity>,
     entries: List<EntryWithLines>,
+    periodCloses: List<PeriodCloseEntity>,
+    onClosePeriod: suspend (String, String, String) -> Unit,
     onBack: () -> Unit,
 ) {
     var startDate by rememberSaveable { mutableStateOf("") }
@@ -1276,17 +1289,19 @@ private fun FinancialStatementsScreen(
                     currencyCode = line.currencyCode,
                     entryDate = entry.entry.entryDate,
                     entryStatus = entry.entry.status,
+                    entryKind = entry.entry.kind,
                 )
             }
         }
     }
+    val closedRanges = remember(periodCloses) { periodCloses.map { ClosedPeriodRange(it.startDate, it.endDate) } }
     val incomeResult = remember(reportAccounts, statementPostings, startDate, endDate) {
         runCatching {
             FinancialStatementsCalculator.incomeStatement(reportAccounts, statementPostings, startDate, endDate)
         }
     }
-    val balanceResult = remember(reportAccounts, statementPostings, asOfDate) {
-        runCatching { FinancialStatementsCalculator.balanceSheet(reportAccounts, statementPostings, asOfDate) }
+    val balanceResult = remember(reportAccounts, statementPostings, asOfDate, closedRanges) {
+        runCatching { FinancialStatementsCalculator.balanceSheet(reportAccounts, statementPostings, asOfDate, closedRanges) }
     }
     val income = incomeResult.getOrNull()
     val balance = balanceResult.getOrNull()
@@ -1329,10 +1344,90 @@ private fun FinancialStatementsScreen(
                 balance?.let { data -> BalanceSheetContent(data) }
             }
         }
+        PeriodCloseSection(accounts, periodCloses, statementPostings, onClosePeriod)
         Text(
-            "Las líneas de reversa afectan los informes en su fecha de contabilización. Se incluyen únicamente asientos contabilizados y líneas USD; no se convierten monedas ni se reclasifican cuentas. El resultado acumulado se muestra por separado mientras no exista cierre de periodo.",
+            "Las líneas de reversa afectan los informes en su fecha de contabilización. Se incluyen únicamente asientos contabilizados y líneas USD; no se convierten monedas ni se reclasifican cuentas. En el balance general, los periodos cerrados se transfieren a patrimonio y solo queda el resultado de periodos no cerrados.",
             color = BookMuted,
             fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun PeriodCloseSection(
+    accounts: List<AccountEntity>,
+    closes: List<PeriodCloseEntity>,
+    postings: List<StatementPostingLine>,
+    onClose: suspend (String, String, String) -> Unit,
+) {
+    var start by rememberSaveable { mutableStateOf("") }
+    var end by rememberSaveable { mutableStateOf("") }
+    var retainedCode by rememberSaveable { mutableStateOf("") }
+    var showConfirm by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val equityAccounts = accounts.filter { it.type == "EQUITY" && it.active }
+    LaunchedEffect(equityAccounts) {
+        if (equityAccounts.none { it.code == retainedCode }) retainedCode = equityAccounts.firstOrNull()?.code.orEmpty()
+    }
+    val normalized = runCatching {
+        val s = LocalDate.parse(start.trim()).toString()
+        val e = LocalDate.parse(end.trim()).toString()
+        require(s <= e)
+        s to e
+    }.getOrNull()
+    val overlap = normalized?.let { pair -> closes.any { it.startDate <= pair.second && it.endDate >= pair.first } } == true
+    val preview = normalized?.let { pair -> runCatching {
+        FinancialStatementsCalculator.incomeStatement(
+            accounts.map { ReportAccount(it.code, it.name, it.type) }, postings, pair.first, pair.second,
+        ).netIncomeMinor
+    }.getOrNull() }
+    val retained = equityAccounts.firstOrNull { it.code == retainedCode }
+
+    Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text("Cierre de periodo", color = BookInk, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            Text("Crea un asiento nuevo e inmutable que salda ingresos y gastos a una cuenta de patrimonio. No se puede reabrir ni reversar desde la reversa ordinaria.", color = BookMuted, fontSize = 12.sp)
+            OutlinedTextField(start, { start = it; error = null }, label = { Text("Desde (AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(end, { end = it; error = null }, label = { Text("Hasta inclusivo (AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            AccountPicker("Ganancias retenidas · patrimonio", equityAccounts, retainedCode) { retainedCode = it }
+            when {
+                start.isNotBlank() && end.isNotBlank() && normalized == null -> Text("Indica fechas ISO válidas y un intervalo en orden.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                overlap -> Text("El intervalo se superpone con un periodo ya cerrado.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                preview != null -> Text("Resultado a transferir (actividad USD contabilizada): ${money(preview)}", color = BookInk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+            TextButton(enabled = normalized != null && !overlap && retained != null && !saving, onClick = { showConfirm = true }) {
+                Text(if (saving) "Contabilizando…" else "Revisar y cerrar periodo")
+            }
+            Text("Periodos cerrados (no reabribles):", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+            if (closes.isEmpty()) Text("Ningún periodo cerrado.", color = BookMuted, fontSize = 12.sp)
+            closes.forEach { close ->
+                Text("${close.startDate} a ${close.endDate} · ${money(close.netResultMinor)} · patrimonio ${close.retainedEarningsAccountCode}", color = BookMuted, fontSize = 11.sp)
+            }
+        }
+    }
+    if (showConfirm && normalized != null && retained != null) {
+        AlertDialog(
+            onDismissRequest = { if (!saving) showConfirm = false },
+            title = { Text("Confirmar cierre") },
+            text = { Text("Se contabilizará el periodo inclusivo ${normalized.first} a ${normalized.second}. Resultado neto ${money(preview ?: 0L)}; transferencia a ${retained.code} · ${retained.name}. Esta acción es permanente y no reabrible.") },
+            confirmButton = {
+                TextButton(enabled = !saving, onClick = {
+                    scope.launch {
+                        saving = true
+                        error = null
+                        try {
+                            onClose(normalized.first, normalized.second, retained.code)
+                            showConfirm = false
+                        } catch (failure: Exception) {
+                            error = failure.message ?: "No se pudo cerrar el periodo."
+                        } finally { saving = false }
+                    }
+                }) { Text(if (saving) "Cerrando…" else "Contabilizar cierre") }
+            },
+            dismissButton = { TextButton(enabled = !saving, onClick = { showConfirm = false }) { Text("Cancelar") } },
         )
     }
 }
@@ -1439,6 +1534,7 @@ private fun AuditHistoryScreen(
                                 "POSTED" -> "Asiento contabilizado"
                                 "REVERSAL_POSTED" -> "Reversa contabilizada"
                                 "REVERSED" -> "Asiento reversado"
+                                "PERIOD_CLOSED" -> "Cierre de periodo contabilizado"
                                 else -> event.eventType
                             },
                             color = BookInk,
@@ -1461,6 +1557,7 @@ private fun AuditHistoryScreen(
 @Composable
 private fun ReversalDialog(
     entries: List<EntryWithLines>,
+    closedPeriods: List<ClosedPeriodRange>,
     onDismiss: () -> Unit,
     onSave: suspend (String, String, String) -> Unit,
 ) {
@@ -1528,10 +1625,15 @@ private fun ReversalDialog(
             TextButton(
                 enabled = entries.isNotEmpty() && selected != null && !saving,
                 onClick = {
-                    scope.launch {
+                    val validDate = runCatching { LocalDate.parse(reversalDate.trim()).toString() }.getOrNull()
+                    if (validDate == null) {
+                        errorMessage = "Indica una fecha válida en formato AAAA-MM-DD."
+                    } else if (closedPeriods.any { validDate >= it.startDate && validDate <= it.endDate }) {
+                        errorMessage = "La fecha de reversa debe pertenecer a un periodo abierto."
+                    } else scope.launch {
                         saving = true
                         try {
-                            onSave(selectedEntryId, reversalDate, reason)
+                            onSave(selectedEntryId, validDate, reason)
                         } catch (error: Exception) {
                             errorMessage = error.message ?: "No se pudo crear la reversa."
                         } finally {

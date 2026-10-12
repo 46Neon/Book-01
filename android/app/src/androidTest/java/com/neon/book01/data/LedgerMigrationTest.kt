@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Instrumented runtime regression test for the full v1→v5 chain without losing postings. */
+/** Instrumented runtime regression test for the full v1→v6 chain without losing postings. */
 @RunWith(AndroidJUnit4::class)
 class LedgerMigrationTest {
     @Test
@@ -20,11 +20,11 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(5L, db.longValue("PRAGMA user_version"))
+            assertEquals(6L, db.longValue("PRAGMA user_version"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
@@ -45,6 +45,9 @@ class LedgerMigrationTest {
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'audit_events_no_%'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'account_audit_events_no_%'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('audit_events') WHERE name = 'reason'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'period_closes'"))
+            assertEquals(0L, db.longValue("SELECT COUNT(*) FROM period_closes"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'period_closes_no_%'"))
         } finally {
             upgraded.close()
             context.deleteDatabase(databaseName)

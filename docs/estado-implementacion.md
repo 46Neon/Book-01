@@ -2,23 +2,22 @@
 
 ## Implementado en el prototipo Android
 
-- Diario local con asientos sencillos de ingreso/gasto en doble partida; persistencia Room y cinco pestañas conservadas (Diario, Mayor, Cuentas, Balance y Más).
-- Plan de cuentas con altas y edición segura del nombre/estado. Código y clasificación son inmutables; cambios de nombre/estado dejan auditoría append-only. Las líneas guardan instantánea del nombre de cuenta.
-- Mayor por cuenta y Balance de comprobación con filtros inclusivos estrictos `AAAA-MM-DD`; el Mayor muestra saldo inicial anterior a «Desde».
-- Estado de resultados por periodo: suma exacta de ingresos y gastos por cuenta clasificada, con límites opcionales inclusivos Desde/Hasta.
-- Balance general a fecha inclusiva: muestra activos, pasivos y patrimonio en sus clasificaciones existentes, más el resultado acumulado de ingresos menos gastos como componente separado en el libro no cerrado. La diferencia de conciliación queda visible; no se crean ajustes ni se reclasifican tipos de cuenta.
-- Los dos estados financieros usan solo líneas USD de asientos `POSTED`; excluyen e indican borradores y líneas en otras monedas sin convertir. Las contralíneas de reversa se procesan por su fecha efectiva, reduciendo el efecto del asiento original cuando ambas fechas están dentro del corte.
-- Centavos USD como `Long`, operaciones aritméticas comprobadas y formato decimal exacto con `BigDecimal`; sin punto flotante ni conversión de moneda.
-- Reversas exactas no destructivas, vínculo al original, fecha/motivo y auditoría local. Migraciones Room aditivas v1→v5; la migración v4→v5 completa instantáneas heredadas con el nombre actual de cuenta, no reconstruye nombres históricos.
-- Pruebas unitarias de dominio existentes para reglas de cuenta, diario, reversas, USD, Mayor y Balance de comprobación. Se añadieron pruebas de estados financieros para límites, importes, reversas, exclusiones, rangos inválidos y conciliación.
+- Diario local de asientos sencillos ingreso/gasto en doble partida; Room y las cinco pestañas existentes (Diario, Mayor, Cuentas, Balance y Más).
+- Plan de cuentas editable en nombre/estado, con códigos y tipos inmutables, auditoría append-only e instantáneas del nombre contable.
+- Mayor, balance de comprobación y estados financieros con filtros inclusivos estrictos `AAAA-MM-DD`.
+- Estado de resultados preserva la actividad original del periodo cerrado: excluye el asiento técnico de cierre y calcula la actividad contabilizada en las fechas seleccionadas.
+- Balance general a fecha inclusiva incluye el saldo de patrimonio generado por cierres y solo calcula resultado actual para actividad P&L no cubierta por cierres; conserva visible cualquier diferencia de conciliación, sin ajuste o reclasificación silenciosa.
+- Cierre inclusivo transaccional USD: crea un asiento nuevo, balanceado y no editable que lleva a cero las cuentas de ingreso/gasto según actividad publicada en el rango y transfiere la utilidad/pérdida neta a una cuenta EQUITY activa seleccionada. Las reversiones se atribuyen a su fecha efectiva.
+- Metadatos de cierre y evento de auditoría se guardan atómicamente con el asiento y líneas; los metadatos/auditoría son append-only. Cierres superpuestos o duplicados se rechazan; las contabilizaciones normales y las fechas de reversa dentro de un periodo cerrado se bloquean en repositorio y formulario. El cierre no se puede revertir con el flujo ordinario ni reabrir.
+- Los importes son centavos USD en `Long`; cálculos exactos sin coma flotante ni conversión FX.
+- Migración Room aditiva v1→v6 y pruebas instrumentadas de preservación de datos, totales, cierre con utilidad/pérdida, bloqueo de fechas y rechazo de solapamiento; pruebas unitarias de continuidad de estados y no duplicación de utilidades.
 
 ## Pendiente / límites conocidos
 
-- Este hito no implementa cierre o apertura de periodo, cierre formal de ingresos/gastos, arrastre formal de utilidades, ajustes de cierre ni control de periodos bloqueados. El resultado acumulado reportado es ingreso menos gasto publicado hasta la fecha, únicamente para el libro sin cerrar; no representa historial de utilidades retenidas derivado de periodos cerrados.
-- No hay borradores editables, aprobación, usuarios/roles autenticados, API/backend de producción, sincronización, respaldo/restauración, adjuntos ni importación/exportación.
-- No hay configuración fiscal ni validación profesional de normas contables locales. Los informes son informativos y no declaran cumplimiento contable, fiscal o legal de Venezuela ni de otra jurisdicción; requieren revisión de un profesional para cualquier uso oficial.
-- Sincronización, seguridad de cuentas reales, pruebas de usabilidad de teléfono/tablet, recuperación, cierre y demás trabajo de producto quedan abiertos. No afirmar que Parte 1 completa está terminada.
+- Este hito no completa la Parte 1. No hay API/backend de producción, sincronización, copia de seguridad/restauración, importación/exportación, borradores editables, usuarios/roles, aprobación ni hardening de producción.
+- Se requiere revisión profesional de reglas contables, tributarias, seguridad y usabilidad antes de cualquier uso oficial. El producto no afirma ni garantiza cumplimiento contable, fiscal o legal venezolano ni de otra jurisdicción.
+- La implementación es local, offline y USD únicamente; no convierte otras monedas. Un rango sin actividad P&L no genera asiento de cierre y es rechazado, pues el prototipo no crea asientos contables de importe cero.
 
 ## Verificación
 
-GitHub Actions verificó el código Android del commit `015ff957f55f6ab7977ed5847c8d4c1f5732c921` en [run 38305329066](https://github.com/46Neon/Book-01/actions/runs/38305329066): terminaron con éxito las pruebas unitarias, `:app:compileDebugAndroidTestKotlin` y `:app:assembleDebug`; se subieron los artefactos. El artefacto [book-01-debug-apk](https://github.com/46Neon/Book-01/actions/runs/38305329066/artifacts/11772781096) ocupa 18.682.631 bytes (ZIP); contiene `app-debug.apk` de 19.225.073 bytes. El job de migración instrumentada quedó omitido en este evento `push`; la compilación Android-test no acredita runtime de migración. El runtime sigue sin verificar porque una ejecución previa no logró arrancar el emulador. No se afirma que la migración se haya ejecutado exitosamente en un dispositivo.
+La revisión anterior fue verificada en el commit `015ff957f55f6ab7977ed5847c8d4c1f5732c921` / [run 38305329066](https://github.com/46Neon/Book-01/actions/runs/38305329066); ese resultado no verifica el código de cierre de este hito. Deben comprobarse en una ejecución nueva de Actions las pruebas unitarias, la compilación de fuentes Android-test y la generación del APK debug. El runtime instrumentado de migración también queda pendiente hasta que el emulador arranque y ejecute `:app:connectedDebugAndroidTest`; la ejecución anterior no logró iniciar el emulador. No se debe afirmar la finalización de Parte 1 con este hito.

@@ -120,6 +120,51 @@ class FinancialStatementsCalculatorTest {
         assertIllegalArgument { FinancialStatementsCalculator.balanceSheet(accounts, emptyList(), "2026-02-30") }
     }
 
+    @Test fun closedPeriodIncomeStatementStaysContinuousAndBalanceSheetDoesNotDoubleCountEarnings() {
+        val postings = listOf(
+            line("1000", debit = 10_000, date = "2026-01-01"),
+            line("3000", credit = 10_000, date = "2026-01-01"),
+            line("1000", debit = 5_000, date = "2026-03-10"),
+            line("4000", credit = 5_000, date = "2026-03-10"),
+            line("5000", debit = 1_000, date = "2026-03-20"),
+            line("1000", credit = 1_000, date = "2026-03-20"),
+            line("4000", debit = 5_000, date = "2026-03-31", kind = "PERIOD_CLOSE"),
+            line("5000", credit = 1_000, date = "2026-03-31", kind = "PERIOD_CLOSE"),
+            line("3000", credit = 4_000, date = "2026-03-31", kind = "PERIOD_CLOSE"),
+        )
+        val close = listOf(ClosedPeriodRange("2026-03-01", "2026-03-31"))
+        val income = FinancialStatementsCalculator.incomeStatement(accounts, postings, "2026-03-01", "2026-03-31")
+        assertEquals(5_000L, income.totalIncomeMinor)
+        assertEquals(1_000L, income.totalExpensesMinor)
+        assertEquals(4_000L, income.netIncomeMinor)
+        val balance = FinancialStatementsCalculator.balanceSheet(accounts, postings, "2026-03-31", close)
+        assertEquals(14_000L, balance.totalAssetsMinor)
+        assertEquals(14_000L, balance.totalEquityMinor)
+        assertEquals(0L, balance.accumulatedResultMinor)
+        assertEquals(0L, balance.reconciliationDifferenceMinor)
+        assertTrue(balance.isReconciled)
+    }
+
+    @Test fun closedPeriodWithLossTransfersDebitToEquityWithoutChangingStatementResult() {
+        val postings = listOf(
+            line("1000", debit = 10_000, date = "2026-01-01"),
+            line("3000", credit = 10_000, date = "2026-01-01"),
+            line("5000", debit = 2_500, date = "2026-05-05"),
+            line("1000", credit = 2_500, date = "2026-05-05"),
+            line("5000", credit = 2_500, date = "2026-05-31", kind = "PERIOD_CLOSE"),
+            line("3000", debit = 2_500, date = "2026-05-31", kind = "PERIOD_CLOSE"),
+        )
+        val income = FinancialStatementsCalculator.incomeStatement(accounts, postings, "2026-05-01", "2026-05-31")
+        assertEquals(-2_500L, income.netIncomeMinor)
+        val balance = FinancialStatementsCalculator.balanceSheet(
+            accounts, postings, "2026-05-31", listOf(ClosedPeriodRange("2026-05-01", "2026-05-31")),
+        )
+        assertEquals(7_500L, balance.totalAssetsMinor)
+        assertEquals(7_500L, balance.totalEquityMinor)
+        assertEquals(0L, balance.accumulatedResultMinor)
+        assertEquals(0L, balance.reconciliationDifferenceMinor)
+    }
+
     private fun line(
         account: String,
         debit: Long = 0,
@@ -127,7 +172,8 @@ class FinancialStatementsCalculatorTest {
         date: String = "2026-01-01",
         status: String = "POSTED",
         currency: String = "USD",
-    ) = StatementPostingLine(account, debit, credit, currency, date, status)
+        kind: String = "SIMPLE",
+    ) = StatementPostingLine(account, debit, credit, currency, date, status, kind)
 
     private fun assertIllegalArgument(block: () -> Unit) {
         try {
