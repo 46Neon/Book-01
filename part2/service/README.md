@@ -19,7 +19,7 @@ The OpenAPI file is a **draft proposal**, not an implemented or canonical produc
 3. An owner-provided Groq key and approved model/data-processing configuration. User prompts and accounting query results are sent to Groq from the server; do not configure a key until that use is approved.
 4. Contract-level integration tests against the final Part 1 API and security review before wiring the static `part2/web/` page to this endpoint.
 
-The `SUPPORTED_CURRENCIES` default (`USD,VES,EUR`) is a conservative scaffold setting, not an assertion about Part 1 support; align it with the final backend contract. Date ranges are inclusive and limited to ten years in this scaffold. The `ACCOUNTING_API_BASE_URL` must include the Part 1 API prefix, e.g. `https://api.example.invalid/api/v1` (placeholder only).
+The `SUPPORTED_CURRENCIES` default is `USD`, matching the current Part 1 prototype. Widen it only after the final Part 1 API contract and tested currency support explicitly allow additional currencies. Date ranges are inclusive and limited to ten years in this scaffold. The `ACCOUNTING_API_BASE_URL` must include the Part 1 API prefix, e.g. `https://api.example.invalid/api/v1` (placeholder only).
 
 ## Local setup
 
@@ -37,7 +37,7 @@ Set environment variables in the server environment (do not commit `.env` files 
 ```sh
 export GROQ_API_KEY='<owner-provided Groq key>'
 export ACCOUNTING_API_BASE_URL='https://api.example.invalid/api/v1'
-export SUPPORTED_CURRENCIES='USD,VES,EUR'
+export SUPPORTED_CURRENCIES='USD'
 # Optional; default shown:
 export GROQ_MODEL='llama-3.3-70b-versatile'
 uvicorn app:app --host 127.0.0.1 --port 8000
