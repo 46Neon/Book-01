@@ -64,7 +64,7 @@ Run the unit tests from this directory:
 python -m pytest
 ```
 
-Tests use only `httpx.MockTransport` and synthetic fixtures; they do not connect to Groq or an accounting backend. They cover authentication, upstream authorization denials, date/currency/argument validation, supported tools, scope injection, timeouts, malformed tool calls, and credential non-disclosure. These tests verify the scaffold, not the real Part 1 contract or production authorization.
+The suite includes unit tests with `httpx.MockTransport` and an ASGI end-to-end test that runs the chat service through the accounting API into mocked Supabase PostgREST. It verifies that book authorization happens before Groq, plus bearer propagation, exact report response handling, and that an RLS-hidden book is denied without calling Groq. The tests use only synthetic responses; they do not connect to Groq, a live accounting deployment, or a Supabase project, so they do not prove production authorization.
 
 ## Imagen de contenedor (sin despliegue)
 
