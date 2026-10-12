@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
 private fun BookHomeScreen(repository: LedgerRepository) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
+    var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var accounts by remember { mutableStateOf<List<AccountEntity>>(emptyList()) }
     var bookSettings by remember { mutableStateOf<BookSettingsEntity?>(null) }
@@ -186,13 +188,15 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             }
         },
         floatingActionButton = {
-            if (selectedTab == 0) {
+            if (selectedTab == 0 || selectedTab == 2) {
                 ExtendedFloatingActionButton(
-                    onClick = { showEntryDialog = true },
+                    onClick = {
+                        if (selectedTab == 0) showEntryDialog = true else showAccountDialog = true
+                    },
                     containerColor = BookGreen,
                     contentColor = Color.White,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                    text = { Text("Nuevo asiento", fontWeight = FontWeight.SemiBold) },
+                    text = { Text(if (selectedTab == 0) "Nuevo asiento" else "Nueva cuenta", fontWeight = FontWeight.SemiBold) },
                 )
             }
         },
@@ -224,6 +228,8 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         }
                     },
                 )
+            } else if (selectedTab == 2) {
+                AccountsScreen(accounts)
             } else if (selectedTab == 3) {
                 TrialBalanceScreen(accounts, entries, currencyCode)
             } else if (selectedTab == 4) {
@@ -261,6 +267,16 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 }
                 showEntryDialog = false
                 snackbarHostState.showSnackbar("Asiento guardado en este dispositivo.")
+            },
+        )
+    }
+    if (showAccountDialog) {
+        NewAccountDialog(
+            onDismiss = { showAccountDialog = false },
+            onSave = { code, name, type, cashOrBank ->
+                withContext(Dispatchers.IO) { repository.createAccount(code, name, type, cashOrBank) }
+                showAccountDialog = false
+                snackbarHostState.showSnackbar("Cuenta agregada al plan de cuentas.")
             },
         )
     }
@@ -486,8 +502,8 @@ private fun NewEntryDialog(
     var saving by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val paymentAccounts = accounts.filter { it.type == "ASSET" }
-    val categoryAccounts = accounts.filter { it.type == if (kind == EntryKind.EXPENSE) "EXPENSE" else "INCOME" }
+    val paymentAccounts = accounts.filter { it.active && it.cashOrBank }
+    val categoryAccounts = accounts.filter { it.active && it.type == if (kind == EntryKind.EXPENSE) "EXPENSE" else "INCOME" }
     LaunchedEffect(categoryAccounts) {
         if (categoryAccounts.none { it.code == categoryCode }) {
             categoryCode = categoryAccounts.firstOrNull()?.code.orEmpty()
@@ -643,6 +659,156 @@ private fun parseDraft(
         UsdMoney.parseMinorUnits(amountText)
     }.getOrNull() ?: return null
     return EntryDraft(date.toString(), description.trim(), kind, categoryCode, paymentCode, amount, currencyCode)
+}
+
+private val accountTypeOptions = listOf(
+    "ASSET" to "Activo",
+    "LIABILITY" to "Pasivo",
+    "EQUITY" to "Patrimonio",
+    "INCOME" to "Ingreso",
+    "EXPENSE" to "Gasto",
+)
+
+private fun accountTypeLabel(type: String): String =
+    accountTypeOptions.firstOrNull { it.first == type }?.second ?: type
+
+@Composable
+private fun AccountsScreen(accounts: List<AccountEntity>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column {
+            Text("Plan de cuentas", color = BookInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Código, clasificación y uso en el libro", color = BookMuted, fontSize = 12.sp)
+        }
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(13.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+        ) {
+            Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                Row(modifier = Modifier.background(Color(0xFFF0F4F5)), verticalAlignment = Alignment.CenterVertically) {
+                    TableCell("Código", 78.dp, isHeader = true)
+                    TableCell("Nombre", 170.dp, isHeader = true)
+                    TableCell("Tipo", 120.dp, isHeader = true)
+                    TableCell("Estado", 88.dp, isHeader = true)
+                    TableCell("Uso", 110.dp, isHeader = true)
+                }
+                accounts.forEach { account ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TableCell(account.code, 78.dp, color = BookMuted)
+                        TableCell(account.name, 170.dp, fontWeight = FontWeight.Medium)
+                        TableCell(accountTypeLabel(account.type), 120.dp, color = BookMuted)
+                        TableCell(if (account.active) "Activa" else "Inactiva", 88.dp, color = if (account.active) BookGreen else BookMuted)
+                        TableCell(if (account.cashOrBank) "Caja/Banco" else "General", 110.dp, color = BookMuted)
+                    }
+                }
+            }
+        }
+        Text(
+            "Las cuentas se agregan sin borrar ni sobrescribir las existentes. El código y el tipo quedan fijos para preservar la historia contable.",
+            color = BookMuted,
+            fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun NewAccountDialog(
+    onDismiss: () -> Unit,
+    onSave: suspend (String, String, String, Boolean) -> Unit,
+) {
+    var code by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var type by rememberSaveable { mutableStateOf("EXPENSE") }
+    var cashOrBank by rememberSaveable { mutableStateOf(false) }
+    var errorText by rememberSaveable { mutableStateOf<String?>(null) }
+    var saving by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nueva cuenta", color = BookInk, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it.filter { digit -> digit in '0'..'9' }.take(8); errorText = null },
+                    label = { Text("Código (3–8 dígitos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it; errorText = null },
+                    label = { Text("Nombre de la cuenta") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                AccountTypePicker(type = type, onSelected = { type = it; if (it != "ASSET") cashOrBank = false })
+                if (type == "ASSET") {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = cashOrBank, onCheckedChange = { cashOrBank = it })
+                        Text("Usar como Caja/Banco para movimientos simples", color = BookInk, fontSize = 12.sp)
+                    }
+                }
+                Text("Las cuentas nuevas se guardan en el dispositivo y aparecen en los informes.", color = BookMuted, fontSize = 11.sp)
+                errorText?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !saving,
+                onClick = {
+                    if (!code.matches(Regex("[0-9]{3,8}")) || name.trim().length !in 2..80) {
+                        errorText = "Revisa el código (3–8 dígitos) y el nombre (2–80 caracteres)."
+                    } else {
+                        scope.launch {
+                            saving = true
+                            errorText = null
+                            try {
+                                onSave(code, name, type, cashOrBank)
+                            } catch (error: Exception) {
+                                errorText = error.message ?: "No se pudo guardar la cuenta."
+                            } finally {
+                                saving = false
+                            }
+                        }
+                    }
+                },
+            ) { Text(if (saving) "Guardando…" else "Agregar cuenta") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
+}
+
+@Composable
+private fun AccountTypePicker(type: String, onSelected: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Text("Tipo de cuenta", color = BookMuted, fontSize = 11.sp)
+        Spacer(Modifier.height(4.dp))
+        Box {
+            Surface(
+                onClick = { expanded = true },
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFBFC8D0)),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(accountTypeLabel(type), modifier = Modifier.weight(1f), color = BookInk, fontSize = 13.sp)
+                    Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null, tint = BookMuted)
+                }
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                accountTypeOptions.forEach { (code, label) ->
+                    DropdownMenuItem(text = { Text(label) }, onClick = { onSelected(code); expanded = false })
+                }
+            }
+        }
+    }
 }
 
 @Composable
