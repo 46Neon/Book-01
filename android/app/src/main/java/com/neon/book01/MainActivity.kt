@@ -25,7 +25,6 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MoreHoriz
@@ -122,7 +121,6 @@ private val tabs = listOf(
     BookTab("Cuentas", Icons.Outlined.ReceiptLong),
     BookTab("Balance", Icons.Outlined.BarChart),
     BookTab("Más", Icons.Outlined.MoreHoriz),
-    BookTab("Auditoría", Icons.Outlined.History),
 )
 
 class MainActivity : ComponentActivity() {
@@ -152,6 +150,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var showReversalDialog by rememberSaveable { mutableStateOf(false) }
+    var showAuditHistory by rememberSaveable { mutableStateOf(false) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var auditEvents by remember { mutableStateOf<List<AuditEventEntity>>(emptyList()) }
     var accounts by remember { mutableStateOf<List<AccountEntity>>(emptyList()) }
@@ -255,20 +254,24 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             } else if (selectedTab == 3) {
                 TrialBalanceScreen(accounts, entries, currencyCode)
             } else if (selectedTab == 4) {
-                BookSettingsScreen(
-                    bookName = bookName,
-                    currencyCode = currencyCode,
-                    onSaveName = { newName ->
-                        withContext(Dispatchers.IO) { repository.renameBook(newName) }
-                        snackbarHostState.showSnackbar("Nombre del libro actualizado.")
-                    },
-                )
-            } else if (selectedTab == 5) {
-                AuditHistoryScreen(
-                    events = auditEvents,
-                    entries = entries,
-                    onReverse = { showReversalDialog = true },
-                )
+                if (showAuditHistory) {
+                    AuditHistoryScreen(
+                        events = auditEvents,
+                        entries = entries,
+                        onReverse = { showReversalDialog = true },
+                        onBack = { showAuditHistory = false },
+                    )
+                } else {
+                    BookSettingsScreen(
+                        bookName = bookName,
+                        currencyCode = currencyCode,
+                        onSaveName = { newName ->
+                            withContext(Dispatchers.IO) { repository.renameBook(newName) }
+                            snackbarHostState.showSnackbar("Nombre del libro actualizado.")
+                        },
+                        onOpenAudit = { showAuditHistory = true },
+                    )
+                }
             } else {
                 ComingSoonScreen(tabs[selectedTab].title)
             }
@@ -1162,10 +1165,16 @@ private fun AuditHistoryScreen(
     events: List<AuditEventEntity>,
     entries: List<EntryWithLines>,
     onReverse: () -> Unit,
+    onBack: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Trazabilidad", color = BookInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
-        Text("Historial de contabilizaciones y reversas", color = BookMuted, fontSize = 12.sp)
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Trazabilidad", color = BookInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+                Text("Historial de contabilizaciones y reversas", color = BookMuted, fontSize = 12.sp)
+            }
+            TextButton(onClick = onBack) { Text("Volver") }
+        }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Corrección segura", color = BookInk, fontWeight = FontWeight.SemiBold)
@@ -1297,6 +1306,7 @@ private fun BookSettingsScreen(
     bookName: String,
     currencyCode: String,
     onSaveName: suspend (String) -> Unit,
+    onOpenAudit: () -> Unit,
 ) {
     var nameInput by rememberSaveable(bookName) { mutableStateOf(bookName) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -1348,6 +1358,13 @@ private fun BookSettingsScreen(
                     color = BookMuted,
                     fontSize = 12.sp,
                 )
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Trazabilidad", color = BookInk, fontWeight = FontWeight.SemiBold)
+                Text("Consulta contabilizaciones y reversas; los asientos contabilizados se corrigen sin editar el original.", color = BookMuted, fontSize = 12.sp)
+                TextButton(onClick = onOpenAudit) { Text("Abrir historial de auditoría") }
             }
         }
     }
