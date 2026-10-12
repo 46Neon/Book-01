@@ -12,6 +12,7 @@ La Parte 1 expondrá una API documentada para que el chatbot consulte y proponga
 
 - Pestañas de Diario, Mayor, Cuentas, Balance y Resultados.
 - Filas, columnas, encabezados, totales y navegación inspirados en hojas de cálculo.
+- Plan de cuentas tipo hoja de cálculo con alta de cuentas; los códigos y tipos se mantienen para proteger el histórico.
 - Balance de comprobación local por cuenta en USD; confirma que débitos y créditos totales cuadren.
 - Presentación adaptada a teléfono y tablet.
 - Captura local y, más adelante, sincronización segura.
@@ -26,7 +27,7 @@ La Parte 1 expondrá una API documentada para que el chatbot consulte y proponga
 
 ## Estado actual
 
-La APK de depuración muestra el Diario y permite guardar localmente ingresos y gastos sencillos, generando sus dos líneas balanceadas. El libro inicial trabaja únicamente en USD: los importes se almacenan como centavos enteros (`Long`), el análisis decimal es exacto con `BigDecimal` (sin `Double`), y los importes se presentan con la etiqueta explícita `US$` y dos decimales. Acepta formatos estadounidense y español inequívocos; rechaza, en vez de adivinar, entradas ambiguas como `1.234`. No hay conversión de cambio ni soporte multi-moneda. La actualización de Room de v1 a v2 crea la configuración USD conservando los asientos y líneas existentes; si hay registros previos con otro código, se muestran con su código original y se excluyen de los totales USD, sin conversión. Solo se pueden contabilizar movimientos nuevos en USD. Es un prototipo, no un sistema contable de producción: faltan configuración fiscal, edición/reversiones y auditoría completa, backend, sincronización, reportes completos y validación profesional.
+La APK permite registrar localmente ingresos y gastos sencillos, agregar cuentas al plan y consultar el balance de comprobación. El libro inicial trabaja en USD: los importes se almacenan como centavos enteros (`Long`), se analizan con `BigDecimal` (sin `Double`) y se muestran como `US$` con dos decimales. Acepta formatos estadounidense y español inequívocos y rechaza entradas ambiguas. No convierte ni mezcla monedas. Las migraciones Room v1→v2→v3 conservan asientos y cuentas y añaden la configuración USD y la clasificación de Caja/Banco. Sigue siendo un prototipo: faltan Mayor completo, edición/reversas y auditoría, backend/API, sincronización, reportes completos y validación profesional; no usar todavía para libros reales.
 
 ## Seguridad
 
