@@ -8,6 +8,10 @@ captures/
 *.apk
 *.aab
 
+# JavaScript
+node_modules/
+part2/web/dist/
+
 # Python
 __pycache__/
 *.py[cod]

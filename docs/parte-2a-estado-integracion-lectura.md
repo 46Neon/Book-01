@@ -8,8 +8,9 @@ Estado al 12 de octubre de 2026: se cerraron brechas de esquema/contrato y se a�
 - Las respuestas ahora reflejan campos y enums del esquema migrado: entradas `draft|posted|void`, cuentas `asset|liability|equity|income|expense`, importes USD exactos y descripción/fecha/estado/líneas. Se retiraron del borrador OpenAPI los campos no persistidos de referencia, contraparte, jerarquía de cuenta, reversa y costo. `idempotency_key` no se expone como referencia contable.
 - Listado de asientos admite búsqueda literal por descripción, filtro por cuenta/moneda/estado, fechas inclusivas y cursor. Los importes de la página se suman con `Decimal` desde las líneas realmente leídas. Listado de cuentas no completa datos faltantes con valores inventados.
 - Balance por cuenta y balance de comprobación calculan movimientos `posted`; USD y precision decimal permanecen acotados. El estado de resultados devuelve `501 not_implemented` si encuentra asientos contabilizados porque el esquema no diferencia costos de gastos.
-- El servicio conversacional tiene cinco herramientas GET, usa por defecto USD, inyecta el `bookId` del request autenticado, reenvía el bearer solo al API contable y falla cerrado si falta endpoint/key. La web estática permanece desconectada, no conserva chats y no usa `localStorage`/`sessionStorage`.
-- Se añadieron suites offline con `httpx.MockTransport` y una comprobación de compatibilidad entre YAML/OpenAPI runtime; workflow de CI para el servicio Part 2.
+- El servicio conversacional tiene cinco herramientas GET, usa por defecto USD y falla cerrado si falta endpoint/key. Antes de enviar una pregunta a Groq, valida el `bookId` suministrado por el cliente y el bearer mediante una lectura mínima del API contable; no deriva el libro del JWT. Después, el bearer se reenvía al API contable, que debe autorizar el acceso.
+- La UI está conectada por código a Supabase Auth y `POST /v1/chat`, exige variables configuradas por HTTPS, sesión en memoria y un UUID del libro. La UI no ofrece filtros separados: el endpoint recibe solo ID y pregunta, y la moneda soportada en backend sigue siendo USD. No existe proyecto/servicio live configurado.
+- CORS del servicio acepta solo orígenes HTTPS exactos declarados en `CORS_ALLOWED_ORIGINS`; por defecto no hay acceso cross-origin, y cookies no se permiten. Suites offline cubren bearer/preflight/autorización, además de contratos OpenAPI; CI construye/prueba el cliente Node y el servicio Python.
 
 ## Verificación reproducible local
 
@@ -20,7 +21,7 @@ python -m pip install -r backend/requirements.txt
 python -m pytest backend/tests
 python -m pip install -r part2/service/requirements.txt
 python -m pytest part2/service/tests
-node --check part2/web/app.js
+cd part2/web && npm ci && npm run check
 ```
 
 Las pruebas usan únicamente transportes sintéticos; no llaman Supabase, Groq ni una URL de producción. Los workflows correspondientes son `.github/workflows/backend-api.yml` y `.github/workflows/part2-service.yml`.
@@ -33,7 +34,7 @@ No hay valores de un proyecto Supabase, usuarios/JWT, clave Groq, despliegue ni 
 
 **Settings/secret store del entorno servidor (no chat, no repositorio):** publishable/anon key para PostgREST (`SUPABASE_PUBLISHABLE_KEY` o `SUPABASE_ANON_KEY`; no usar service-role); `GROQ_API_KEY` solo después de aprobación de privacidad/procesamiento. Configurar `SUPPORTED_CURRENCIES=USD`, acorde al CHECK de la migración. Nunca persistir bearer JWT de usuario en archivos, logs, localStorage o sessionStorage.
 
-También falta un login web aprobado que mantenga el JWT solo en memoria y lo envíe al servicio Part 2 por HTTPS; la web actual no hace solicitudes de red. Después de configurar el proyecto, ejecutar pruebas reales de issuer/audience, RLS/no acceso entre libros, solo GET, errores/expiración de JWT y contrato end-to-end con datos de prueba. Sin ello, este hito solo es una integración de código testeable offline.
+El flujo del cliente ya está cableado, pero falta provisionar proveedor/usuarios y configurar las variables públicas de build (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_CHAT_SERVICE_BASE_URL`) en un hosting HTTPS real. Después de configurar el proyecto, ejecutar pruebas reales de issuer/audience, RLS/no acceso entre libros, solo GET, expiración de sesión, CORS y contrato end-to-end con datos de prueba. Sin ello, este hito es integración de código testeable offline, no una conexión live.
 
 ## Revisión de contrato pendiente
 

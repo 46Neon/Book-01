@@ -12,10 +12,11 @@ import re
 import uuid
 from datetime import date
 from typing import Any, Literal
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, ValidationError, field_validator, model_validator
 
@@ -228,6 +229,33 @@ class GatewayFailure(Exception):
         self.message = message
 
 
+def configured_cors_origins() -> list[str]:
+    """Parse an exact HTTPS-origin allowlist; unset means no cross-origin access."""
+    configured = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    origins: list[str] = []
+    for item in configured.split(","):
+        raw = item.strip()
+        if not raw:
+            continue
+        try:
+            parsed = urlsplit(raw)
+            port = parsed.port
+        except ValueError as exc:
+            raise ValueError("CORS_ALLOWED_ORIGINS must contain exact HTTPS origins") from exc
+        if (parsed.scheme.lower() != "https" or not parsed.hostname or "*" in raw
+                or parsed.username is not None or parsed.password is not None
+                or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
+            raise ValueError("CORS_ALLOWED_ORIGINS must contain exact HTTPS origins")
+        host = parsed.hostname.lower()
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        netloc = host if port in (None, 443) else f"{host}:{port}"
+        origin = f"https://{netloc}"
+        if origin not in origins:
+            origins.append(origin)
+    return origins
+
+
 def create_app(
     *, groq_client: httpx.AsyncClient | None = None,
     accounting_client: httpx.AsyncClient | None = None,
@@ -235,6 +263,14 @@ def create_app(
     accounting_base_url: str | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Book-01 Part 2A Read-only Conversational Service", version="0.1.0", docs_url=None, redoc_url=None)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=configured_cors_origins(),
+        allow_credentials=False,
+        allow_methods=["POST"],
+        allow_headers=["Authorization", "Content-Type"],
+        max_age=600,
+    )
     app.state.groq_client = groq_client or httpx.AsyncClient(timeout=httpx.Timeout(12.0), follow_redirects=False)
     app.state.accounting_client = accounting_client or httpx.AsyncClient(timeout=httpx.Timeout(8.0), follow_redirects=False)
     app.state.close_groq_client = groq_client is None
@@ -276,9 +312,9 @@ def create_app(
         if not base.startswith("https://") or "?" in base or "#" in base:
             raise GatewayFailure(503, "service_unavailable", "Accounting API must be configured with an HTTPS base URL.")
 
-        # Authorize the caller and book with the accounting API before sending
-        # any user prompt to Groq. This prevents model calls for invalid tokens
-        # or books the caller cannot access. The response is discarded.
+        # Preflight book visibility through the accounting API before exposing the
+        # user's prompt to Groq. The caller-supplied bookId is explicitly passed
+        # for API authorization; it is not derived from JWT claims here.
         await call_accounting(
             app, bearer, payload.bookId, "listBookAccounts", "accounts",
             AccountListArgs(activeOnly=False, pageSize=1),

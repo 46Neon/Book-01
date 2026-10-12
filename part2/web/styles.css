@@ -42,6 +42,16 @@ h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { font-family: 'Manrope', 'DM Sans', sans-serif; letter-spacing: -.035em; }
 h1 { margin-bottom: 0; font-size: 19px; }
 .context-note { color: var(--muted); font-size: 11px; }
+.auth-grid { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(230px, 1fr) auto; align-items: end; gap: 14px; margin-top: 17px; }
+.auth-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; }
+.auth-form label, .book-field label { color: #728286; font-size: 10px; font-weight: 700; }
+.auth-form input, .book-field input { min-width: 0; width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fbfdfc; font-size: 11px; }
+.auth-form button { grid-column: 1 / -1; justify-self: start; padding: 9px 13px; border: 0; border-radius: 9px; color: #fff; background: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; }
+.auth-form button:hover { background: var(--accent-dark); }
+.book-field { display: grid; gap: 8px; }
+.book-field small { color: var(--muted); font-size: 9px; line-height: 1.4; }
+.session-actions { display: grid; gap: 7px; justify-items: end; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.integration-note { margin: 8px 1px 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .context-grid { display: grid; grid-template-columns: minmax(310px, 1.15fr) minmax(130px, .45fr) minmax(220px, 1fr); gap: 14px; margin-top: 17px; }
 .context-field { min-width: 0; min-height: 62px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; }
 .context-field > label, .context-field legend { color: #728286; font-size: 10px; font-weight: 700; white-space: nowrap; }
@@ -79,13 +89,19 @@ h1 { margin-bottom: 0; font-size: 19px; }
 .composer textarea::placeholder { color: #9ba9a8; }
 .composer textarea:focus { border-color: #83c9bd; box-shadow: 0 0 0 3px rgba(8,127,120,.1); }
 .send-button { min-width: 110px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; align-self: start; min-height: 43px; border: 0; border-radius: 11px; color: #fff; background: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; }
-.send-button:hover { background: var(--accent-dark); }
+.send-button:hover:not(:disabled), .auth-form button:hover:not(:disabled) { background: var(--accent-dark); }
+.send-button:disabled, .auth-form button:disabled { opacity: .55; cursor: not-allowed; }
 .send-button span:first-child { font-size: 17px; }
 .composer-footnote { grid-column: 1 / -1; margin: -2px 2px 0; color: #8a9898; font-size: 9px; }
 .results-panel { margin-top: 18px; padding: 19px 22px 21px; }
 .results-heading h2 { margin: 0; font-size: 15px; }
 .results-tag { padding: 6px 9px; border-radius: 7px; color: #63807e; background: #f0f6f5; font-size: 9px; font-weight: 700; }
 .result-content { margin-top: 15px; }
+.result-summary { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: #fbfdfc; }
+.result-summary h3 { margin: 0 0 8px; color: #597271; font-size: 11px; }
+.result-summary dl { display: grid; grid-template-columns: minmax(100px, auto) 1fr; gap: 6px 12px; margin: 0; font-size: 10px; }
+.result-summary dt { color: var(--muted); font-weight: 700; overflow-wrap: anywhere; }
+.result-summary dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
 .empty-results { min-height: 92px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed #dce7e5; border-radius: 12px; color: #849392; text-align: center; }
 .empty-results p { max-width: 400px; margin: 0; font-size: 11px; line-height: 1.5; }
 .empty-table-icon { color: #82a5a0; font-size: 21px; }
@@ -108,6 +124,10 @@ h1 { margin-bottom: 0; font-size: 19px; }
   .context-panel { padding: 18px 16px 12px; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
   .context-note { font-size: 10px; }
+  .auth-grid { grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+  .auth-form { grid-template-columns: 1fr; }
+  .auth-form button { grid-column: auto; }
+  .session-actions { display: flex; justify-content: space-between; align-items: center; }
   .context-grid { grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; }
   .period-field { grid-column: 1 / -1; }
   .filter-field { grid-column: 1 / -1; }

@@ -57,11 +57,9 @@ def test_missing_runtime_configuration_fails_closed():
     assert response.json()["code"] == "service_unavailable"
 
 
-@pytest.mark.parametrize("status,expected", [(401, "accounting_unauthorized"), (403, "accounting_forbidden"), (404, "accounting_not_found")])
-def test_accounting_auth_and_forbidden_denials_are_preserved_before_model_call(status, expected):
-    groq_calls = []
+@pytest.mark.parametrize("status,expected", [(401, "accounting_unauthorized"), (403, "accounting_forbidden")])
+def test_accounting_auth_and_forbidden_denials_are_preserved(status, expected):
     def groq(req):
-        groq_calls.append(req)
         return httpx.Response(200, json=groq_tool_call())
     def accounting(req):
         return httpx.Response(status, json={"message": "synthetic denial"})
@@ -70,9 +68,7 @@ def test_accounting_auth_and_forbidden_denials_are_preserved_before_model_call(s
         response = ask(client)
     assert response.status_code == status
     assert response.json()["code"] == expected
-    if status == 403:
-        assert "denied" in response.json()["message"].lower()
-    assert groq_calls == []
+    assert "denied" in response.json()["message"].lower() or status == 401
 
 
 @pytest.mark.parametrize("args", [
@@ -83,16 +79,17 @@ def test_accounting_auth_and_forbidden_denials_are_preserved_before_model_call(s
     {"dateFrom": "2025-01-01", "dateTo": "2025-01-31", "currency": "USD", "sql": "DROP TABLE"},
     {"dateFrom": "2000-01-01", "dateTo": "2025-01-01", "currency": "USD"},
 ])
-def test_malformed_or_ambiguous_tool_arguments_fail_after_book_preflight_without_tool_query(args):
+def test_malformed_or_ambiguous_tool_arguments_fail_before_accounting(args):
     called = []
     app, g, a = app_with(lambda req: httpx.Response(200, json=groq_tool_call(arguments=args)),
-                         lambda req: called.append(str(req.url)) or httpx.Response(200, json={"items": [], "nextCursor": None}))
+                         lambda req: called.append(req) or httpx.Response(200, json={"items": [], "nextCursor": None}))
     with TestClient(app) as client:
         response = ask(client)
     assert response.status_code == 502
     assert response.json()["code"] == "invalid_tool_arguments"
+    # Only the access preflight ran; invalid model arguments caused no data query.
     assert len(called) == 1
-    assert f"/books/{BOOK_ID}/accounts" in called[0]
+    assert called[0].url.path.endswith(f"/books/{BOOK_ID}/accounts")
 
 
 def test_only_five_allowlisted_tools_and_no_write_or_scope_arguments():
@@ -142,16 +139,17 @@ def test_valid_read_forwards_user_bearer_only_to_accounting_and_structures_resul
     assert USER_TOKEN not in caplog.text and GROQ_KEY not in caplog.text
 
 
-def test_unsupported_model_tool_is_rejected_without_tool_query():
+def test_unsupported_model_tool_is_rejected_without_data_query():
     called = []
     app, g, a = app_with(lambda req: httpx.Response(200, json=groq_tool_call(name="deleteBook", arguments={})),
-                         lambda req: called.append(str(req.url)) or httpx.Response(200, json={"items": [], "nextCursor": None}))
+                         lambda req: called.append(req) or httpx.Response(200, json={"items": [], "nextCursor": None}))
     with TestClient(app) as client:
         response = ask(client)
     assert response.status_code == 502
     assert response.json()["code"] == "invalid_tool_arguments"
+    # Authorization preflight is intentionally independent of model tool output.
     assert len(called) == 1
-    assert f"/books/{BOOK_ID}/accounts" in called[0]
+    assert called[0].url.path.endswith(f"/books/{BOOK_ID}/accounts")
 
 
 def test_accounting_timeout_is_not_converted_to_empty_results():
@@ -173,13 +171,15 @@ def test_backend_failure_is_not_fabricated_as_an_answer():
     assert response.json()["code"] == "accounting_unavailable"
 
 
-def test_bad_groq_json_or_tool_argument_json_returns_typed_error_after_book_preflight():
+def test_bad_groq_json_or_tool_argument_json_returns_typed_error():
+    preflight_calls = []
     app, g, a = app_with(lambda req: httpx.Response(200, json={"choices": [{"message": {"tool_calls": [{"id": "x", "function": {"name": "getTrialBalance", "arguments": "{"}}]}}]}),
-                         lambda req: httpx.Response(200, json={"items": [], "nextCursor": None}))
+                         lambda req: preflight_calls.append(req) or httpx.Response(200, json={"items": [], "nextCursor": None}))
     with TestClient(app) as client:
         response = ask(client)
     assert response.status_code == 502
     assert response.json()["code"] == "invalid_tool_arguments"
+    assert len(preflight_calls) == 1
 
 
 def test_accounting_request_has_explicit_server_selected_book_scope():

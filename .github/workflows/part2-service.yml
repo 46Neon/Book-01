@@ -1,20 +1,36 @@
-name: Part 2A read-only service tests
+name: Part 2A web and service checks
 
 on:
   push:
     branches: [main]
     paths:
       - 'part2/service/**'
+      - 'part2/web/**'
       - 'docs/parte-2a-openapi-propuesta.yaml'
       - '.github/workflows/part2-service.yml'
   pull_request:
     paths:
       - 'part2/service/**'
+      - 'part2/web/**'
       - 'docs/parte-2a-openapi-propuesta.yaml'
       - '.github/workflows/part2-service.yml'
 
 jobs:
-  pytest:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: part2/web/package-lock.json
+      - run: npm ci
+        working-directory: part2/web
+      - run: npm run check
+        working-directory: part2/web
+
+  service:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
