@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Runtime regression test for the full v1→v4 chain without losing postings. */
+/** Instrumented runtime regression test for the full v1→v5 chain without losing postings. */
 @RunWith(AndroidJUnit4::class)
 class LedgerMigrationTest {
     @Test
@@ -20,16 +20,19 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(4L, db.longValue("PRAGMA user_version"))
+            assertEquals(5L, db.longValue("PRAGMA user_version"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE entryId = 'entry-v1'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE accountNameSnapshot = 'Caja'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE accountNameSnapshot = 'Ingresos'"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE accountNameSnapshot != ''"))
             assertEquals(100L, db.longValue("SELECT amountMinor FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals("USD", db.stringValue("SELECT currencyCode FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1000'"))
@@ -40,6 +43,7 @@ class LedgerMigrationTest {
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE id = 'entry-v1' AND reversalOfEntryId IS NULL"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_journal_entries_reversalOfEntryId'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'audit_events_no_%'"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'account_audit_events_no_%'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('audit_events') WHERE name = 'reason'"))
         } finally {
             upgraded.close()

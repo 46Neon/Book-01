@@ -21,6 +21,9 @@ interface LedgerDao {
     @Query("SELECT * FROM audit_events ORDER BY occurredAt DESC")
     fun observeAuditEvents(): Flow<List<AuditEventEntity>>
 
+    @Query("SELECT * FROM account_audit_events ORDER BY occurredAt DESC")
+    fun observeAccountAuditEvents(): Flow<List<AccountAuditEventEntity>>
+
     @Query("SELECT * FROM journal_entries WHERE id = :entryId LIMIT 1")
     suspend fun getEntry(entryId: String): JournalEntryEntity?
 
@@ -54,6 +57,9 @@ interface LedgerDao {
     @Update
     suspend fun updateBookSettings(settings: BookSettingsEntity)
 
+    @Update
+    suspend fun updateAccount(account: AccountEntity)
+
     @Query("SELECT COUNT(*) FROM journal_entries")
     suspend fun countEntries(): Int
 
@@ -65,4 +71,7 @@ interface LedgerDao {
 
     @Insert
     suspend fun insertAuditEvent(event: AuditEventEntity)
+
+    @Insert
+    suspend fun insertAccountAuditEvent(event: AccountAuditEventEntity)
 }

@@ -63,6 +63,7 @@ data class JournalLineEntity(
     val debitMinor: Long,
     val creditMinor: Long,
     val currencyCode: String,
+    @ColumnInfo(defaultValue = "''") val accountNameSnapshot: String,
 )
 
 data class EntryWithLines(
@@ -96,9 +97,24 @@ data class AuditEventEntity(
     val relatedEntryId: String? = null,
 )
 
+@Entity(
+    tableName = "account_audit_events",
+    foreignKeys = [ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["accountCode"], onDelete = ForeignKey.RESTRICT)],
+    indices = [Index("accountCode")],
+)
+data class AccountAuditEventEntity(
+    @PrimaryKey val id: String,
+    val accountCode: String,
+    val occurredAt: String,
+    val oldName: String,
+    val newName: String,
+    val oldActive: Boolean,
+    val newActive: Boolean,
+)
+
 @Database(
-    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class],
-    version = 4,
+    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class],
+    version = 5,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -154,6 +170,38 @@ abstract class LedgerDatabase : RoomDatabase() {
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `audit_events_no_delete` BEFORE DELETE ON `audit_events` BEGIN SELECT RAISE(ABORT, 'audit_events is append-only'); END")
         }
 
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `journal_lines` ADD COLUMN `accountNameSnapshot` TEXT NOT NULL DEFAULT ''")
+                database.execSQL("UPDATE `journal_lines` SET `accountNameSnapshot` = COALESCE((SELECT `name` FROM `accounts` WHERE `accounts`.`code` = `journal_lines`.`accountCode`), `accountCode`)")
+                createAccountAuditTable(database)
+                createAccountAuditGuards(database)
+                createImmutableLedgerGuards(database)
+            }
+        }
+
+        private fun createAccountAuditTable(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `account_audit_events` (" +
+                    "`id` TEXT NOT NULL, `accountCode` TEXT NOT NULL, `occurredAt` TEXT NOT NULL, " +
+                    "`oldName` TEXT NOT NULL, `newName` TEXT NOT NULL, `oldActive` INTEGER NOT NULL, `newActive` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`id`), FOREIGN KEY(`accountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)",
+            )
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_account_audit_events_accountCode` ON `account_audit_events` (`accountCode`)")
+        }
+
+        private fun createAccountAuditGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `account_audit_events_no_update` BEFORE UPDATE ON `account_audit_events` BEGIN SELECT RAISE(ABORT, 'account_audit_events is append-only'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `account_audit_events_no_delete` BEFORE DELETE ON `account_audit_events` BEGIN SELECT RAISE(ABORT, 'account_audit_events is append-only'); END")
+        }
+
+        private fun createImmutableLedgerGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `accounts_code_type_immutable` BEFORE UPDATE OF `code`, `type` ON `accounts` WHEN NEW.`code` != OLD.`code` OR NEW.`type` != OLD.`type` BEGIN SELECT RAISE(ABORT, 'account code and type are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `accounts_no_delete` BEFORE DELETE ON `accounts` BEGIN SELECT RAISE(ABORT, 'accounts cannot be deleted'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_no_update` BEFORE UPDATE ON `journal_entries` BEGIN SELECT RAISE(ABORT, 'posted journal entries are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_no_delete` BEFORE DELETE ON `journal_entries` BEGIN SELECT RAISE(ABORT, 'journal entries cannot be deleted'); END")
+        }
+
         @Volatile
         private var instance: LedgerDatabase? = null
 
@@ -163,10 +211,12 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             createAuditGuards(db)
+                            createAccountAuditGuards(db)
+                            createImmutableLedgerGuards(db)
                         }
                     }).build().also { instance = it }
             }

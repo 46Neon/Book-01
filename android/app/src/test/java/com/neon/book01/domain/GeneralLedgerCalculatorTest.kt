@@ -169,6 +169,7 @@ class GeneralLedgerCalculatorTest {
                 debitMinor = debit,
                 creditMinor = credit,
                 currencyCode = currency,
+                accountNameSnapshot = "Caja",
             ),
         ),
     )

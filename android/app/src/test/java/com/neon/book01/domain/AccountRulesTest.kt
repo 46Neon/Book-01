@@ -22,6 +22,25 @@ class AccountRulesTest {
     }
 
     @Test
+    fun accountNameValidationTrimsAndEnforcesLength() {
+        assertEquals("Caja principal", AccountRules.validateName("  Caja principal "))
+        assertThrows(IllegalArgumentException::class.java) { AccountRules.validateName(" ") }
+        assertThrows(IllegalArgumentException::class.java) { AccountRules.validateName("x".repeat(81)) }
+    }
+
+    @Test
+    fun inactiveAccountsAreExcludedFromNewPostingSelectors() {
+        val accounts = listOf(
+            AccountRules.SelectableAccount("1000", "ASSET", true, true),
+            AccountRules.SelectableAccount("1010", "ASSET", false, true),
+            AccountRules.SelectableAccount("4000", "INCOME", true, false),
+            AccountRules.SelectableAccount("4100", "INCOME", false, false),
+        )
+        assertEquals(listOf("1000"), AccountRules.activePaymentAccounts(accounts).map { it.code })
+        assertEquals(listOf("4000"), AccountRules.activeCategoryAccounts(accounts, "INCOME").map { it.code })
+    }
+
+    @Test
     fun onlyAssetAccountsMayBeMarkedCashOrBank() {
         assertThrows(IllegalArgumentException::class.java) {
             AccountRules.validate("4000", "Ingresos", "INCOME", cashOrBank = true)

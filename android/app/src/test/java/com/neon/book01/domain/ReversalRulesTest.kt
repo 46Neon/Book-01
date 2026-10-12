@@ -110,7 +110,7 @@ class ReversalRulesTest {
             reversalOfEntryId = reversalOf,
         ),
         lines = listOf(
-            JournalLineEntity("line-$id", id, "1000", debit, credit, "USD"),
+            JournalLineEntity("line-$id", id, "1000", debit, credit, "USD", "Caja"),
         ),
     )
 }

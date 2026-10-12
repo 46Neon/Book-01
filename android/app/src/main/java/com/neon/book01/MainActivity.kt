@@ -75,11 +75,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.neon.book01.data.AccountEntity
+import com.neon.book01.data.AccountAuditEventEntity
 import com.neon.book01.data.AuditEventEntity
 import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
+import com.neon.book01.domain.AccountRules
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.GeneralLedgerCalculator
 import com.neon.book01.domain.OperatingSummaryCalculator
@@ -149,10 +151,12 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
+    var accountBeingEdited by remember { mutableStateOf<AccountEntity?>(null) }
     var showReversalDialog by rememberSaveable { mutableStateOf(false) }
     var showAuditHistory by rememberSaveable { mutableStateOf(false) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
     var auditEvents by remember { mutableStateOf<List<AuditEventEntity>>(emptyList()) }
+    var accountAuditEvents by remember { mutableStateOf<List<AccountAuditEventEntity>>(emptyList()) }
     var accounts by remember { mutableStateOf<List<AccountEntity>>(emptyList()) }
     var bookSettings by remember { mutableStateOf<BookSettingsEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -162,6 +166,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
         repository.initializeBook()
         launch { repository.observeEntries().collect { entries = it } }
         launch { repository.observeAuditEvents().collect { auditEvents = it } }
+        launch { repository.observeAccountAuditEvents().collect { accountAuditEvents = it } }
         launch { repository.observeAccounts().collect { accounts = it } }
         launch { repository.observeBookSettings().collect { bookSettings = it } }
     }
@@ -250,7 +255,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             } else if (selectedTab == 1) {
                 GeneralLedgerScreen(accounts, entries, currencyCode)
             } else if (selectedTab == 2) {
-                AccountsScreen(accounts)
+                AccountsScreen(accounts, accountAuditEvents, onEditAccount = { accountBeingEdited = it })
             } else if (selectedTab == 3) {
                 TrialBalanceScreen(accounts, entries, currencyCode)
             } else if (selectedTab == 4) {
@@ -308,6 +313,18 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 withContext(Dispatchers.IO) { repository.createAccount(code, name, type, cashOrBank) }
                 showAccountDialog = false
                 snackbarHostState.showSnackbar("Cuenta agregada al plan de cuentas.")
+            },
+        )
+    }
+    if (accountBeingEdited != null) {
+        EditAccountDialog(
+            account = accountBeingEdited!!,
+            onDismiss = { accountBeingEdited = null },
+            onSave = { name, active ->
+                val account = accountBeingEdited!!
+                withContext(Dispatchers.IO) { repository.updateAccountSettings(account.code, name, active) }
+                accountBeingEdited = null
+                snackbarHostState.showSnackbar("Cuenta actualizada; el código y la clasificación no cambian.")
             },
         )
     }
@@ -548,8 +565,12 @@ private fun NewEntryDialog(
     var saving by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val paymentAccounts = accounts.filter { it.active && it.cashOrBank }
-    val categoryAccounts = accounts.filter { it.active && it.type == if (kind == EntryKind.EXPENSE) "EXPENSE" else "INCOME" }
+    val selectableAccounts = accounts.map { AccountRules.SelectableAccount(it.code, it.type, it.active, it.cashOrBank) }
+    val paymentCodes = AccountRules.activePaymentAccounts(selectableAccounts).map { it.code }.toSet()
+    val paymentAccounts = accounts.filter { it.code in paymentCodes }
+    val categoryType = if (kind == EntryKind.EXPENSE) "EXPENSE" else "INCOME"
+    val categoryCodes = AccountRules.activeCategoryAccounts(selectableAccounts, categoryType).map { it.code }.toSet()
+    val categoryAccounts = accounts.filter { it.code in categoryCodes }
     LaunchedEffect(categoryAccounts) {
         if (categoryAccounts.none { it.code == categoryCode }) {
             categoryCode = categoryAccounts.firstOrNull()?.code.orEmpty()
@@ -719,7 +740,11 @@ private fun accountTypeLabel(type: String): String =
     accountTypeOptions.firstOrNull { it.first == type }?.second ?: type
 
 @Composable
-private fun AccountsScreen(accounts: List<AccountEntity>) {
+private fun AccountsScreen(
+    accounts: List<AccountEntity>,
+    accountAuditEvents: List<AccountAuditEventEntity>,
+    onEditAccount: (AccountEntity) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column {
             Text("Plan de cuentas", color = BookInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -737,6 +762,7 @@ private fun AccountsScreen(accounts: List<AccountEntity>) {
                     TableCell("Tipo", 120.dp, isHeader = true)
                     TableCell("Estado", 88.dp, isHeader = true)
                     TableCell("Uso", 110.dp, isHeader = true)
+                    TableCell("Acciones", 100.dp, isHeader = true)
                 }
                 accounts.forEach { account ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -745,16 +771,74 @@ private fun AccountsScreen(accounts: List<AccountEntity>) {
                         TableCell(accountTypeLabel(account.type), 120.dp, color = BookMuted)
                         TableCell(if (account.active) "Activa" else "Inactiva", 88.dp, color = if (account.active) BookGreen else BookMuted)
                         TableCell(if (account.cashOrBank) "Caja/Banco" else "General", 110.dp, color = BookMuted)
+                        Box(Modifier.width(100.dp).height(45.dp), contentAlignment = Alignment.CenterStart) {
+                            TextButton(onClick = { onEditAccount(account) }) { Text("Editar", fontSize = 11.sp) }
+                        }
                     }
                 }
             }
         }
         Text(
-            "Las cuentas se agregan sin borrar ni sobrescribir las existentes. El código y el tipo quedan fijos para preservar la historia contable.",
+            "Las cuentas inactivas siguen visibles en la historia. Código y tipo son inmutables; solo puedes cambiar el nombre y la disponibilidad para nuevos asientos.",
             color = BookMuted,
             fontSize = 11.sp,
         )
+        if (accountAuditEvents.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Cambios recientes", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                accountAuditEvents.take(5).forEach { event ->
+                    val changed = buildList {
+                        if (event.oldName != event.newName) add("nombre: ${event.oldName} → ${event.newName}")
+                        if (event.oldActive != event.newActive) add(if (event.newActive) "reactivada" else "desactivada")
+                    }.joinToString(" · ")
+                    Text("${event.occurredAt.take(10)} · ${event.accountCode} · $changed", color = BookMuted, fontSize = 11.sp)
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun EditAccountDialog(
+    account: AccountEntity,
+    onDismiss: () -> Unit,
+    onSave: suspend (String, Boolean) -> Unit,
+) {
+    var name by rememberSaveable(account.code) { mutableStateOf(account.name) }
+    var active by rememberSaveable(account.code) { mutableStateOf(account.active) }
+    var errorText by rememberSaveable(account.code) { mutableStateOf<String?>(null) }
+    var saving by rememberSaveable(account.code) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar cuenta ${account.code}", color = BookInk, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("${account.code} · ${accountTypeLabel(account.type)} (clasificación fija)", color = BookMuted, fontSize = 12.sp)
+                OutlinedTextField(value = name, onValueChange = { name = it; errorText = null }, label = { Text("Nombre visible") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = active, onCheckedChange = { active = it })
+                    Text("Activa para nuevos asientos", color = BookInk, fontSize = 12.sp)
+                }
+                Text("Al desactivarla seguirá apareciendo en el diario y los informes históricos.", color = BookMuted, fontSize = 11.sp)
+                errorText?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !saving, onClick = {
+                if (name.trim().length !in 2..80) {
+                    errorText = "El nombre debe tener entre 2 y 80 caracteres."
+                } else scope.launch {
+                    saving = true
+                    errorText = null
+                    try { onSave(name, active) } catch (error: Exception) {
+                        errorText = error.message ?: "No se pudo actualizar la cuenta."
+                    } finally { saving = false }
+                }
+            }) { Text(if (saving) "Guardando…" else "Guardar cambios") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
 }
 
 @Composable
@@ -1401,7 +1485,7 @@ private fun EntryWithLines.toJournalRows(accounts: List<AccountEntity>): List<Jo
             .replace(".", "")
     }.getOrDefault(entry.entryDate)
     return lines.map { line ->
-        val accountName = accounts.firstOrNull { it.code == line.accountCode }?.name ?: line.accountCode
+        val accountName = line.accountNameSnapshot.ifBlank { accounts.firstOrNull { it.code == line.accountCode }?.name ?: line.accountCode }
         JournalRow(
             date = dateLabel,
             concept = entry.description,
