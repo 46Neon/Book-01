@@ -24,4 +24,5 @@ jobs:
           cache: pip
           cache-dependency-path: part2/service/requirements.txt
       - run: python -m pip install -r part2/service/requirements.txt
-      - run: python -m pytest part2/service/tests
+      - run: python -m pytest tests
+        working-directory: part2/service
