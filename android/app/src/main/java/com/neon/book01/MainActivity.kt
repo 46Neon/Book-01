@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MoreHoriz
@@ -75,12 +76,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.neon.book01.data.AccountEntity
+import com.neon.book01.data.AuditEventEntity
 import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.GeneralLedgerCalculator
+import com.neon.book01.domain.OperatingSummaryCalculator
 import com.neon.book01.domain.ReportAccount
 import com.neon.book01.domain.ReportPostingLine
 import com.neon.book01.domain.TrialBalanceCalculator
@@ -119,6 +122,7 @@ private val tabs = listOf(
     BookTab("Cuentas", Icons.Outlined.ReceiptLong),
     BookTab("Balance", Icons.Outlined.BarChart),
     BookTab("Más", Icons.Outlined.MoreHoriz),
+    BookTab("Auditoría", Icons.Outlined.History),
 )
 
 class MainActivity : ComponentActivity() {
@@ -147,7 +151,9 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
+    var showReversalDialog by rememberSaveable { mutableStateOf(false) }
     var entries by remember { mutableStateOf<List<EntryWithLines>>(emptyList()) }
+    var auditEvents by remember { mutableStateOf<List<AuditEventEntity>>(emptyList()) }
     var accounts by remember { mutableStateOf<List<AccountEntity>>(emptyList()) }
     var bookSettings by remember { mutableStateOf<BookSettingsEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -156,20 +162,33 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     LaunchedEffect(repository) {
         repository.initializeBook()
         launch { repository.observeEntries().collect { entries = it } }
+        launch { repository.observeAuditEvents().collect { auditEvents = it } }
         launch { repository.observeAccounts().collect { accounts = it } }
         launch { repository.observeBookSettings().collect { bookSettings = it } }
     }
 
     val bookName = bookSettings?.bookName ?: "Libro de prueba"
     val currencyCode = bookSettings?.baseCurrency ?: UsdMoney.CURRENCY_CODE
-    val incomeMinor = UsdMoney.sumMinorUnits(
-        entries.filter { it.entry.kind == EntryKind.INCOME.name && it.entry.currencyCode == currencyCode }
-            .map { it.entry.amountMinor },
-    )
-    val expenseMinor = UsdMoney.sumMinorUnits(
-        entries.filter { it.entry.kind == EntryKind.EXPENSE.name && it.entry.currencyCode == currencyCode }
-            .map { it.entry.amountMinor },
-    )
+    val operatingSummary = remember(accounts, entries, currencyCode) {
+        OperatingSummaryCalculator.calculate(
+            accounts = accounts.map { ReportAccount(it.code, it.name, it.type) },
+            postings = entries.filter { it.entry.status == "POSTED" }
+                .flatMap { entry ->
+                    entry.lines.map { line ->
+                        ReportPostingLine(
+                            line.accountCode,
+                            line.debitMinor,
+                            line.creditMinor,
+                            line.currencyCode,
+                            entry.entry.entryDate,
+                        )
+                    }
+                },
+            currencyCode = currencyCode,
+        )
+    }
+    val incomeMinor = operatingSummary.incomeMinor
+    val expenseMinor = operatingSummary.expenseMinor
     val netMinor = UsdMoney.subtractMinorUnits(incomeMinor, expenseMinor)
     val rowItems = entries.flatMap { entry -> entry.toJournalRows(accounts) }
 
@@ -244,6 +263,12 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         snackbarHostState.showSnackbar("Nombre del libro actualizado.")
                     },
                 )
+            } else if (selectedTab == 5) {
+                AuditHistoryScreen(
+                    events = auditEvents,
+                    entries = entries,
+                    onReverse = { showReversalDialog = true },
+                )
             } else {
                 ComingSoonScreen(tabs[selectedTab].title)
             }
@@ -280,6 +305,21 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 withContext(Dispatchers.IO) { repository.createAccount(code, name, type, cashOrBank) }
                 showAccountDialog = false
                 snackbarHostState.showSnackbar("Cuenta agregada al plan de cuentas.")
+            },
+        )
+    }
+    if (showReversalDialog) {
+        val reversedEntryIds = entries.mapNotNull { it.entry.reversalOfEntryId }.toSet()
+        val eligibleEntries = entries.filter {
+            it.entry.status == "POSTED" && it.entry.reversalOfEntryId == null && it.entry.id !in reversedEntryIds
+        }
+        ReversalDialog(
+            entries = eligibleEntries,
+            onDismiss = { showReversalDialog = false },
+            onSave = { entryId, reversalDate, reason ->
+                withContext(Dispatchers.IO) { repository.reversePostedEntry(entryId, reversalDate, reason) }
+                showReversalDialog = false
+                snackbarHostState.showSnackbar("Reversa contabilizada; el asiento original permanece intacto.")
             },
         )
     }
@@ -1115,6 +1155,141 @@ private fun TrialBalanceScreen(
             )
         }
     }
+}
+
+@Composable
+private fun AuditHistoryScreen(
+    events: List<AuditEventEntity>,
+    entries: List<EntryWithLines>,
+    onReverse: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Trazabilidad", color = BookInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        Text("Historial de contabilizaciones y reversas", color = BookMuted, fontSize = 12.sp)
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Corrección segura", color = BookInk, fontWeight = FontWeight.SemiBold)
+                Text("Un asiento contabilizado no se edita ni se elimina. La corrección crea una reversa con líneas opuestas y conserva ambos registros.", color = BookMuted, fontSize = 12.sp)
+                TextButton(onClick = onReverse) { Text("Reversar asiento contabilizado") }
+            }
+        }
+        Text("Historial de auditoría", color = BookInk, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        if (events.isEmpty()) {
+            Text("Aún no hay eventos de auditoría.", color = BookMuted, fontSize = 13.sp)
+        } else {
+            events.forEach { event ->
+                val entry = entries.firstOrNull { it.entry.id == event.entryId }?.entry
+                Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            when (event.eventType) {
+                                "POSTED" -> "Asiento contabilizado"
+                                "REVERSAL_POSTED" -> "Reversa contabilizada"
+                                "REVERSED" -> "Asiento reversado"
+                                else -> event.eventType
+                            },
+                            color = BookInk,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text("Fecha efectiva: ${event.eventDate} · ID: ${event.entryId.take(8)}", color = BookMuted, fontSize = 11.sp)
+                        Text("Registrado: ${event.occurredAt}", color = BookMuted, fontSize = 10.sp)
+                        if (entry != null) Text(entry.description, color = BookInk, fontSize = 12.sp)
+                        event.relatedEntryId?.let { Text("Relacionado con: ${it.take(8)}", color = BookMuted, fontSize = 11.sp) }
+                        if (event.reason.isNotBlank()) Text("Motivo: ${event.reason}", color = BookMuted, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        Text("Los eventos nuevos se guardan en una tabla append-only local. Los datos anteriores a la actualización se conservan, pero no tienen eventos retroactivos.", color = BookMuted, fontSize = 11.sp)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReversalDialog(
+    entries: List<EntryWithLines>,
+    onDismiss: () -> Unit,
+    onSave: suspend (String, String, String) -> Unit,
+) {
+    var selectedEntryId by rememberSaveable { mutableStateOf("") }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var reversalDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    var reason by rememberSaveable { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val selected = entries.firstOrNull { it.entry.id == selectedEntryId }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Crear reversa") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (entries.isEmpty()) {
+                    Text("No hay asientos contabilizados elegibles. Las reversas existentes no se pueden volver a reversar.", color = BookMuted, fontSize = 13.sp)
+                } else {
+                    Box {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = BookCanvas,
+                            onClick = { menuExpanded = true },
+                        ) {
+                            Text(
+                                selected?.let { "${it.entry.entryDate} · ${it.entry.description}" } ?: "Elegir asiento original",
+                                modifier = Modifier.padding(12.dp),
+                                color = BookInk,
+                                fontSize = 13.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            entries.forEach { item ->
+                                DropdownMenuItem(
+                                    text = { Text("${item.entry.entryDate} · ${item.entry.description}", maxLines = 2) },
+                                    onClick = { selectedEntryId = item.entry.id; menuExpanded = false; errorMessage = null },
+                                )
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = reversalDate,
+                        onValueChange = { reversalDate = it; errorMessage = null },
+                        label = { Text("Fecha de reversa (AAAA-MM-DD)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = reason,
+                        onValueChange = { reason = it; errorMessage = null },
+                        label = { Text("Motivo obligatorio") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                    )
+                }
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = entries.isNotEmpty() && selected != null && !saving,
+                onClick = {
+                    scope.launch {
+                        saving = true
+                        try {
+                            onSave(selectedEntryId, reversalDate, reason)
+                        } catch (error: Exception) {
+                            errorMessage = error.message ?: "No se pudo crear la reversa."
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+            ) { Text(if (saving) "Guardando…" else "Contabilizar reversa") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancelar") } },
+    )
 }
 
 @Composable
