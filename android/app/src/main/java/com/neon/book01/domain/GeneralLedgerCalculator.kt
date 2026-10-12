@@ -30,12 +30,15 @@ object GeneralLedgerCalculator {
         accountCode: String,
         entries: List<EntryWithLines>,
         currencyCode: String = UsdMoney.CURRENCY_CODE,
+        startDate: String? = null,
+        endDate: String? = null,
     ): GeneralLedgerReport {
         require(accountCode.isNotBlank()) { "Selecciona una cuenta para consultar el Mayor." }
         require(currencyCode.isNotBlank()) { "La moneda del libro no puede estar vacía." }
+        val dateRange = PostingDateRange.parse(startDate, endDate)
 
         val accountLines = entries.asSequence()
-            .filter { it.entry.status == "POSTED" }
+            .filter { it.entry.status == "POSTED" && dateRange.includes(it.entry.entryDate) }
             .flatMap { entryWithLines ->
                 entryWithLines.lines.asSequence()
                     .filter { it.accountCode == accountCode }

@@ -17,6 +17,7 @@
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
 - Balance de comprobación local por cuenta: débitos/créditos exactos, naturaleza de saldo D/H y comprobación de que el total cuadra; rechaza mezclar monedas en el reporte USD.
 - Mayor por cuenta con filas cronológicas, débitos/créditos, saldo corrido D/H y totales exactos; excluye borradores y separa otras monedas sin convertir ni mezclarlas.
+- Filtros opcionales de fecha inclusivos Desde/Hasta para el Mayor y el Balance de comprobación. Aceptan fechas estrictas AAAA-MM-DD, dejan extremos vacíos sin límite, rechazan fechas inválidas o rango inicial posterior al final y recalculan los totales/saldo corrido solo con las filas del periodo seleccionado.
 - GitHub Actions compila el APK de depuración.
 
 ## Limitaciones conocidas
@@ -25,9 +26,9 @@
 - El plan permite agregar cuentas nuevas, pero aún no editar nombres/tipos ni desactivar cuentas; la plantilla sigue siendo genérica y no configurable por empresa.
 - Los asientos sencillos se marcan contabilizados al guardar; falta flujo de borrador, aprobación, reversa y auditoría completa.
 - Aún sin API/backend, usuarios, roles, sincronización, adjuntos, importación/exportación o restauración.
-- El Mayor funcional muestra el periodo completo por cuenta; faltan filtros de fechas y estados financieros completos. El Balance de comprobación también cubre solo el periodo completo local en USD.
+- El Mayor y el Balance de comprobación permiten seleccionar un rango de fechas local en USD; faltan controles de cierre de periodos y estados financieros completos.
 - No se declara cumplimiento contable/fiscal local.
 
 ## Siguiente hito
 
-Siguiente: filtros por fechas/periodos, reversas trazables e historial de auditoría; repetir la prueba instrumentada de migración en un emulador que arranque. Después siguen API/backend, sincronización y respaldo dentro de Parte 1. El chat conversacional continúa fuera de mi alcance; cualquier futuro soporte multi-moneda debe diseñarse expresamente antes de implementarse.
+Siguiente: ciclo seguro de edición/desactivación de cuentas sin cambiar clasificaciones históricas, reversas trazables e historial de auditoría, controles de cierre/periodos y estados financieros más completos; repetir la prueba instrumentada de migración en un emulador que arranque. Después siguen API/backend, sincronización y respaldo dentro de Parte 1. El chat conversacional continúa fuera de mi alcance; cualquier futuro soporte multi-moneda debe diseñarse expresamente antes de implementarse.

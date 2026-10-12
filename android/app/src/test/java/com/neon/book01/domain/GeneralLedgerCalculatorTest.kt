@@ -40,6 +40,62 @@ class GeneralLedgerCalculatorTest {
     }
 
     @Test
+    fun dateRangeIncludesBothBoundariesAndRecalculatesPeriodRunningBalance() {
+        val report = GeneralLedgerCalculator.calculate(
+            accountCode = "1000",
+            entries = listOf(
+                entry("before", "2026-01-09", "a", debit = 90, credit = 0),
+                entry("start", "2026-01-10", "b", debit = 100, credit = 0),
+                entry("inside", "2026-01-11", "c", debit = 0, credit = 25),
+                entry("end", "2026-01-12", "d", debit = 40, credit = 0),
+                entry("after", "2026-01-13", "e", debit = 500, credit = 0),
+            ),
+            startDate = "2026-01-10",
+            endDate = "2026-01-12",
+        )
+
+        assertEquals(listOf("start", "inside", "end"), report.rows.map { it.entryId })
+        assertEquals(listOf(100L, 75L, 115L), report.rows.map { it.runningBalanceMinor })
+        assertEquals(140L, report.totalDebitMinor)
+        assertEquals(25L, report.totalCreditMinor)
+        assertEquals(115L, report.closingBalanceMinor)
+    }
+
+    @Test
+    fun emptyOrUnboundedEndpointsIncludeTheRemainingPeriod() {
+        val entries = listOf(
+            entry("first", "2026-01-01", "a", debit = 1, credit = 0),
+            entry("middle", "2026-01-02", "b", debit = 2, credit = 0),
+            entry("last", "2026-01-03", "c", debit = 3, credit = 0),
+        )
+
+        assertEquals(
+            listOf("middle", "last"),
+            GeneralLedgerCalculator.calculate("1000", entries, startDate = "2026-01-02", endDate = "").rows.map { it.entryId },
+        )
+        assertEquals(
+            listOf("first", "middle"),
+            GeneralLedgerCalculator.calculate("1000", entries, startDate = " ", endDate = "2026-01-02").rows.map { it.entryId },
+        )
+        assertEquals(listOf("first", "middle", "last"),
+            GeneralLedgerCalculator.calculate("1000", entries, startDate = null, endDate = null).rows.map { it.entryId })
+    }
+
+    @Test
+    fun rejectsInvalidDatesAndReversedDateRange() {
+        val entries = listOf(entry("one", "2026-01-01", "a", debit = 1, credit = 0))
+        assertThrows(IllegalArgumentException::class.java) {
+            GeneralLedgerCalculator.calculate("1000", entries, startDate = "01/01/2026")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            GeneralLedgerCalculator.calculate("1000", entries, endDate = "2026-02-30")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            GeneralLedgerCalculator.calculate("1000", entries, startDate = "2026-02-02", endDate = "2026-02-01")
+        }
+    }
+
+    @Test
     fun rejectsUnrepresentableSignedBalanceMagnitude() {
         val firstCredit = entry(id = "first", date = "2026-01-01", createdAt = "a", debit = 0, credit = 1)
         val maxCredit = entry(id = "max", date = "2026-01-02", createdAt = "b", debit = 0, credit = Long.MAX_VALUE)

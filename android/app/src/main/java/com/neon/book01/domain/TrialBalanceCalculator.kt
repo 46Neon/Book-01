@@ -11,6 +11,7 @@ data class ReportPostingLine(
     val debitMinor: Long,
     val creditMinor: Long,
     val currencyCode: String,
+    val entryDate: String,
 )
 
 data class TrialBalanceLine(
@@ -39,14 +40,17 @@ object TrialBalanceCalculator {
         accounts: List<ReportAccount>,
         postings: List<ReportPostingLine>,
         currencyCode: String = UsdMoney.CURRENCY_CODE,
+        startDate: String? = null,
+        endDate: String? = null,
     ): TrialBalanceReport {
         require(currencyCode == UsdMoney.CURRENCY_CODE) { "Esta versión genera balances únicamente en USD." }
+        val dateRange = PostingDateRange.parse(startDate, endDate)
         require(accounts.map { it.code }.distinct().size == accounts.size) { "Hay códigos de cuenta duplicados." }
         val accountByCode = accounts.associateBy { it.code }
         val debitAmounts = accounts.associate { it.code to mutableListOf<Long>() }
         val creditAmounts = accounts.associate { it.code to mutableListOf<Long>() }
 
-        postings.forEach { posting ->
+        postings.filter { dateRange.includes(it.entryDate) }.forEach { posting ->
             require(posting.currencyCode == currencyCode) {
                 "Hay movimientos en otra moneda; no se mezclarán con el balance USD."
             }

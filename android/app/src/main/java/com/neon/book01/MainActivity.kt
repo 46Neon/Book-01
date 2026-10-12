@@ -821,15 +821,23 @@ private fun GeneralLedgerScreen(
     currencyCode: String,
 ) {
     var selectedAccountCode by rememberSaveable { mutableStateOf("") }
+    var startDate by rememberSaveable { mutableStateOf("") }
+    var endDate by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(accounts) {
         if (accounts.none { it.code == selectedAccountCode }) {
             selectedAccountCode = accounts.firstOrNull()?.code.orEmpty()
         }
     }
     val selectedAccount = accounts.firstOrNull { it.code == selectedAccountCode }
-    val reportResult = remember(selectedAccountCode, entries, currencyCode) {
+    val reportResult = remember(selectedAccountCode, entries, currencyCode, startDate, endDate) {
         if (selectedAccountCode.isBlank()) null else runCatching {
-            GeneralLedgerCalculator.calculate(selectedAccountCode, entries, currencyCode)
+            GeneralLedgerCalculator.calculate(
+                accountCode = selectedAccountCode,
+                entries = entries,
+                currencyCode = currencyCode,
+                startDate = startDate,
+                endDate = endDate,
+            )
         }
     }
     val report = reportResult?.getOrNull()
@@ -837,7 +845,7 @@ private fun GeneralLedgerScreen(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column {
             Text("Mayor", color = BookInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Movimientos y saldo corrido por cuenta · $currencyCode", color = BookMuted, fontSize = 12.sp)
+            Text("Movimientos y saldo corrido · ${dateRangeLabel(startDate, endDate)} · $currencyCode", color = BookMuted, fontSize = 12.sp)
         }
         if (accounts.isEmpty()) {
             Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -857,6 +865,7 @@ private fun GeneralLedgerScreen(
                     fontSize = 11.sp,
                 )
             }
+            DateRangeControls(startDate, endDate, onStartDateChange = { startDate = it }, onEndDateChange = { endDate = it })
             reportResult?.exceptionOrNull()?.let { error ->
                 Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
                     Text(
@@ -943,6 +952,49 @@ private fun GeneralLedgerScreen(
     }
 }
 
+@Composable
+private fun DateRangeControls(
+    startDate: String,
+    endDate: String,
+    onStartDateChange: (String) -> Unit,
+    onEndDateChange: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = startDate,
+                onValueChange = onStartDateChange,
+                label = { Text("Desde") },
+                placeholder = { Text("AAAA-MM-DD") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = endDate,
+                onValueChange = onEndDateChange,
+                label = { Text("Hasta") },
+                placeholder = { Text("AAAA-MM-DD") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Text("Fechas inclusivas; deja vacío un extremo sin límite. Usa AAAA-MM-DD.", color = BookMuted, fontSize = 11.sp)
+    }
+}
+
+private fun dateRangeLabel(startDate: String, endDate: String): String {
+    val start = startDate.trim().ifEmpty { null }
+    val end = endDate.trim().ifEmpty { null }
+    return when {
+        start == null && end == null -> "Completo"
+        start == null -> "Hasta $end"
+        end == null -> "Desde $start"
+        else -> "$start a $end"
+    }
+}
+
 private fun formatSignedLedgerBalance(amountMinor: Long, currencyCode: String): String =
     if (amountMinor < 0) "${money(Math.negateExact(amountMinor), currencyCode)} H" else "${money(amountMinor, currencyCode)} D"
 
@@ -956,15 +1008,28 @@ private fun TrialBalanceScreen(
     entries: List<EntryWithLines>,
     currencyCode: String,
 ) {
-    val reportResult = remember(accounts, entries, currencyCode) {
+    var startDate by rememberSaveable { mutableStateOf("") }
+    var endDate by rememberSaveable { mutableStateOf("") }
+    val reportResult = remember(accounts, entries, currencyCode, startDate, endDate) {
         runCatching {
             TrialBalanceCalculator.calculate(
                 accounts = accounts.map { ReportAccount(it.code, it.name, it.type) },
                 postings = entries
                     .filter { it.entry.status == "POSTED" }
-                    .flatMap { it.lines }
-                    .map { ReportPostingLine(it.accountCode, it.debitMinor, it.creditMinor, it.currencyCode) },
+                    .flatMap { entry ->
+                        entry.lines.map { line ->
+                            ReportPostingLine(
+                                line.accountCode,
+                                line.debitMinor,
+                                line.creditMinor,
+                                line.currencyCode,
+                                entry.entry.entryDate,
+                            )
+                        }
+                    },
                 currencyCode = currencyCode,
+                startDate = startDate,
+                endDate = endDate,
             )
         }
     }
@@ -974,7 +1039,7 @@ private fun TrialBalanceScreen(
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Balance de comprobación", color = BookInk, fontSize = 21.sp, fontWeight = FontWeight.Bold)
-                Text("Todos los periodos · $currencyCode", color = BookMuted, fontSize = 12.sp)
+                Text("Periodo: ${dateRangeLabel(startDate, endDate)} · $currencyCode", color = BookMuted, fontSize = 12.sp)
             }
             Text(
                 if (report?.isBalanced == true) "CUADRA" else if (report == null) "REVISAR" else "DIFERENCIA",
@@ -983,6 +1048,7 @@ private fun TrialBalanceScreen(
                 fontWeight = FontWeight.Bold,
             )
         }
+        DateRangeControls(startDate, endDate, onStartDateChange = { startDate = it }, onEndDateChange = { endDate = it })
 
         reportResult.exceptionOrNull()?.let { error ->
             Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
