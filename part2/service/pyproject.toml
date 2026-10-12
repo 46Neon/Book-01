@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "book01-part2-readonly-service"
+version = "0.1.0"
+description = "Testable read-only conversational gateway scaffold for Book-01 Part 2A"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110,<1.0",
+  "httpx>=0.27,<1.0",
+  "pydantic>=2.6,<3.0",
+  "uvicorn[standard]>=0.27,<1.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0,<9.0", "pytest-cov>=5.0,<7.0"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.setuptools]
+py-modules = ["app"]
