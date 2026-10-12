@@ -16,7 +16,7 @@ Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicaci
 
 ## Límites y advertencia
 
-Es un prototipo local, no un sistema listo para producción ni una herramienta de asesoría o declaración fiscal. El cierre no habilita reapertura y es una implementación informativa básica, pendiente de revisión profesional. No se afirma cumplimiento contable, fiscal o legal en Venezuela ni en otra jurisdicción. Faltan borradores, usuarios/roles, backend/API de producción, sincronización, respaldo/restauración, importación/exportación, hardening y revisión profesional. El runtime instrumentado de migración puede quedar pendiente si el emulador de CI no arranca; el resultado debe distinguirse de la compilación de Android-test.
+Es un prototipo local, no un sistema listo para producción ni una herramienta de asesoría o declaración fiscal. El cierre no habilita reapertura y es una implementación informativa básica, pendiente de revisión profesional. No se afirma cumplimiento contable, fiscal o legal en Venezuela ni en otra jurisdicción. Faltan borradores, usuarios/roles, backend/API de producción, sincronización, respaldo/restauración, importación/exportación, hardening y revisión profesional. GitHub Actions [run 38316535052](https://github.com/46Neon/Book-01/actions/runs/38316535052) ejecutó en emulador las 13 pruebas instrumentadas, incluida la migración Room v1→v6; todas pasaron. Esto es distinto de solo compilar las fuentes de Android-test y no sustituye revisión de producción.
 
 USD se conserva como centavos enteros y se maneja con aritmética exacta, sin coma flotante ni conversión de monedas. Use datos ficticios en desarrollo; no guarde libros reales ni secretos en el repositorio.
 
