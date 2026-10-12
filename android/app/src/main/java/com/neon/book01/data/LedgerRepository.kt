@@ -1,6 +1,8 @@
 package com.neon.book01.data
 
 import androidx.room.withTransaction
+import com.neon.book01.domain.AccountingRules
+import com.neon.book01.domain.EntryKind
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -34,63 +36,31 @@ class LedgerRepository(private val database: LedgerDatabase) {
         amountMinor: Long,
         currencyCode: String = "USD",
     ) {
-        require(description.isNotBlank()) { "Escribe una descripción." }
-        require(amountMinor > 0) { "El importe debe ser mayor que cero." }
-
         val category = dao.getAccount(categoryAccountCode)
             ?: throw IllegalArgumentException("La categoría seleccionada no existe.")
         val payment = dao.getAccount(paymentAccountCode)
             ?: throw IllegalArgumentException("La cuenta de pago seleccionada no existe.")
 
-        require(payment.type == "ASSET") { "Selecciona una cuenta de caja o banco." }
-        require(
-            (kind == EntryKind.EXPENSE && category.type == "EXPENSE") ||
-                (kind == EntryKind.INCOME && category.type == "INCOME"),
-        ) { "La categoría no corresponde al tipo de movimiento." }
-
         val entryId = UUID.randomUUID().toString()
-        val categoryLine = if (kind == EntryKind.EXPENSE) {
+        val postingLines = AccountingRules.simpleCashEntry(
+            kind = kind,
+            description = description,
+            categoryAccountCode = category.code,
+            categoryAccountType = category.type,
+            paymentAccountCode = payment.code,
+            paymentAccountType = payment.type,
+            amountMinor = amountMinor,
+            currencyCode = currencyCode,
+        )
+        val lines = postingLines.map { line ->
             JournalLineEntity(
                 id = UUID.randomUUID().toString(),
                 entryId = entryId,
-                accountCode = categoryAccountCode,
-                debitMinor = amountMinor,
-                creditMinor = 0,
-                currencyCode = currencyCode,
+                accountCode = line.accountCode,
+                debitMinor = line.debitMinor,
+                creditMinor = line.creditMinor,
+                currencyCode = line.currencyCode,
             )
-        } else {
-            JournalLineEntity(
-                id = UUID.randomUUID().toString(),
-                entryId = entryId,
-                accountCode = categoryAccountCode,
-                debitMinor = 0,
-                creditMinor = amountMinor,
-                currencyCode = currencyCode,
-            )
-        }
-        val paymentLine = if (kind == EntryKind.EXPENSE) {
-            JournalLineEntity(
-                id = UUID.randomUUID().toString(),
-                entryId = entryId,
-                accountCode = paymentAccountCode,
-                debitMinor = 0,
-                creditMinor = amountMinor,
-                currencyCode = currencyCode,
-            )
-        } else {
-            JournalLineEntity(
-                id = UUID.randomUUID().toString(),
-                entryId = entryId,
-                accountCode = paymentAccountCode,
-                debitMinor = amountMinor,
-                creditMinor = 0,
-                currencyCode = currencyCode,
-            )
-        }
-        val lines = listOf(categoryLine, paymentLine)
-
-        require(lines.sumOf { it.debitMinor } == lines.sumOf { it.creditMinor }) {
-            "El asiento no está balanceado."
         }
 
         val entry = JournalEntryEntity(
@@ -111,9 +81,4 @@ class LedgerRepository(private val database: LedgerDatabase) {
             dao.insertLines(lines)
         }
     }
-}
-
-enum class EntryKind {
-    INCOME,
-    EXPENSE,
 }
