@@ -1,6 +1,7 @@
 package com.neon.book01.data
 
 import android.content.Context
+import androidx.room.ColumnInfo
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -19,6 +20,7 @@ data class AccountEntity(
     val name: String,
     val type: String,
     val active: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val cashOrBank: Boolean = false,
 )
 
 @Entity(tableName = "journal_entries")
@@ -77,7 +79,7 @@ data class BookSettingsEntity(
 
 @Database(
     entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -99,6 +101,13 @@ abstract class LedgerDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `accounts` ADD COLUMN `cashOrBank` INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("UPDATE `accounts` SET `cashOrBank` = 1 WHERE `code` IN ('1000', '1010')")
+            }
+        }
+
         @Volatile
         private var instance: LedgerDatabase? = null
 
@@ -108,7 +117,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
     }
 }
