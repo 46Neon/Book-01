@@ -86,7 +86,10 @@ paths:
           schema: { $ref: '#/components/schemas/CurrencyCode' }
         - name: search
           in: query
-          description: Bounded literal text search over authorized entry descriptions.
+          description: >-
+            Bounded literal text search over authorized entry descriptions. To avoid ambiguous
+            PostgREST filter syntax, values containing percent, underscore, parentheses, comma,
+            asterisk, or backslash are rejected with 422; those characters are not searchable yet.
           schema: { type: string, maxLength: 120 }
         - name: pageSize
           in: query
@@ -260,8 +263,9 @@ components:
           pattern: '^(0|[1-9]\d*)(\.\d+)?$'
           description: >-
             Non-negative exact decimal string; never JSON floating point. Exactly one
-            of debit and credit must be greater than zero; the backend also validates
-            that entry lines balance in the supported currency.
+            of debit and credit must be greater than zero on this line. This does not
+            assert that a draft's total debits equal its credits; posting remains blocked
+            until a guarded transaction validates the full entry.
         credit:
           type: string
           pattern: '^(0|[1-9]\d*)(\.\d+)?$'
