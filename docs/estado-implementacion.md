@@ -16,8 +16,8 @@
 - Migraciones Room 1→2→3 agregan configuración USD y el indicador de cuentas de Caja/Banco sin borrar asientos ni líneas; las cuentas 1000/1010 existentes quedan marcadas para cobros/pagos. Hay una prueba instrumentada de migración v1→v3 que comprueba la conservación de registros y ambas marcas, pero todavía requiere una ejecución exitosa en emulador.
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
 - Balance de comprobación local por cuenta: débitos/créditos exactos, naturaleza de saldo D/H y comprobación de que el total cuadra; rechaza mezclar monedas en el reporte USD.
-- Mayor por cuenta con filas cronológicas, débitos/créditos, saldo corrido D/H y totales exactos; excluye borradores y separa otras monedas sin convertir ni mezclarlas.
-- Filtros opcionales de fecha inclusivos Desde/Hasta para el Mayor y el Balance de comprobación. Aceptan fechas estrictas AAAA-MM-DD, dejan extremos vacíos sin límite, rechazan fechas inválidas o rango inicial posterior al final y recalculan los totales/saldo corrido solo con las filas del periodo seleccionado.
+- Mayor por cuenta con filas cronológicas, débitos/créditos, saldo corrido D/H y totales exactos; incluye saldo inicial anterior a «Desde», excluye borradores y separa otras monedas sin conversión.
+- Filtros opcionales inclusivos Desde/Hasta para el Mayor y el Balance de comprobación, en formato estricto AAAA-MM-DD. El saldo inicial del Mayor incorpora los movimientos anteriores a «Desde»; los totales débito/crédito solo incluyen las filas del periodo.
 - GitHub Actions compila el APK de depuración.
 
 ## Limitaciones conocidas
