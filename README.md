@@ -2,33 +2,30 @@
 
 Libro contable Android de uso familiar para contadores: una interfaz de tabla inspirada en hojas de cálculo, con controles contables y trazabilidad.
 
-## Alcance de este repositorio
+## Alcance
 
 Este repositorio corresponde a la **Parte 1**: núcleo del libro contable, backend contable y APK Android. La interfaz conversacional, Groq y el servidor MCP serán responsabilidad de otro mantenedor y no se implementan en esta parte.
 
-La Parte 1 expondrá una API documentada y estable para que el chatbot consulte y proponga operaciones sin acceder directamente a la base de datos. Ver [`docs/contrato-integracion-chat.md`](docs/contrato-integracion-chat.md).
+La Parte 1 expondrá una API documentada para que el chatbot consulte y proponga operaciones sin acceder directamente a la base de datos. Ver [`docs/contrato-integracion-chat.md`](docs/contrato-integracion-chat.md).
 
-## Experiencia principal
+## Experiencia
 
-- Hojas/tabs para Diario, Plan de cuentas, Mayor, Balance y Resultados.
-- Filas y columnas legibles, búsqueda, filtros y totales.
-- Uso cómodo en teléfono y presentación más amplia en tablet.
-- Captura local y sincronización segura cuando haya conexión.
+- Pestañas de Diario, Mayor, Cuentas, Balance y Resultados.
+- Filas, columnas, encabezados, totales y navegación inspirados en hojas de cálculo.
+- Presentación adaptada a teléfono y tablet.
+- Captura local y, más adelante, sincronización segura.
 - Borradores editables; asientos contabilizados trazables y corregibles mediante reversas o ajustes.
 
-## Stack base
+## Stack
 
 - Android: Kotlin, Jetpack Compose.
-- Datos locales: Room/SQLite; sincronización: WorkManager.
-- Backend: API HTTPS documentada con OpenAPI y PostgreSQL.
-- Valores monetarios exactos; no usar punto flotante para dinero.
+- Datos locales: Room/SQLite; sincronización futura: WorkManager.
+- Backend planeado: API HTTPS documentada con OpenAPI y PostgreSQL.
+- Importes exactos; no usar punto flotante para dinero.
 
 ## Estado actual
 
-- Repositorio privado creado.
-- Requisitos, arquitectura y contrato de integración documentados.
-- Primera pantalla Android Compose creada con datos demostrativos y navegación visual.
-- El prototipo aún no persiste datos ni se ha compilado en este entorno; no es todavía una APK funcional para llevar contabilidad real.
+La APK de depuración muestra el Diario y permite guardar localmente ingresos y gastos sencillos, generando sus dos líneas balanceadas. Usa datos de prueba y un plan de cuentas/moneda de demostración. Todavía no es un sistema contable de producción: faltan configuración de libro, edición/reversiones, backend, sincronización, reportes completos y validación fiscal local.
 
 ## Seguridad
 
