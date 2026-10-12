@@ -115,6 +115,9 @@ interface LedgerDao {
     suspend fun insertLines(lines: List<JournalLineEntity>)
 
     @Insert
+    suspend fun insertPostedEntryLock(lock: PostedEntryLockEntity)
+
+    @Insert
     suspend fun insertAuditEvent(event: AuditEventEntity)
 
     @Insert

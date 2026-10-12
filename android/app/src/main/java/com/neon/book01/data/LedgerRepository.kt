@@ -64,6 +64,9 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
         snapshot.journalEntries.forEach { dao.insertEntry(it) }
         if (snapshot.journalLines.isNotEmpty()) dao.insertLines(snapshot.journalLines)
+        snapshot.journalEntries.filter { it.status == "POSTED" }.forEach { entry ->
+            dao.insertPostedEntryLock(PostedEntryLockEntity(entryId = entry.id))
+        }
         snapshot.auditEvents.forEach { dao.insertAuditEvent(it) }
         snapshot.accountAuditEvents.forEach { dao.insertAccountAuditEvent(it) }
         snapshot.periodCloses.forEach { dao.insertPeriodClose(it) }
@@ -220,6 +223,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
             )
             dao.insertEntry(entry)
             dao.insertLines(lines)
+            dao.insertPostedEntryLock(PostedEntryLockEntity(entryId = entryId))
             dao.insertAuditEvent(
                 AuditEventEntity(
                     id = UUID.randomUUID().toString(),
@@ -278,6 +282,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                     )
                 },
             )
+            dao.insertPostedEntryLock(PostedEntryLockEntity(entryId = reversalId))
             dao.insertAuditEvent(
                 AuditEventEntity(
                     id = UUID.randomUUID().toString(),
@@ -366,6 +371,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                     ),
                 )
                 dao.insertLines(lines)
+                dao.insertPostedEntryLock(PostedEntryLockEntity(entryId = entryId))
                 dao.insertAuditEvent(
                     AuditEventEntity(
                         id = UUID.randomUUID().toString(),

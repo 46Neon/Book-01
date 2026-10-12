@@ -42,6 +42,7 @@ class LedgerRepositoryPeriodCloseTest {
             database.openHelper.readableDatabase.query("SELECT SUM(creditMinor) FROM journal_lines").use { it.moveToFirst(); it.getLong(0) },
         )
         assertEquals(1L, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM period_closes").use { it.moveToFirst(); it.getLong(0) })
+        assertEquals(3L, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks").use { it.moveToFirst(); it.getLong(0) })
         assertEquals(3L, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM audit_events").use { it.moveToFirst(); it.getLong(0) })
         assertThrows(android.database.SQLException::class.java) {
             database.openHelper.writableDatabase.execSQL("UPDATE period_closes SET netResultMinor = 0")
@@ -86,6 +87,7 @@ class LedgerRepositoryPeriodCloseTest {
         assertEquals(null, metadata.closingEntryId)
         assertEquals(0L, metadata.netResultMinor)
         assertEquals(0, database.ledgerDao().getAllEntries().size)
+        assertEquals(0L, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks").use { it.moveToFirst(); it.getLong(0) })
         assertEquals(0L, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM audit_events").use { it.moveToFirst(); it.getLong(0) })
     }
 

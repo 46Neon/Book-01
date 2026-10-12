@@ -145,9 +145,18 @@ data class PeriodCloseEntity(
     val closedAt: String,
 )
 
+/** Derived lock for a posted journal entry. It is deliberately excluded from backup snapshots. */
+@Entity(
+    tableName = "posted_entry_locks",
+    foreignKeys = [ForeignKey(entity = JournalEntryEntity::class, parentColumns = ["id"], childColumns = ["entryId"], onDelete = ForeignKey.RESTRICT)],
+)
+data class PostedEntryLockEntity(
+    @PrimaryKey val entryId: String,
+)
+
 @Database(
-    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class],
-    version = 6,
+    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class, PostedEntryLockEntity::class],
+    version = 7,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -251,12 +260,38 @@ abstract class LedgerDatabase : RoomDatabase() {
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `period_closes_no_delete` BEFORE DELETE ON `period_closes` BEGIN SELECT RAISE(ABORT, 'period_closes is append-only'); END")
         }
 
+        private fun createPostedEntryLocksTable(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `posted_entry_locks` (" +
+                    "`entryId` TEXT NOT NULL, PRIMARY KEY(`entryId`), " +
+                    "FOREIGN KEY(`entryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT)",
+            )
+        }
+
+        private fun createPostedEntryLockGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `posted_entry_locks_insert_posted_only` BEFORE INSERT ON `posted_entry_locks` WHEN NOT EXISTS (SELECT 1 FROM `journal_entries` WHERE `id` = NEW.`entryId` AND `status` = 'POSTED') BEGIN SELECT RAISE(ABORT, 'only posted entries can be locked'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `posted_entry_locks_no_update` BEFORE UPDATE ON `posted_entry_locks` BEGIN SELECT RAISE(ABORT, 'posted entry locks are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `posted_entry_locks_no_delete` BEFORE DELETE ON `posted_entry_locks` BEGIN SELECT RAISE(ABORT, 'posted entry locks are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_insert_after_lock` BEFORE INSERT ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = NEW.`entryId`) BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_update_after_lock` BEFORE UPDATE ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = OLD.`entryId`) OR EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = NEW.`entryId`) BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_delete_after_lock` BEFORE DELETE ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = OLD.`entryId`) BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
+        }
+
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                createPostedEntryLocksTable(database)
+                database.execSQL("INSERT INTO `posted_entry_locks` (`entryId`) SELECT `id` FROM `journal_entries` WHERE `status` = 'POSTED'")
+                createPostedEntryLockGuards(database)
+            }
+        }
+
         internal fun integrityGuardsCallback(): RoomDatabase.Callback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 createAuditGuards(db)
                 createAccountAuditGuards(db)
                 createImmutableLedgerGuards(db)
                 createPeriodCloseGuards(db)
+                createPostedEntryLockGuards(db)
             }
         }
 
@@ -269,7 +304,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .addCallback(integrityGuardsCallback())
                     .build().also { instance = it }
             }

@@ -47,6 +47,7 @@ class LedgerRepositoryBackupRestoreTest {
 
         assertEquals(backup, destinationRepository.createBackupSnapshot())
         assertEquals(3, destination.ledgerDao().getAllEntries().size)
+        assertEquals(3L, destination.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks").use { it.moveToFirst(); it.getLong(0) })
         assertEquals(1, destination.ledgerDao().getAllAccountAuditEvents().size)
         assertEquals(1, destination.ledgerDao().getAllPeriodCloses().size)
     }

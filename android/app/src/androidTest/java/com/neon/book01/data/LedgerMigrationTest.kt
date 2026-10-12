@@ -6,10 +6,11 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Instrumented runtime regression test for the full v1→v6 chain without losing postings. */
+/** Instrumented runtime regression test for the full v1→v7 chain without losing or unlocking postings. */
 @RunWith(AndroidJUnit4::class)
 class LedgerMigrationTest {
     @Test
@@ -20,16 +21,18 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6, LedgerDatabase.MIGRATION_6_7)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(6L, db.longValue("PRAGMA user_version"))
+            assertEquals(7L, db.longValue("PRAGMA user_version"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE entryId = 'entry-v1'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM posted_entry_locks WHERE entryId = 'entry-v1'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'journal_lines_no_insert_after_lock'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE accountNameSnapshot = 'Caja'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE accountNameSnapshot = 'Ingresos'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE accountNameSnapshot != ''"))
@@ -49,6 +52,15 @@ class LedgerMigrationTest {
             assertEquals(0L, db.longValue("SELECT COUNT(*) FROM period_closes"))
             assertEquals(0L, db.longValue("SELECT \"notnull\" FROM pragma_table_info('period_closes') WHERE name = 'closingEntryId'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'period_closes_no_%'"))
+            assertThrows(android.database.SQLException::class.java) {
+                db.execSQL("UPDATE journal_lines SET debitMinor = debitMinor + 1 WHERE id = 'line-1'")
+            }
+            assertThrows(android.database.SQLException::class.java) {
+                db.execSQL("DELETE FROM journal_lines WHERE id = 'line-1'")
+            }
+            assertThrows(android.database.SQLException::class.java) {
+                db.execSQL("INSERT INTO journal_lines (id, entryId, accountCode, debitMinor, creditMinor, currencyCode, accountNameSnapshot) VALUES ('late-line', 'entry-v1', '1000', 1, 0, 'USD', 'Caja')")
+            }
         } finally {
             upgraded.close()
             context.deleteDatabase(databaseName)

@@ -63,6 +63,7 @@ class LedgerRepositoryReversalTest {
             assertEquals(source.currencyCode, inverse.currencyCode)
             assertEquals(source.accountNameSnapshot, inverse.accountNameSnapshot)
         }
+        assertEquals(2, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks").use { it.moveToFirst(); it.getInt(0) })
         assertEquals(3, database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM audit_events").use { it.moveToFirst(); it.getInt(0) })
     }
 
