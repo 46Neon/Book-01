@@ -1,0 +1,31 @@
+# Gradle / Android
+.gradle/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+
+# Local exports, backups, and user data
+*.db
+*.sqlite
+*.sqlite3
+*.backup
+exports/
+backups/
