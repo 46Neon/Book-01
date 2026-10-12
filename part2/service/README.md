@@ -8,7 +8,9 @@ This is a **testable, non-production scaffold** for the server-side conversation
 - `getTrialBalance` → `GET /books/{bookId}/reports/trial-balance`
 - `getIncomeStatement` → `GET /books/{bookId}/reports/income-statement`
 
-There is no SQL interface, arbitrary URL access, write operation, confirmation tool, or runtime mock accounting data. The service injects `bookId` from the authenticated request context into the accounting API URL; it is not a model argument. The caller's bearer token is sent only to the accounting API, which must perform the definitive user/book authorization check. The Groq key is server-side configuration only. Redirects are disabled so an accounting bearer is not forwarded across redirects.
+There is no SQL interface, arbitrary URL access, write operation, confirmation tool, or runtime mock accounting data. The service injects the request's explicit `bookId` into the accounting API path; it is not a model argument. This scaffold does not validate identity itself, so the accounting API must validate the caller's bearer token and authorize that book on every request (with PostgreSQL/Supabase RLS as defense in depth). The caller's bearer token is sent only to the accounting API, never to Groq. Redirects are disabled so an accounting bearer is not forwarded across redirects.
+
+Supabase-managed PostgreSQL will sit behind the Part 1 accounting API. This conversational service must not connect directly to the database and does not need a Supabase service-role key. `GROQ_API_KEY` belongs only in this service's server-side deployment secret environment; database credentials, `SUPABASE_SERVICE_ROLE_KEY`, if needed, belong only to the accounting backend. Neither belongs in the web app, APK, Git, logs, or chat.
 
 ## Current limitations and required Part 1 dependencies
 
