@@ -10,12 +10,13 @@
 - Formulario local para ingreso o gasto simple: descripción, importe, fecha, categoría y cuenta de efectivo/banco.
 - La capa de dominio genera las dos líneas contables, valida el tipo de cuenta y comprueba débito = crédito.
 - La escritura del asiento y sus líneas se realiza en una transacción local.
-- Reglas contables separadas en el dominio y pruebas unitarias para ingreso, gasto, cuenta incompatible, balance y parseo/formato USD.
+- Reglas contables y de altas de cuentas separadas en el dominio, con pruebas unitarias para asientos, códigos/tipos, balance, Mayor y precisión/formato USD.
 - Moneda funcional del libro persistida como USD en Room, con migraciones 1→2→3 que conservan los asientos y cuentas existentes.
 - Importes USD representados como centavos enteros (`Long`), analizados con `BigDecimal` exacto y sin coma flotante binaria; salida rotulada `US$` con dos decimales. Admite formas inequívocas estadounidense y española; rechaza más de dos decimales y entradas ambiguas en vez de adivinarlas.
 - Migraciones Room 1→2→3 agregan configuración USD y el indicador de cuentas de Caja/Banco sin borrar asientos ni líneas; las cuentas 1000/1010 existentes quedan marcadas para cobros/pagos. Hay una prueba instrumentada de migración v1→v3 que comprueba la conservación de registros y ambas marcas, pero todavía requiere una ejecución exitosa en emulador.
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
 - Balance de comprobación local por cuenta: débitos/créditos exactos, naturaleza de saldo D/H y comprobación de que el total cuadra; rechaza mezclar monedas en el reporte USD.
+- Mayor por cuenta con filas cronológicas, débitos/créditos, saldo corrido D/H y totales exactos; excluye borradores y separa otras monedas sin convertir ni mezclarlas.
 - GitHub Actions compila el APK de depuración.
 
 ## Limitaciones conocidas
@@ -24,9 +25,9 @@
 - El plan permite agregar cuentas nuevas, pero aún no editar nombres/tipos ni desactivar cuentas; la plantilla sigue siendo genérica y no configurable por empresa.
 - Los asientos sencillos se marcan contabilizados al guardar; falta flujo de borrador, aprobación, reversa y auditoría completa.
 - Aún sin API/backend, usuarios, roles, sincronización, adjuntos, importación/exportación o restauración.
-- Mayor y estados financieros completos siguen en navegación visual; el Balance de comprobación sí está implementado, pero solo para el periodo completo local y USD.
+- El Mayor funcional muestra el periodo completo por cuenta; faltan filtros de fechas y estados financieros completos. El Balance de comprobación también cubre solo el periodo completo local en USD.
 - No se declara cumplimiento contable/fiscal local.
 
 ## Siguiente hito
 
-Completar la separación formal entre dominio, almacenamiento y presentación; validar migraciones con una base de prueba real; añadir borradores, reversas y auditoría antes de ampliar reportes. Cualquier futuro soporte multi-moneda debe diseñarse explícitamente antes de implementar conversiones. El backend compartido queda fuera de este hito.
+Siguiente: filtros por fechas/periodos, reversas trazables e historial de auditoría; repetir la prueba instrumentada de migración en un emulador que arranque. Después siguen API/backend, sincronización y respaldo dentro de Parte 1. El chat conversacional continúa fuera de mi alcance; cualquier futuro soporte multi-moneda debe diseñarse expresamente antes de implementarse.
