@@ -14,7 +14,7 @@
 - Importes USD representados como centavos enteros (`Long`), analizados con `BigDecimal` exacto y sin coma flotante binaria; salida rotulada `US$` con dos decimales. Admite formas inequívocas estadounidense y española; rechaza más de dos decimales y entradas ambiguas en vez de adivinarlas.
 - La migración Room 1→2 crea la configuración USD sin borrar asientos ni líneas anteriores; conserva los importes existentes tal cual y no convierte monedas.
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
-- GitHub Actions compila el APK y ejecuta una prueba instrumentada en emulador que crea una base v1, la migra a v2 y comprueba que sobrevive un asiento balanceado junto con sus líneas y que se crea la configuración USD. El flujo publica el APK y el esquema Room generado como artefactos; la ejecución queda pendiente del siguiente Actions run.
+- GitHub Actions compila el APK y ejecuta una prueba instrumentada en emulador que crea una base v1, la migra a v2 y comprueba que sobrevive un asiento balanceado junto con sus líneas y que se crea la configuración USD. El flujo publica el APK y el esquema Room generado como artefactos. En el primer intento, la compilación y las pruebas unitarias pasaron, pero el emulador agotó el tiempo de arranque; se añadió la configuración KVM recomendada y falta confirmar la prueba de migración en el siguiente Actions run.
 
 ## Limitaciones conocidas
 
