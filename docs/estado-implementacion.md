@@ -9,6 +9,7 @@
 - Formulario local para ingreso o gasto simple: descripción, importe, fecha, categoría y cuenta de efectivo/banco.
 - La capa de dominio genera las dos líneas contables, valida el tipo de cuenta y comprueba débito = crédito.
 - La escritura del asiento y sus líneas se realiza en una transacción local.
+- Reglas contables separadas en el dominio y pruebas unitarias para ingreso, gasto, cuenta incompatible, balance e importes con coma/punto.
 - La tabla muestra cada línea del asiento y calcula saldo neto, ingresos/gastos y totales desde los registros locales.
 - GitHub Actions compila el APK de depuración.
 
