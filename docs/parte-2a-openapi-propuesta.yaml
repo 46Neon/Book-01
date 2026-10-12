@@ -258,8 +258,9 @@ components:
           type: string
           pattern: '^(0|[1-9]\d*)(\.\d+)?$'
           description: >-
-            Non-negative exact decimal string; never JSON floating point. At most one
-            of debit and credit may be greater than zero on a line; backend validates it.
+            Non-negative exact decimal string; never JSON floating point. Exactly one
+            of debit and credit must be greater than zero; the backend also validates
+            that entry lines balance in the supported currency.
         credit:
           type: string
           pattern: '^(0|[1-9]\d*)(\.\d+)?$'
@@ -317,6 +318,10 @@ components:
         normalSide: { type: string, enum: [debit, credit] }
     TrialBalance:
       type: object
+      description: >-
+        Includes opening balances before dateFrom, movements within the inclusive
+        range, and closing balances through dateTo. Closing debit and credit totals
+        must balance; the backend calculates all amounts from posted journal lines.
       required: [period, currency, rows, totals]
       properties:
         period: { $ref: '#/components/schemas/DateRange' }
@@ -325,19 +330,27 @@ components:
           type: array
           items:
             type: object
-            required: [accountId, code, name, debitBalance, creditBalance]
+            required: [accountId, code, name, openingDebit, openingCredit, periodDebits, periodCredits, closingDebit, closingCredit]
             properties:
               accountId: { type: string, format: uuid }
               code: { type: string }
               name: { type: string }
-              debitBalance: { $ref: '#/components/schemas/MoneyTotal' }
-              creditBalance: { $ref: '#/components/schemas/MoneyTotal' }
+              openingDebit: { $ref: '#/components/schemas/MoneyTotal' }
+              openingCredit: { $ref: '#/components/schemas/MoneyTotal' }
+              periodDebits: { $ref: '#/components/schemas/MoneyTotal' }
+              periodCredits: { $ref: '#/components/schemas/MoneyTotal' }
+              closingDebit: { $ref: '#/components/schemas/MoneyTotal' }
+              closingCredit: { $ref: '#/components/schemas/MoneyTotal' }
         totals:
           type: object
-          required: [debits, credits, balanced]
+          required: [openingDebits, openingCredits, periodDebits, periodCredits, closingDebits, closingCredits, balanced]
           properties:
-            debits: { $ref: '#/components/schemas/MoneyTotal' }
-            credits: { $ref: '#/components/schemas/MoneyTotal' }
+            openingDebits: { $ref: '#/components/schemas/MoneyTotal' }
+            openingCredits: { $ref: '#/components/schemas/MoneyTotal' }
+            periodDebits: { $ref: '#/components/schemas/MoneyTotal' }
+            periodCredits: { $ref: '#/components/schemas/MoneyTotal' }
+            closingDebits: { $ref: '#/components/schemas/MoneyTotal' }
+            closingCredits: { $ref: '#/components/schemas/MoneyTotal' }
             balanced: { type: boolean }
     IncomeStatement:
       type: object
