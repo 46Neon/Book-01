@@ -6,8 +6,13 @@ import com.neon.book01.domain.AccountingRules
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.ReversalRules
 import com.neon.book01.domain.PostingDateRange
+import com.neon.book01.domain.PeriodCloseAccount
+import com.neon.book01.domain.PeriodCloseCalculator
+import com.neon.book01.domain.PeriodClosePosting
+import com.neon.book01.domain.PeriodClosePostingLine
 import com.neon.book01.domain.UsdMoney
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 
@@ -22,6 +27,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     fun observePeriodCloses(): Flow<List<PeriodCloseEntity>> = dao.observePeriodCloses()
 
+    suspend fun getPeriodCloses(): List<PeriodCloseEntity> = dao.getPeriodCloses()
+
     fun observeAccounts(): Flow<List<AccountEntity>> = dao.observeAccounts()
 
     fun observeBookSettings(): Flow<BookSettingsEntity?> = dao.observeBookSettings()
@@ -33,6 +40,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 AccountEntity(code = "1010", name = "Banco", type = "ASSET", cashOrBank = true),
                 AccountEntity(code = "2000", name = "Cuentas por pagar", type = "LIABILITY"),
                 AccountEntity(code = "3000", name = "Capital", type = "EQUITY"),
+                AccountEntity(code = "3100", name = "Utilidades retenidas", type = "EQUITY"),
                 AccountEntity(code = "4000", name = "Ingresos", type = "INCOME"),
                 AccountEntity(code = "5100", name = "Papelería", type = "EXPENSE"),
                 AccountEntity(code = "5200", name = "Servicios", type = "EXPENSE"),
@@ -237,87 +245,92 @@ class LedgerRepository(private val database: LedgerDatabase) {
         }
     }
 
-    /** Posts an immutable, balanced period-closing entry and immutable close metadata atomically. */
-    suspend fun closePeriod(startDateIso: String, endDateIso: String, retainedEarningsAccountCode: String): String {
+    /** Plans, optionally posts, audits, and stores an immutable close in one serialized transaction. */
+    suspend fun closePeriod(startDateIso: String, endDateIso: String, retainedEarningsAccountCode: String): String? {
         val range = PostingDateRange.parse(startDateIso, endDateIso)
-        val startDate = range.startInclusive!!.toString()
-        val endDate = range.endInclusive!!.toString()
+        val startDate = range.startInclusive?.toString()
+            ?: throw IllegalArgumentException("Indica la fecha inicial del periodo.")
+        val endDate = range.endInclusive?.toString()
+            ?: throw IllegalArgumentException("Indica la fecha final del periodo.")
+        require(endDate <= LocalDate.now().toString()) { "No se puede cerrar un periodo que todavía no ha terminado." }
         val closeId = UUID.randomUUID().toString()
-        val entryId = UUID.randomUUID().toString()
         return database.withTransaction {
             require(!dao.hasOverlappingClose(startDate, endDate)) { "El periodo se superpone con otro periodo cerrado." }
-            val retained = dao.getAccount(retainedEarningsAccountCode)
-                ?: throw IllegalArgumentException("No se encontró la cuenta de ganancias retenidas.")
-            require(retained.active && retained.type == "EQUITY") { "Selecciona una cuenta de patrimonio activa para ganancias retenidas." }
             val allAccounts = dao.getAllAccounts()
-            val names = allAccounts.associate { it.code to it.name }
-            val accountTypes = allAccounts.associate { it.code to it.type }
-            val allEntries = dao.getAllEntries().filter { it.entry.status == "POSTED" }
-            val totals = mutableMapOf<String, Pair<Long, Long>>()
-            allEntries.filter { it.entry.entryDate >= startDate && it.entry.entryDate <= endDate }
-                .filter { it.entry.currencyCode == UsdMoney.CURRENCY_CODE && it.entry.kind != "PERIOD_CLOSE" }
-                .flatMap { it.lines }
-                .filter { it.currencyCode == UsdMoney.CURRENCY_CODE }
-                .filter { accountTypes[it.accountCode] == "INCOME" || accountTypes[it.accountCode] == "EXPENSE" }
-                .forEach { line ->
-                    val old = totals[line.accountCode] ?: (0L to 0L)
-                    totals[line.accountCode] = Math.addExact(old.first, line.debitMinor) to Math.addExact(old.second, line.creditMinor)
-                }
-            val pAndL = totals.mapNotNull { (code, amounts) ->
-                val type = accountTypes[code] ?: return@mapNotNull null
-                val balance = if (type == "INCOME") Math.subtractExact(amounts.second, amounts.first)
-                    else Math.subtractExact(amounts.first, amounts.second)
-                if (balance == 0L) null else Triple(code, type, balance)
-            }
-            require(pAndL.isNotEmpty()) { "No hay actividad de ingresos o gastos para cerrar en el periodo seleccionado." }
-            val net = Math.subtractExact(
-                UsdMoney.sumMinorUnits(pAndL.filter { it.second == "INCOME" }.map { it.third }),
-                UsdMoney.sumMinorUnits(pAndL.filter { it.second == "EXPENSE" }.map { it.third }),
+            val allEntries = dao.getAllEntries()
+            val plan = PeriodCloseCalculator.calculate(
+                accounts = allAccounts.map { PeriodCloseAccount(it.code, it.type, it.active) },
+                postings = allEntries.map { entry ->
+                    PeriodClosePosting(
+                        entryDate = entry.entry.entryDate,
+                        status = entry.entry.status,
+                        currencyCode = entry.entry.currencyCode,
+                        kind = entry.entry.kind,
+                        lines = entry.lines.map { line ->
+                            PeriodClosePostingLine(line.accountCode, line.debitMinor, line.creditMinor, line.currencyCode)
+                        },
+                    )
+                },
+                startDate = startDate,
+                endDate = endDate,
+                retainedEarningsAccountCode = retainedEarningsAccountCode,
             )
+            val retained = allAccounts.first { it.code == plan.retainedEarningsAccountCode }
             val now = Instant.now().toString()
-            val lines = mutableListOf<JournalLineEntity>()
-            pAndL.forEach { (code, type, balance) ->
-                val amount = checkedAbs(balance)
-                val debit = when (type) {
-                    "INCOME" -> balance > 0L
-                    else -> balance < 0L
+            val entryId = if (plan.lines.isEmpty()) null else UUID.randomUUID().toString()
+            if (entryId != null) {
+                val names = allAccounts.associate { it.code to it.name }
+                val lines = plan.lines.map { line ->
+                    JournalLineEntity(
+                        id = UUID.randomUUID().toString(),
+                        entryId = entryId,
+                        accountCode = line.accountCode,
+                        debitMinor = line.debitMinor,
+                        creditMinor = line.creditMinor,
+                        currencyCode = line.currencyCode,
+                        accountNameSnapshot = names[line.accountCode]
+                            ?: throw IllegalArgumentException("No se encontró la cuenta de una línea de cierre."),
+                    )
                 }
-                lines += JournalLineEntity(UUID.randomUUID().toString(), entryId, code,
-                    if (debit) amount else 0L, if (debit) 0L else amount,
-                    UsdMoney.CURRENCY_CODE, names[code] ?: code)
+                dao.insertEntry(
+                    JournalEntryEntity(
+                        id = entryId,
+                        entryDate = endDate,
+                        description = "Cierre contable $startDate a $endDate",
+                        kind = "PERIOD_CLOSE",
+                        categoryAccountCode = retained.code,
+                        paymentAccountCode = retained.code,
+                        currencyCode = UsdMoney.CURRENCY_CODE,
+                        amountMinor = UsdMoney.sumMinorUnits(plan.lines.map { it.debitMinor }),
+                        status = "POSTED",
+                        createdAt = now,
+                    ),
+                )
+                dao.insertLines(lines)
+                dao.insertAuditEvent(
+                    AuditEventEntity(
+                        id = UUID.randomUUID().toString(),
+                        entryId = entryId,
+                        eventType = "PERIOD_CLOSED",
+                        occurredAt = now,
+                        eventDate = endDate,
+                        reason = "Cierre $startDate a $endDate; resultado neto ${plan.netResultMinor} centavos USD; transferencia a patrimonio ${retained.code}.",
+                    ),
+                )
             }
-            if (net != 0L) {
-                val amount = checkedAbs(net)
-                val credit = net > 0L
-                lines += JournalLineEntity(UUID.randomUUID().toString(), entryId, retained.code,
-                    if (credit) 0L else amount, if (credit) amount else 0L,
-                    UsdMoney.CURRENCY_CODE, retained.name)
-            }
-            val debits = UsdMoney.sumMinorUnits(lines.map { it.debitMinor })
-            val credits = UsdMoney.sumMinorUnits(lines.map { it.creditMinor })
-            require(debits == credits) { "El asiento de cierre no está balanceado; no se guardó." }
-            dao.insertEntry(JournalEntryEntity(
-                id = entryId, entryDate = endDate, description = "Cierre contable $startDate a $endDate",
-                kind = "PERIOD_CLOSE", categoryAccountCode = retained.code, paymentAccountCode = retained.code,
-                currencyCode = UsdMoney.CURRENCY_CODE, amountMinor = checkedAbs(net), status = "POSTED", createdAt = now,
-            ))
-            dao.insertLines(lines)
-            dao.insertAuditEvent(AuditEventEntity(
-                id = UUID.randomUUID().toString(), entryId = entryId, eventType = "PERIOD_CLOSED",
-                occurredAt = now, eventDate = endDate,
-                reason = "Cierre $startDate a $endDate; resultado neto ${net} centavos USD; transferencia a patrimonio ${retained.code}.",
-            ))
-            dao.insertPeriodClose(PeriodCloseEntity(
-                id = closeId, startDate = startDate, endDate = endDate,
-                retainedEarningsAccountCode = retained.code, netResultMinor = net,
-                closingEntryId = entryId, closedAt = now,
-            ))
+            dao.insertPeriodClose(
+                PeriodCloseEntity(
+                    id = closeId,
+                    startDate = plan.startDate,
+                    endDate = plan.endDate,
+                    retainedEarningsAccountCode = retained.code,
+                    netResultMinor = plan.netResultMinor,
+                    closingEntryId = entryId,
+                    closedAt = now,
+                ),
+            )
             entryId
         }
     }
 
-    private fun checkedAbs(value: Long): Long {
-        require(value != Long.MIN_VALUE) { "El importe excede el rango exacto de centavos USD." }
-        return kotlin.math.abs(value)
-    }
 }

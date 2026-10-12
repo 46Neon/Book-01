@@ -47,6 +47,7 @@ class LedgerMigrationTest {
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('audit_events') WHERE name = 'reason'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'period_closes'"))
             assertEquals(0L, db.longValue("SELECT COUNT(*) FROM period_closes"))
+            assertEquals(0L, db.longValue("SELECT \"notnull\" FROM pragma_table_info('period_closes') WHERE name = 'closingEntryId'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'period_closes_no_%'"))
         } finally {
             upgraded.close()

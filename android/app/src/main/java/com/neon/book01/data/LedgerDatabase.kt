@@ -126,7 +126,7 @@ data class PeriodCloseEntity(
     val endDate: String,
     val retainedEarningsAccountCode: String,
     val netResultMinor: Long,
-    val closingEntryId: String,
+    val closingEntryId: String?,
     val closedAt: String,
 )
 
@@ -222,7 +222,7 @@ abstract class LedgerDatabase : RoomDatabase() {
 
         internal val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("CREATE TABLE IF NOT EXISTS `period_closes` (`id` TEXT NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, `retainedEarningsAccountCode` TEXT NOT NULL, `netResultMinor` INTEGER NOT NULL, `closingEntryId` TEXT NOT NULL, `closedAt` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`closingEntryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`retainedEarningsAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `period_closes` (`id` TEXT NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, `retainedEarningsAccountCode` TEXT NOT NULL, `netResultMinor` INTEGER NOT NULL, `closingEntryId` TEXT, `closedAt` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`closingEntryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`retainedEarningsAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)")
                 database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_period_closes_closingEntryId` ON `period_closes` (`closingEntryId`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_period_closes_retainedEarningsAccountCode` ON `period_closes` (`retainedEarningsAccountCode`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_period_closes_startDate` ON `period_closes` (`startDate`)")

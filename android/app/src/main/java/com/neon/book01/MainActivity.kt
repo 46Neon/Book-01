@@ -90,6 +90,11 @@ import com.neon.book01.domain.BalanceSheetReport
 import com.neon.book01.domain.FinancialStatementsCalculator
 import com.neon.book01.domain.ClosedPeriodRange
 import com.neon.book01.domain.OperatingSummaryCalculator
+import com.neon.book01.domain.PeriodCloseAccount
+import com.neon.book01.domain.PeriodCloseCalculator
+import com.neon.book01.domain.PeriodClosePlan
+import com.neon.book01.domain.PeriodClosePosting
+import com.neon.book01.domain.PeriodClosePostingLine
 import com.neon.book01.domain.ReportAccount
 import com.neon.book01.domain.ReportPostingLine
 import com.neon.book01.domain.StatementPostingLine
@@ -1344,7 +1349,7 @@ private fun FinancialStatementsScreen(
                 balance?.let { data -> BalanceSheetContent(data) }
             }
         }
-        PeriodCloseSection(accounts, periodCloses, statementPostings, onClosePeriod)
+        PeriodCloseSection(accounts, entries, periodCloses, onClosePeriod)
         Text(
             "Las líneas de reversa afectan los informes en su fecha de contabilización. Se incluyen únicamente asientos contabilizados y líneas USD; no se convierten monedas ni se reclasifican cuentas. En el balance general, los periodos cerrados se transfieren a patrimonio y solo queda el resultado de periodos no cerrados.",
             color = BookMuted,
@@ -1356,8 +1361,8 @@ private fun FinancialStatementsScreen(
 @Composable
 private fun PeriodCloseSection(
     accounts: List<AccountEntity>,
+    entries: List<EntryWithLines>,
     closes: List<PeriodCloseEntity>,
-    postings: List<StatementPostingLine>,
     onClose: suspend (String, String, String) -> Unit,
 ) {
     var start by rememberSaveable { mutableStateOf("") }
@@ -1369,7 +1374,10 @@ private fun PeriodCloseSection(
     val scope = rememberCoroutineScope()
     val equityAccounts = accounts.filter { it.type == "EQUITY" && it.active }
     LaunchedEffect(equityAccounts) {
-        if (equityAccounts.none { it.code == retainedCode }) retainedCode = equityAccounts.firstOrNull()?.code.orEmpty()
+        if (equityAccounts.none { it.code == retainedCode }) {
+            retainedCode = equityAccounts.firstOrNull { it.code == "3100" }?.code
+                ?: equityAccounts.firstOrNull()?.code.orEmpty()
+        }
     }
     val normalized = runCatching {
         val s = LocalDate.parse(start.trim()).toString()
@@ -1377,34 +1385,58 @@ private fun PeriodCloseSection(
         require(s <= e)
         s to e
     }.getOrNull()
+    val endAfterToday = normalized?.second?.let { it > LocalDate.now().toString() } == true
     val overlap = normalized?.let { pair -> closes.any { it.startDate <= pair.second && it.endDate >= pair.first } } == true
-    val preview = normalized?.let { pair -> runCatching {
-        FinancialStatementsCalculator.incomeStatement(
-            accounts.map { ReportAccount(it.code, it.name, it.type) }, postings, pair.first, pair.second,
-        ).netIncomeMinor
-    }.getOrNull() }
     val retained = equityAccounts.firstOrNull { it.code == retainedCode }
+    val closePostings = remember(entries) {
+        entries.map { entry ->
+            PeriodClosePosting(
+                entryDate = entry.entry.entryDate,
+                status = entry.entry.status,
+                currencyCode = entry.entry.currencyCode,
+                kind = entry.entry.kind,
+                lines = entry.lines.map { line ->
+                    PeriodClosePostingLine(line.accountCode, line.debitMinor, line.creditMinor, line.currencyCode)
+                },
+            )
+        }
+    }
+    val previewResult = remember(accounts, closePostings, normalized, retainedCode) {
+        if (normalized == null || retained == null) null else runCatching {
+            PeriodCloseCalculator.calculate(
+                accounts = accounts.map { PeriodCloseAccount(it.code, it.type, it.active) },
+                postings = closePostings,
+                startDate = normalized.first,
+                endDate = normalized.second,
+                retainedEarningsAccountCode = retained.code,
+            )
+        }
+    }
+    val preview = previewResult?.getOrNull()
 
     Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Text("Cierre de periodo", color = BookInk, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-            Text("Crea un asiento nuevo e inmutable que salda ingresos y gastos a una cuenta de patrimonio. No se puede reabrir ni reversar desde la reversa ordinaria.", color = BookMuted, fontSize = 12.sp)
+            Text("Cierra fechas inclusivas transfiriendo ingresos y gastos netos a patrimonio. Si no hay líneas P&L, guarda solo los metadatos, sin inventar importes. El cierre es irreversible en este prototipo: no se puede reabrir ni reversar desde la reversa ordinaria.", color = BookMuted, fontSize = 12.sp)
             OutlinedTextField(start, { start = it; error = null }, label = { Text("Desde (AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(end, { end = it; error = null }, label = { Text("Hasta inclusivo (AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             AccountPicker("Ganancias retenidas · patrimonio", equityAccounts, retainedCode) { retainedCode = it }
             when {
                 start.isNotBlank() && end.isNotBlank() && normalized == null -> Text("Indica fechas ISO válidas y un intervalo en orden.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                endAfterToday -> Text("No se puede cerrar un periodo que todavía no ha terminado.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 overlap -> Text("El intervalo se superpone con un periodo ya cerrado.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                preview != null -> Text("Resultado a transferir (actividad USD contabilizada): ${money(preview)}", color = BookInk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                retained == null -> Text("Crea o activa una cuenta de patrimonio para utilidades retenidas.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                previewResult?.isFailure == true -> Text(previewResult.exceptionOrNull()?.message ?: "No se puede cerrar este intervalo.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                preview != null -> Text("Resultado neto a transferir: ${money(preview.netResultMinor)} · líneas de cierre: ${preview.lines.size}", color = BookInk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
-            TextButton(enabled = normalized != null && !overlap && retained != null && !saving, onClick = { showConfirm = true }) {
+            TextButton(enabled = normalized != null && !endAfterToday && !overlap && retained != null && preview != null && !saving, onClick = { showConfirm = true }) {
                 Text(if (saving) "Contabilizando…" else "Revisar y cerrar periodo")
             }
             Text("Periodos cerrados (no reabribles):", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             if (closes.isEmpty()) Text("Ningún periodo cerrado.", color = BookMuted, fontSize = 12.sp)
             closes.forEach { close ->
-                Text("${close.startDate} a ${close.endDate} · ${money(close.netResultMinor)} · patrimonio ${close.retainedEarningsAccountCode}", color = BookMuted, fontSize = 11.sp)
+                Text("${close.startDate} a ${close.endDate} · ${money(close.netResultMinor)} · patrimonio ${close.retainedEarningsAccountCode}" + (if (close.closingEntryId == null) " · solo metadatos" else " · asiento ${close.closingEntryId.take(8)}"), color = BookMuted, fontSize = 11.sp)
             }
         }
     }
@@ -1412,7 +1444,7 @@ private fun PeriodCloseSection(
         AlertDialog(
             onDismissRequest = { if (!saving) showConfirm = false },
             title = { Text("Confirmar cierre") },
-            text = { Text("Se contabilizará el periodo inclusivo ${normalized.first} a ${normalized.second}. Resultado neto ${money(preview ?: 0L)}; transferencia a ${retained.code} · ${retained.name}. Esta acción es permanente y no reabrible.") },
+            text = { Text("Se cerrará el periodo inclusivo ${normalized.first} a ${normalized.second}. Resultado neto ${money(preview?.netResultMinor ?: 0L)}; patrimonio ${retained.code} · ${retained.name}. ${if (preview?.lines.isNullOrEmpty()) "No hay saldos P&L que transferir: solo se guardará el cierre, sin asiento ficticio." else "Se registrará un asiento equilibrado con ${preview?.lines?.size ?: 0} líneas."} Esta acción es permanente e irreversible en este prototipo.") },
             confirmButton = {
                 TextButton(enabled = !saving, onClick = {
                     scope.launch {

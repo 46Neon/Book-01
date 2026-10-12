@@ -12,7 +12,7 @@ Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicaci
 - En el balance general, el resultado acumulado se presenta separado de las cuentas de patrimonio solo para actividad que no esté cubierta por un cierre. Un cierre transfiere el neto de ingresos/gastos a patrimonio y las líneas técnicas de cierre no alteran la actividad que muestra el estado de resultados del periodo.
 - Reversas como nuevos asientos con débitos/créditos exactamente opuestos, fecha y motivo, vínculo al asiento original y auditoría local append-only; no se permite reversar dos veces ni reversar una reversa.
 - Filtros de fecha estrictos `AAAA-MM-DD`, límites inclusivos y rechazo de fechas inválidas o rangos invertidos. Los movimientos de reversa afectan las cifras en su fecha efectiva de contabilización.
-- Migración Room aditiva v1→v6, incluida la instantánea histórica de nombres y metadatos inmutables de cierres; el cierre inclusivo bloquea fechas y no tiene flujo de reapertura.
+- Migración Room aditiva v1→v6, incluida la instantánea histórica de nombres y metadatos inmutables de cierres. Un rango sin líneas P&L se guarda como cierre de metadatos sin asiento ficticio; el cierre inclusivo bloquea fechas y es irreversible en este prototipo: no hay reapertura ni reversa ordinaria del asiento de cierre.
 
 ## Límites y advertencia
 
