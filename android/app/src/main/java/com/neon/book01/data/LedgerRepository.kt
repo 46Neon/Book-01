@@ -22,6 +22,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
             listOf(
                 AccountEntity(code = "1000", name = "Caja", type = "ASSET"),
                 AccountEntity(code = "1010", name = "Banco", type = "ASSET"),
+                AccountEntity(code = "2000", name = "Cuentas por pagar", type = "LIABILITY"),
+                AccountEntity(code = "3000", name = "Capital", type = "EQUITY"),
                 AccountEntity(code = "4000", name = "Ingresos", type = "INCOME"),
                 AccountEntity(code = "5100", name = "Papelería", type = "EXPENSE"),
                 AccountEntity(code = "5200", name = "Servicios", type = "EXPENSE"),
