@@ -20,7 +20,7 @@ class LedgerRepositoryPeriodCloseTest {
     @Before fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             InstrumentationRegistry.getInstrumentation().targetContext, LedgerDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        ).addCallback(LedgerDatabase.integrityGuardsCallback()).allowMainThreadQueries().build()
         repository = LedgerRepository(database)
     }
 
@@ -49,6 +49,7 @@ class LedgerRepositoryPeriodCloseTest {
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { repository.reversePostedEntry(id, "2026-04-01", "No revertir cierre") }
         }
+        Unit
     }
 
     @Test fun lossCloseTransfersDebitAndClosedDatesRejectPostingAndReversal() = runBlocking {
@@ -66,6 +67,7 @@ class LedgerRepositoryPeriodCloseTest {
         }
         // Reversal of a pre-close source is allowed when the correcting posting date is open.
         repository.reversePostedEntry(original.entry.id, "2026-06-01", "Corrección en periodo abierto")
+        Unit
     }
 
     @Test fun futurePeriodsCannotBeClosedInAdvance() = runBlocking {

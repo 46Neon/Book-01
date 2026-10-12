@@ -236,6 +236,15 @@ abstract class LedgerDatabase : RoomDatabase() {
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `period_closes_no_delete` BEFORE DELETE ON `period_closes` BEGIN SELECT RAISE(ABORT, 'period_closes is append-only'); END")
         }
 
+        internal fun integrityGuardsCallback(): RoomDatabase.Callback = object : RoomDatabase.Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                createAuditGuards(db)
+                createAccountAuditGuards(db)
+                createImmutableLedgerGuards(db)
+                createPeriodCloseGuards(db)
+            }
+        }
+
         @Volatile
         private var instance: LedgerDatabase? = null
 
@@ -246,14 +255,8 @@ abstract class LedgerDatabase : RoomDatabase() {
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
                 ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            createAuditGuards(db)
-                            createAccountAuditGuards(db)
-                            createImmutableLedgerGuards(db)
-                            createPeriodCloseGuards(db)
-                        }
-                    }).build().also { instance = it }
+                    .addCallback(integrityGuardsCallback())
+                    .build().also { instance = it }
             }
     }
 }

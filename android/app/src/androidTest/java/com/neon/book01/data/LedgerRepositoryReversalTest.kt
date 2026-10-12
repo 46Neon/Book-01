@@ -23,7 +23,7 @@ class LedgerRepositoryReversalTest {
         database = Room.inMemoryDatabaseBuilder(
             InstrumentationRegistry.getInstrumentation().targetContext,
             LedgerDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        ).addCallback(LedgerDatabase.integrityGuardsCallback()).allowMainThreadQueries().build()
         repository = LedgerRepository(database)
     }
 
@@ -48,7 +48,10 @@ class LedgerRepositoryReversalTest {
 
         assertNotEquals(original.entry.id, reversalId)
         assertEquals(original.entry, database.ledgerDao().getEntry(original.entry.id))
-        assertEquals(original.lines, database.ledgerDao().getLines(original.entry.id))
+        assertEquals(
+            original.lines.associateBy { it.id },
+            database.ledgerDao().getLines(original.entry.id).associateBy { it.id },
+        )
         assertEquals(original.entry.id, reversal.entry.reversalOfEntryId)
         val sourceByAccount = original.lines.associateBy { it.accountCode }
         val inverseByAccount = reversal.lines.associateBy { it.accountCode }

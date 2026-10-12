@@ -22,7 +22,7 @@ class LedgerRepositoryAccountTest {
         database = Room.inMemoryDatabaseBuilder(
             InstrumentationRegistry.getInstrumentation().targetContext,
             LedgerDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        ).addCallback(LedgerDatabase.integrityGuardsCallback()).allowMainThreadQueries().build()
         repository = LedgerRepository(database)
     }
 
@@ -90,6 +90,7 @@ class LedgerRepositoryAccountTest {
         assertEquals(1L, db.query("SELECT COUNT(*) FROM account_audit_events").use { it.moveToFirst(); it.getLong(0) })
         assertThrows(android.database.SQLException::class.java) { db.execSQL("UPDATE accounts SET type = 'LIABILITY' WHERE code = '1000'") }
         assertThrows(android.database.SQLException::class.java) { db.execSQL("DELETE FROM accounts WHERE code = '1000'") }
+        Unit
     }
 
     @Test
