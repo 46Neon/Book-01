@@ -26,7 +26,7 @@ MAX_BACKEND_BYTES = 64 * 1024
 MAX_GROQ_BYTES = 24 * 1024
 MAX_TOOL_RESULT_CHARS = 18_000
 MAX_RESPONSE_TEXT = 800
-DEFAULT_CURRENCIES = frozenset({"USD", "VES", "EUR"})
+DEFAULT_CURRENCIES = frozenset({"USD"})
 
 
 class ServiceError(BaseModel):
@@ -170,7 +170,7 @@ class ReportArgs(Args):
 
 def configured_currencies() -> frozenset[str]:
     # Conservative defaults; deployments must align this allowlist with Part 1.
-    values = os.getenv("SUPPORTED_CURRENCIES", "USD,VES,EUR").split(",")
+    values = os.getenv("SUPPORTED_CURRENCIES", "USD").split(",")
     return frozenset(v.strip().upper() for v in values if re.fullmatch(r"[A-Z]{3}", v.strip().upper()))
 
 
@@ -352,7 +352,10 @@ async def call_accounting(app: FastAPI, bearer: str, book_id: uuid.UUID, name: s
     path_suffix = suffix.format(accountId=quote(str(getattr(args, "accountId")), safe="")) if "{accountId}" in suffix else suffix
     url = f"{app.state.accounting_base_url.rstrip('/')}/books/{quote(str(book_id), safe='')}/{path_suffix}"
     params: list[tuple[str, str]] = []
+    path_parameters = {"accountId"} if "{accountId}" in suffix else set()
     for key, value in args.model_dump(exclude_none=True).items():
+        if key in path_parameters:
+            continue
         if isinstance(value, uuid.UUID):
             value = str(value)
         if isinstance(value, list):
