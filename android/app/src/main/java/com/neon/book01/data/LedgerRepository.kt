@@ -34,10 +34,12 @@ class LedgerRepository(private val database: LedgerDatabase) {
     suspend fun renameBook(newName: String) {
         val normalizedName = newName.trim()
         require(normalizedName.length in 2..60) { "El nombre debe tener entre 2 y 60 caracteres." }
-        dao.insertBookSettings(BookSettingsEntity(id = 1, bookName = "Libro de prueba", baseCurrency = UsdMoney.CURRENCY_CODE))
         val current = dao.getBookSettings()
-            ?: error("No se pudo inicializar la configuración del libro.")
-        dao.updateBookSettings(current.copy(bookName = normalizedName))
+        if (current == null) {
+            dao.insertBookSettings(BookSettingsEntity(id = 1, bookName = normalizedName, baseCurrency = UsdMoney.CURRENCY_CODE))
+        } else {
+            dao.updateBookSettings(current.copy(bookName = normalizedName))
+        }
     }
 
     suspend fun recordSimpleEntry(
