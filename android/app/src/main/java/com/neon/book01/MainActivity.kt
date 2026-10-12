@@ -80,6 +80,7 @@ import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.EntryKind
+import com.neon.book01.domain.GeneralLedgerCalculator
 import com.neon.book01.domain.ReportAccount
 import com.neon.book01.domain.ReportPostingLine
 import com.neon.book01.domain.TrialBalanceCalculator
@@ -228,6 +229,8 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         }
                     },
                 )
+            } else if (selectedTab == 1) {
+                GeneralLedgerScreen(accounts, entries, currencyCode)
             } else if (selectedTab == 2) {
                 AccountsScreen(accounts)
             } else if (selectedTab == 3) {
@@ -810,6 +813,142 @@ private fun AccountTypePicker(type: String, onSelected: (String) -> Unit) {
         }
     }
 }
+
+@Composable
+private fun GeneralLedgerScreen(
+    accounts: List<AccountEntity>,
+    entries: List<EntryWithLines>,
+    currencyCode: String,
+) {
+    var selectedAccountCode by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(accounts) {
+        if (accounts.none { it.code == selectedAccountCode }) {
+            selectedAccountCode = accounts.firstOrNull()?.code.orEmpty()
+        }
+    }
+    val selectedAccount = accounts.firstOrNull { it.code == selectedAccountCode }
+    val reportResult = remember(selectedAccountCode, entries, currencyCode) {
+        if (selectedAccountCode.isBlank()) null else runCatching {
+            GeneralLedgerCalculator.calculate(selectedAccountCode, entries, currencyCode)
+        }
+    }
+    val report = reportResult?.getOrNull()
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column {
+            Text("Mayor", color = BookInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Movimientos y saldo corrido por cuenta · $currencyCode", color = BookMuted, fontSize = 12.sp)
+        }
+        if (accounts.isEmpty()) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Text("Aún no hay cuentas en el libro.", modifier = Modifier.padding(16.dp), color = BookMuted)
+            }
+        } else {
+            AccountPicker(
+                label = "Cuenta",
+                options = accounts,
+                selectedCode = selectedAccountCode,
+                onSelected = { selectedAccountCode = it },
+            )
+            selectedAccount?.let { account ->
+                Text(
+                    "${accountTypeLabel(account.type)}${if (account.active) "" else " · Inactiva"}",
+                    color = BookMuted,
+                    fontSize = 11.sp,
+                )
+            }
+            reportResult?.exceptionOrNull()?.let { error ->
+                Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                    Text(
+                        error.message ?: "No se pudo calcular el Mayor.",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp,
+                    )
+                }
+            }
+            report?.let { data ->
+                Row(horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
+                    SummaryCard("Total débitos", money(data.totalDebitMinor, currencyCode), modifier = Modifier.weight(1f))
+                    SummaryCard("Total créditos", money(data.totalCreditMinor, currencyCode), modifier = Modifier.weight(1f))
+                }
+                SummaryCard(
+                    "Saldo final (D/H)",
+                    formatSignedLedgerBalance(data.closingBalanceMinor, currencyCode),
+                    modifier = Modifier.fillMaxWidth(),
+                    emphasize = true,
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(13.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                ) {
+                    Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                        Row(modifier = Modifier.background(Color(0xFFF0F4F5)), verticalAlignment = Alignment.CenterVertically) {
+                            TableCell("Fecha", 88.dp, isHeader = true)
+                            TableCell("Asiento", 84.dp, isHeader = true)
+                            TableCell("Concepto", 180.dp, isHeader = true)
+                            TableCell("Debe", 116.dp, isHeader = true, align = TextAlign.End)
+                            TableCell("Haber", 116.dp, isHeader = true, align = TextAlign.End)
+                            TableCell("Saldo D/H", 132.dp, isHeader = true, align = TextAlign.End)
+                        }
+                        if (data.rows.isEmpty()) {
+                            Text(
+                                "No hay movimientos $currencyCode en esta cuenta.",
+                                modifier = Modifier.padding(16.dp),
+                                color = BookMuted,
+                                fontSize = 12.sp,
+                            )
+                        } else {
+                            data.rows.forEachIndexed { index, row ->
+                                Row(
+                                    modifier = Modifier.background(if (index % 2 == 0) Color.White else Color(0xFFFAFCFC)),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    TableCell(formatLedgerDate(row.entryDate), 88.dp, color = BookMuted)
+                                    TableCell(row.entryId.take(8), 84.dp, color = BookMuted)
+                                    TableCell(row.description, 180.dp)
+                                    TableCell(if (row.debitMinor == 0L) "—" else money(row.debitMinor, currencyCode), 116.dp, align = TextAlign.End)
+                                    TableCell(if (row.creditMinor == 0L) "—" else money(row.creditMinor, currencyCode), 116.dp, align = TextAlign.End)
+                                    TableCell(formatSignedLedgerBalance(row.runningBalanceMinor, currencyCode), 132.dp, align = TextAlign.End, fontWeight = FontWeight.Medium)
+                                }
+                            }
+                        }
+                        Row(modifier = Modifier.background(Color(0xFFF0F4F5)), verticalAlignment = Alignment.CenterVertically) {
+                            TableCell("Totales", 88.dp, isHeader = true)
+                            TableCell("", 84.dp, isHeader = true)
+                            TableCell("", 180.dp, isHeader = true)
+                            TableCell(money(data.totalDebitMinor, currencyCode), 116.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                            TableCell(money(data.totalCreditMinor, currencyCode), 116.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                            TableCell(formatSignedLedgerBalance(data.closingBalanceMinor, currencyCode), 132.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
+                        }
+                    }
+                }
+                if (data.excludedOtherCurrencyLineCount > 0) {
+                    Text(
+                        "Se excluyeron ${data.excludedOtherCurrencyLineCount} línea(s) en ${data.excludedCurrencyCodes.joinToString()}; no se convierten ni se mezclan con $currencyCode.",
+                        color = BookMuted,
+                        fontSize = 11.sp,
+                    )
+                }
+                Text(
+                    "Desliza la tabla hacia los lados para ver todas las columnas. El saldo se calcula en orden de fecha y no modifica los asientos.",
+                    color = BookMuted,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+private fun formatSignedLedgerBalance(amountMinor: Long, currencyCode: String): String =
+    if (amountMinor < 0) "${money(Math.negateExact(amountMinor), currencyCode)} H" else "${money(amountMinor, currencyCode)} D"
+
+private fun formatLedgerDate(isoDate: String): String = runCatching {
+    LocalDate.parse(isoDate).format(DateTimeFormatter.ofPattern("dd/MM/yy", Locale.forLanguageTag("es-VE")))
+}.getOrDefault(isoDate)
 
 @Composable
 private fun TrialBalanceScreen(
