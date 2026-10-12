@@ -378,6 +378,7 @@ components:
         message: { type: string }
         requestId: { type: string }
         details: { type: object, additionalProperties: true }
+  responses:
     BadRequest:
       description: Malformed request or invalid filters
       content:
