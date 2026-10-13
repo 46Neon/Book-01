@@ -1,6 +1,6 @@
 # Prueba manual del flujo SAF (Android)
 
-**Estado:** pendiente de ejecutar en un dispositivo físico. La suite de CI [run 38454817956](https://github.com/46Neon/Book-01/actions/runs/38454817956) pasó 28/28 pruebas e incluye una prueba instrumentada que cifra, escribe, lee y restaura una copia por URI mediante un proveedor de prueba. Esa cobertura valida los flujos de `ContentResolver`, pero no abre el selector de documentos de Android ni prueba un proveedor de archivos real; por eso sigue haciendo falta este recorrido físico. Tampoco constituye una revisión de seguridad de producción.
+**Estado:** pendiente de ejecutar en un dispositivo físico. La suite de CI [run 38461086978](https://github.com/46Neon/Book-01/actions/runs/38461086978) pasó 29/29 pruebas; incluye una prueba instrumentada de round-trip cifrado por URI y otra que comprueba las acciones, nombre y tipos MIME de los intents de AndroidX. Estas pruebas no abren la interfaz del selector de documentos ni comprueban un proveedor de archivos real; por eso sigue haciendo falta el recorrido físico de abajo. Tampoco constituye una revisión de seguridad de producción.
 
 ## Seguridad y preparación
 
