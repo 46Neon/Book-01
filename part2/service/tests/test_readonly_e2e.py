@@ -148,6 +148,7 @@ def test_rls_book_picker_flow_through_postgrest_accounting_and_chat_without_groq
         postgrest_headers: list[dict[str, str]] = []
         postgrest_queries: list[dict[str, str]] = []
         groq_requests: list[httpx.Request] = []
+        selected_book_scope_positions: list[int] = []
         visible = [
             {"id": BOOK_ID, "name": "Primary book"},
             {"id": second_book, "name": "Second book"},
@@ -159,6 +160,8 @@ def test_rls_book_picker_flow_through_postgrest_accounting_and_chat_without_groq
             events.append(f"db:{table}:{request.url.params.get('select', '')}")
             postgrest_headers.append({"authorization": bearer, "apikey": request.headers.get("apikey", "")})
             postgrest_queries.append(dict(request.url.params))
+            if table == "books" and request.url.params.get("id") == f"eq.{second_book}":
+                selected_book_scope_positions.append(len(events) - 1)
             if table == "books":
                 if bearer == f"Bearer {invalid_token}":
                     return httpx.Response(401, json={"message": "token rejected"})
@@ -224,7 +227,7 @@ def test_rls_book_picker_flow_through_postgrest_accounting_and_chat_without_groq
             assert any(query.get("id") == f"eq.{second_book}" for query in postgrest_queries)
             scoped_reads = [query for query in postgrest_queries if query.get("id") == f"eq.{second_book}"]
             assert len(scoped_reads) == 1
-            assert events.index("groq") > events.index("db:accounts:id,book_id,code,name,account_type,currency_code")
+            assert selected_book_scope_positions and selected_book_scope_positions[0] < events.index("groq")
             assert len(groq_requests) == 1
             assert postgrest_headers[-1]["authorization"] == f"Bearer {CALLER_TOKEN}"
             assert invalid_token not in selected.text and CALLER_TOKEN not in selected.text

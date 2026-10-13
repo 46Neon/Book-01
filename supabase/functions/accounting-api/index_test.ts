@@ -91,7 +91,7 @@ Deno.test("rejects invalid Auth identity, duplicate/unsafe filters and malformed
     const response = await handler(new Request(`https://edge.test/functions/v1/accounting-api/api/v1/books?${query}`, { headers }));
     assertEquals(response.status, 422);
   }
-  assertEquals(calls, countBefore);
+  assertEquals(calls, countBefore + 2); // valid route with range checks authenticate and authorize the book first
   let dateCalls = 0;
   const badDateHandler = createHandler(env, async (input) => {
     dateCalls++;
@@ -143,7 +143,7 @@ Deno.test("trial balance computes opening/period/closing sides with exact decima
     if (url.pathname.endsWith("/books")) return respond([bookRow]);
     if (url.pathname.endsWith("/accounts")) return respond([{ id: CASH, book_id: BOOK, code: "1000", name: "Cash", account_type: "asset", currency_code: "USD" }, { id: EQUITY, book_id: BOOK, code: "3000", name: "Equity", account_type: "equity", currency_code: "USD" }]);
     if (url.pathname.endsWith("/journal_entries")) {
-      return url.searchParams.get("entry_date") === "gte.2026-01-01" ? respond([entry(ENTRY_OLD, "2025-12-31")]) : respond([entry(ENTRY_CURRENT, "2026-01-01")]);
+      return url.searchParams.get("and")?.includes("lte.2025-12-31") ? respond([entry(ENTRY_OLD, "2025-12-31")]) : respond([entry(ENTRY_CURRENT, "2026-01-01")]);
     }
     if (url.searchParams.get("journal_entry_id")?.includes(ENTRY_OLD)) return respond([line("66666666-6666-4666-8666-666666666661", ENTRY_OLD, CASH, "90071992547409.91", "0.00", 1), line("66666666-6666-4666-8666-666666666662", ENTRY_OLD, EQUITY, "0.00", "90071992547409.91", 2)]);
     return respond([line("66666666-6666-4666-8666-666666666663", ENTRY_CURRENT, CASH, "0.20", "0.00", 1), line("66666666-6666-4666-8666-666666666664", ENTRY_CURRENT, EQUITY, "0.00", "0.20", 2)]);
