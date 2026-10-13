@@ -284,7 +284,10 @@ SELECT public.create_draft_proposal(current_setting('test.dp_book')::uuid, curre
 SELECT set_config('test.dp_proposal_expired', :'proposal_expired', false);
 RESET ROLE;
 ALTER TABLE public.draft_proposals DISABLE TRIGGER draft_proposals_immutable;
-UPDATE public.draft_proposals SET expires_at = pg_catalog.clock_timestamp() - interval '1 second' WHERE id = current_setting('test.dp_proposal_expired')::uuid;
+UPDATE public.draft_proposals
+   SET created_at = pg_catalog.now() - interval '11 minutes',
+       expires_at = pg_catalog.now() - interval '1 second'
+ WHERE id = current_setting('test.dp_proposal_expired')::uuid;
 ALTER TABLE public.draft_proposals ENABLE TRIGGER draft_proposals_immutable;
 SET ROLE authenticated;
 SET request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
