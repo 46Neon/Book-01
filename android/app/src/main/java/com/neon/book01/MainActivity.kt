@@ -85,6 +85,7 @@ import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.PeriodCloseEntity
 import com.neon.book01.data.LedgerBackupCodec
+import com.neon.book01.data.LedgerBackupDocumentTransfer
 import com.neon.book01.data.LedgerBackupPreview
 import com.neon.book01.data.LedgerBackupSnapshot
 import com.neon.book01.data.LedgerDatabase
@@ -455,14 +456,12 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             onCreate = { passphrase ->
                 val destination = backupDestination ?: throw IllegalStateException("Elige primero una ubicación para la copia.")
                 withContext(Dispatchers.IO) {
-                    val encrypted = LedgerBackupCodec.encrypt(repository.createBackupSnapshot(), passphrase)
-                    try {
-                        val output = context.contentResolver.openOutputStream(destination, "w")
-                            ?: throw IllegalStateException("No se pudo abrir la ubicación elegida.")
-                        output.use { it.write(encrypted) }
-                    } finally {
-                        encrypted.fill(0)
-                    }
+                    LedgerBackupDocumentTransfer.writeEncryptedSnapshot(
+                        resolver = context.contentResolver,
+                        destination = destination,
+                        snapshot = repository.createBackupSnapshot(),
+                        passphrase = passphrase,
+                    )
                 }
                 backupDestination = null
                 snackbarHostState.showSnackbar("Copia cifrada guardada en la ubicación elegida.")
@@ -478,9 +477,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             onUnlock = { passphrase ->
                 val source = restoreSource ?: throw IllegalStateException("Selecciona primero una copia de seguridad.")
                 val encrypted = withContext(Dispatchers.IO) {
-                    val input = context.contentResolver.openInputStream(source)
-                        ?: throw IllegalStateException("No se pudo abrir el archivo seleccionado.")
-                    input.use { LedgerBackupCodec.readBounded(it) }
+                    LedgerBackupDocumentTransfer.readEncryptedFile(context.contentResolver, source)
                 }
                 try {
                     val decoded = withContext(Dispatchers.IO) { LedgerBackupCodec.decrypt(encrypted, passphrase) }
