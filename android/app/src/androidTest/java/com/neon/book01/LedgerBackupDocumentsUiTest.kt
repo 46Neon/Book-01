@@ -38,13 +38,13 @@ class LedgerBackupDocumentsUiTest {
                 "Cancelling the picker did not return to the restore action",
                 device.wait(Until.hasObject(By.text("Restaurar copia cifrada")), TIMEOUT_MS),
             )
-            assertEquals(appPackage, device.currentPackageName())
+            assertEquals(appPackage, device.getCurrentPackageName())
             assertFalse(
                 "Cancelling document selection must not request a backup passphrase",
                 device.wait(Until.hasObject(By.text("Frase de cifrado")), 1_000),
             )
         } finally {
-            val foregroundPackage = device.currentPackageName().orEmpty()
+            val foregroundPackage = device.getCurrentPackageName().orEmpty()
             if (foregroundPackage.contains("documentsui", ignoreCase = true)) device.pressBack()
             scenario.close()
         }
