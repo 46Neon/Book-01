@@ -160,8 +160,8 @@ object LedgerBackupCodec {
             bytes.toByteArray()
         }
 
-    private fun encodeSnapshot(book: LedgerBackupSnapshot): ByteArray = ByteArrayOutputStream().use { bytes ->
-        DataOutputStream(bytes).use { out ->
+    private fun encodeSnapshot(book: LedgerBackupSnapshot): ByteArray = WipingByteArrayOutputStream().use { bytes ->
+        val out = DataOutputStream(bytes)
             out.writeBoolean(book.bookSettings != null)
             book.bookSettings?.let { settings ->
                 out.writeInt(settings.id)
@@ -258,7 +258,7 @@ object LedgerBackupCodec {
                 require(normalized == entry.supportReference) { "La referencia de soporte de la copia no es válida." }
                 out.writeNullableString(entry.supportReference)
             }
-        }
+        out.flush()
         bytes.toByteArray()
     }
 
@@ -393,16 +393,24 @@ object LedgerBackupCodec {
 
     private fun DataOutputStream.writeString(value: String) {
         val bytes = value.toByteArray(Charsets.UTF_8)
-        require(bytes.size <= MAX_STRING_BYTES) { "Un campo excede el tamaño permitido." }
-        writeInt(bytes.size)
-        write(bytes)
+        try {
+            require(bytes.size <= MAX_STRING_BYTES) { "Un campo excede el tamaño permitido." }
+            writeInt(bytes.size)
+            write(bytes)
+        } finally {
+            bytes.fill(0)
+        }
     }
 
     private fun DataInputStream.readString(): String {
         val length = readInt()
         require(length in 0..MAX_STRING_BYTES && length <= available()) { "Campo de texto no válido." }
         val bytes = ByteArray(length).also(::readFully)
-        return String(bytes, Charsets.UTF_8)
+        return try {
+            String(bytes, Charsets.UTF_8)
+        } finally {
+            bytes.fill(0)
+        }
     }
 
     private fun DataOutputStream.writeNullableString(value: String?) {
@@ -417,6 +425,10 @@ private class WipingByteArrayOutputStream : ByteArrayOutputStream(8 * 1024) {
     fun clear() {
         buf.fill(0)
         reset()
+    }
+
+    override fun close() {
+        clear()
     }
 }
 
