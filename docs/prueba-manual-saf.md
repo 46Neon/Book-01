@@ -1,6 +1,6 @@
 # Prueba manual del flujo SAF (Android)
 
-**Estado:** pendiente de ejecutar en un dispositivo físico. La suite de CI [run 38467022805](https://github.com/46Neon/Book-01/actions/runs/38467022805) pasó 29/29 pruebas en emulador, incluida la migración v1→v11. La suite anterior [run 38461086978](https://github.com/46Neon/Book-01/actions/runs/38461086978) incluyó round-trip cifrado por URI y contratos de los intents AndroidX. Estas pruebas no abren la interfaz del selector de documentos ni comprueban un proveedor de archivos real; por eso sigue haciendo falta el recorrido físico de abajo. Tampoco constituye una revisión de seguridad de producción.
+**Estado:** pendiente de ejecutar en un dispositivo físico. [Run 38482157640](https://github.com/46Neon/Book-01/actions/runs/38482157640) pasó `assemble-debug` y `room-migration-test` en API 36; la suite instrumentada abre la interfaz DocumentsUI al restaurar, cancela con Atrás y verifica que la app vuelve sin solicitar la frase. No selecciona ni transfiere un archivo. La suite [run 38467022805](https://github.com/46Neon/Book-01/actions/runs/38467022805) pasó 29/29 pruebas en emulador, incluida la migración v1→v11, y [run 38461086978](https://github.com/46Neon/Book-01/actions/runs/38461086978) verificó el round-trip cifrado por URI y los contratos de los intents AndroidX. Ninguna de estas pruebas comprueba la interacción con un proveedor físico real; por eso sigue haciendo falta el recorrido de abajo. Tampoco constituye una revisión de seguridad de producción.
 
 ## Seguridad y preparación
 
