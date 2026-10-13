@@ -104,7 +104,7 @@ class JournalFiltersTest {
     fun dedicatedCounterpartyFilterMatchesSubstring() {
         assertEquals(
             listOf("posted-income"),
-            filterJournalRecords(records, JournalFilterCriteria(counterpartyQuery = "Central")).map { it.id },
+            filterJournalRecords(records, JournalFilterCriteria(counterpartyQuery = "Mercado")).map { it.id },
         )
     }
 
