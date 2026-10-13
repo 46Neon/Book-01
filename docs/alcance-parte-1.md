@@ -13,7 +13,7 @@ Crear el libro contable y su APK Android antes de integrar la experiencia de cha
 ## Hojas y vistas del MVP
 
 1. **Diario:** fecha, número, descripción, cuenta, débito, crédito, moneda, contraparte, estado y soporte.
-2. **Plan de cuentas:** código, nombre, tipo, cuenta padre, estado y clasificación para reportes.
+2. **Plan de cuentas:** código, nombre, tipo, cuenta padre opcional, estado y clasificación para reportes. La cuenta padre se asigna únicamente al crear, debe existir, estar activa y compartir el tipo inmutable; las cuentas predeterminadas conservan padre nulo. La jerarquía es descriptiva en este MVP: no cambia clasificación, contabilización ni cálculos/reportes, y editar el padre de cuentas existentes queda fuera del alcance.
 3. **Mayor:** movimientos por cuenta, débitos, créditos y saldo acumulado.
 4. **Balance de comprobación:** saldo deudor y acreedor por cuenta y periodo.
 5. **Resultados:** ingresos, costos y gastos para un rango de fechas.
@@ -21,7 +21,7 @@ Crear el libro contable y su APK Android antes de integrar la experiencia de cha
 ## Experiencia tipo hoja de cálculo
 
 - Pestañas con nombres claros; cuadrícula con encabezados y filas identificables.
-- Filtro por fecha, cuenta, categoría, contraparte y estado; búsqueda textual. En el prototipo actual del Diario ya están implementados fecha inclusiva, cuenta/categoría, tipo ingreso/gasto, estado y búsqueda de descripción/contraparte/cuenta/código. La contraparte opcional se persiste en Room v9; un filtro dedicado por contraparte sigue pendiente.
+- Filtro por fecha, cuenta, categoría, contraparte y estado; búsqueda textual. El prototipo del Diario implementa fecha inclusiva, cuenta/categoría, tipo ingreso/gasto, estado, búsqueda de descripción/contraparte/cuenta/código y filtro dedicado por contraparte. La cuenta padre opcional se asigna solo al crear la cuenta; exige padre activo del mismo tipo y se muestra en el plan de cuentas sin alterar informes ni asientos.
 - Encabezados y columnas clave persistentes al desplazarse.
 - Totales y periodo visibles; selección de fila para abrir el detalle.
 - En móvil, mostrar columnas prioritarias y abrir el resto en un detalle; en tablet, tabla más ancha.
@@ -53,5 +53,5 @@ El prototipo local admite cierres de rango inclusivo como un asiento USD nuevo, 
 - Mostrar Diario, Plan de cuentas, Mayor, Balance de comprobación y Resultados.
 - Los asientos desbalanceados, los accesos no autorizados y las operaciones duplicadas deben rechazarse.
 - Las correcciones dejan historia consultable.
-- La interfaz permite filtrar y revisar filas con claridad en teléfono y tablet. El modelo/Room v9 ya incluye contraparte opcional; un filtro dedicado para este campo sigue pendiente.
+- La interfaz permite filtrar y revisar filas con claridad en teléfono y tablet. La contraparte opcional cuenta con filtro dedicado; las cuentas muestran su padre opcional, persistido en Room v10 y asignado solo al crear, sin efectos implícitos sobre cálculos.
 - La API documentada permite consultar y crear borradores con los mismos controles.

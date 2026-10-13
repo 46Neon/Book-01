@@ -88,6 +88,9 @@ interface LedgerDao {
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
     suspend fun getAccount(code: String): AccountEntity?
 
+    @Query("SELECT EXISTS(SELECT 1 FROM accounts WHERE parentCode = :code)")
+    suspend fun hasChildAccounts(code: String): Boolean
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAccounts(accounts: List<AccountEntity>)
 

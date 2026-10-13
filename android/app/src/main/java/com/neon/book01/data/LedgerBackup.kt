@@ -30,6 +30,7 @@ object LedgerBackupCodec {
     private val MAGIC = byteArrayOf(0x42, 0x30, 0x31, 0x45) // B01E
     private const val FORMAT_VERSION = 1
     private const val COUNTERPARTY_EXTENSION_MAGIC = 0x43505459 // CPTY
+    private const val ACCOUNT_PARENT_EXTENSION_MAGIC = 0x5041524E // PARN
     private const val PBKDF2_ITERATIONS = 210_000
     private const val SALT_BYTES = 16
     private const val NONCE_BYTES = 12
@@ -237,6 +238,14 @@ object LedgerBackupCodec {
                 require(CounterpartyRules.normalize(entry.counterparty) == entry.counterparty) { "La contraparte de la copia no es válida." }
                 out.writeNullableString(entry.counterparty)
             }
+            // Parent references are optional in older authenticated v1 snapshots.
+            val parentLinks = book.accounts.filter { it.parentCode != null }
+            out.writeInt(ACCOUNT_PARENT_EXTENSION_MAGIC)
+            out.writeCount(parentLinks.size)
+            parentLinks.forEach { account ->
+                out.writeString(account.code)
+                out.writeString(account.parentCode!!)
+            }
         }
         bytes.toByteArray()
     }
@@ -309,9 +318,9 @@ object LedgerBackupCodec {
                 closedAt = input.readString(),
             )
         }
-        val restoredEntries = if (input.available() == 0) {
-            entries // Legacy v1 backup: no counterparty extension, so old entries remain null.
-        } else {
+        var restoredEntries = entries // Legacy v1 snapshots end here and retain null counterparties.
+        var restoredAccounts = accounts // Legacy snapshots predate parentCode and retain null parents.
+        if (input.available() > 0) {
             require(input.readInt() == COUNTERPARTY_EXTENSION_MAGIC) { "El contenido de la copia tiene datos sobrantes." }
             val count = input.readCount(minimumRecordBytes = 9)
             val knownIds = entries.map { it.id }.toSet()
@@ -324,10 +333,24 @@ object LedgerBackupCodec {
                 }
                 require(CounterpartyRules.normalize(value) == value) { "La contraparte de la copia no es válida." }
             }
-            require(input.available() == 0) { "El contenido de la copia tiene datos sobrantes." }
-            entries.map { entry -> entry.copy(counterparty = byId[entry.id]) }
+            restoredEntries = entries.map { entry -> entry.copy(counterparty = byId[entry.id]) }
         }
-        return LedgerBackupSnapshot(settings, accounts, restoredEntries, lines, audits, accountAudits, closes)
+        if (input.available() > 0) {
+            require(input.readInt() == ACCOUNT_PARENT_EXTENSION_MAGIC) { "El contenido de la copia tiene datos sobrantes." }
+            val count = input.readCount(minimumRecordBytes = 10)
+            val knownCodes = accounts.map { it.code }.toSet()
+            val parents = LinkedHashMap<String, String>()
+            repeat(count) {
+                val code = input.readString()
+                val parentCode = input.readString()
+                require(code in knownCodes && parentCode in knownCodes && code != parentCode && parents.put(code, parentCode) == null) {
+                    "La extensión de jerarquía de cuentas no es válida."
+                }
+            }
+            restoredAccounts = accounts.map { account -> account.copy(parentCode = parents[account.code]) }
+        }
+        require(input.available() == 0) { "El contenido de la copia tiene datos sobrantes." }
+        return LedgerBackupSnapshot(settings, restoredAccounts, restoredEntries, lines, audits, accountAudits, closes)
     }
 
     private fun DataOutputStream.writeCount(count: Int) {

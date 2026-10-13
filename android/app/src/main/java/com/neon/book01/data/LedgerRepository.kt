@@ -44,6 +44,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
         val preview = LedgerBackupValidator.validate(snapshot)
         requirePristineRestoreTarget()
 
+        val orderedAccounts = parentFirstAccounts(snapshot.accounts)
         val importedByCode = snapshot.accounts.associateBy { it.code }
         val seededCodes = LedgerBookDefaults.accounts.map { it.code }.toSet()
         val currentAccounts = dao.getAllAccounts().associateBy { it.code }
@@ -54,10 +55,10 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 val current = currentAccounts.getValue(default.code)
                 if (current != imported) dao.updateAccount(imported)
             }
-            snapshot.accounts.filter { it.code !in seededCodes }.forEach { dao.insertAccount(it) }
+            orderedAccounts.filter { it.code !in seededCodes }.forEach { dao.insertAccount(it) }
         } else {
-            // An uninitialized database has no seed rows, so restore the complete chart of accounts.
-            snapshot.accounts.forEach { dao.insertAccount(it) }
+            // An uninitialized database has no seed rows, so restore the complete chart parent-first.
+            orderedAccounts.forEach { dao.insertAccount(it) }
         }
 
         val importedSettings = snapshot.bookSettings!!
@@ -126,11 +127,15 @@ class LedgerRepository(private val database: LedgerDatabase) {
         }
     }
 
-    suspend fun createAccount(code: String, name: String, type: String, cashOrBank: Boolean) {
+    suspend fun createAccount(code: String, name: String, type: String, cashOrBank: Boolean, parentCode: String? = null) {
         val validated = AccountRules.validate(code, name, type, cashOrBank)
         require(dao.getAccount(validated.code) == null) { "Ya existe una cuenta con ese código." }
         database.withTransaction {
             require(dao.getAccount(validated.code) == null) { "Ya existe una cuenta con ese código." }
+            val parent = parentCode?.let { dao.getAccount(it) ?: throw IllegalArgumentException("La cuenta padre no existe.") }
+            require(parent == null || (parent.active && parent.type == validated.type && parent.code != validated.code)) {
+                "La cuenta padre debe existir, estar activa y tener la misma clasificación."
+            }
             dao.insertAccount(
                 AccountEntity(
                     code = validated.code,
@@ -138,6 +143,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                     type = validated.type,
                     active = true,
                     cashOrBank = validated.cashOrBank,
+                    parentCode = parent?.code,
                 ),
             )
         }
@@ -150,6 +156,9 @@ class LedgerRepository(private val database: LedgerDatabase) {
             val current = dao.getAccount(accountCode)
                 ?: throw IllegalArgumentException("No se encontró la cuenta.")
             if (current.name == normalizedName && current.active == active) return@withTransaction
+            require(current.active.not() || active || !dao.hasChildAccounts(current.code)) {
+                "Mantén activa esta cuenta mientras tenga cuentas dependientes."
+            }
             dao.updateAccount(current.copy(name = normalizedName, active = active))
             dao.insertAccountAuditEvent(
                 AccountAuditEventEntity(

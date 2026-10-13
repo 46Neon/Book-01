@@ -14,7 +14,8 @@ class LedgerBackupCodecTest {
             bookSettings = BookSettingsEntity(id = 1, bookName = "Café — caja", baseCurrency = "USD"),
             accounts = listOf(
                 AccountEntity(code = "1000", name = "Caja", type = "ASSET", active = true, cashOrBank = true),
-                AccountEntity(code = "5999", name = "Archivo", type = "EXPENSE", active = false, cashOrBank = false),
+                AccountEntity(code = "5999", name = "Archivo", type = "EXPENSE", active = false, cashOrBank = false, parentCode = "5000"),
+                AccountEntity(code = "5000", name = "Gastos", type = "EXPENSE", active = true, cashOrBank = false),
             ),
             journalEntries = listOf(
                 JournalEntryEntity(
@@ -61,8 +62,31 @@ class LedgerBackupCodecTest {
         val encrypted = java.util.Base64.getDecoder().decode("QjAxRQAAAAEAAzRQAAECAwQFBgcICQoLDA0ODwABAgMEBQYHCAkKCwAAAuhe75i8rdIijatlXaVnFDUj3IOncwhlX21vrRJcpY33OOBdDVeiUNiL2+ON/avFYtAwglFEfVKxFJBSrn2XgyiKTfgSD9zZzXpUbTEmPNkx/eJb5raqIe/x4WXoHgXXo0DKmjhknahC9ajGGB5iqei8hDdM2YdrbCCO44sJa87ej/FXmzL81NP3y5ca+sKN5DFbkMgrI1WcFDzBfdaZZ91RBNk71GQgDleMpKoVfXmEYX0b3bFO/In96KA6o2233kghXL+Bt8t9fmKgP9FgkXjbWvo/AwTrkfOY4nGpOIPKZC9lSMV+5dLLuiSM7KssZhaYkCLjEKUGuF3sRqHkiU2zYkrdegcTOEFOAcKy+plPKYRC4ILI0TCX4BFgmAWwquAVPHD70QnQu6JBZdEoyRowcP7amN76xabjkuZ5GfmJdxk8bUPBck41rFS1EMBT30GiDfsJDfkASqhfvAmefbg17pDQbF+7IwEUC2t5v/nL3MLHKVoHX0hE9Isrd4P8UCxp6nLdGr9Xv3PEmCM7t3x9o+GvjL8VzPpAXVsK9LqAqH48dG3IBBXw3AKGIR977+A8DPWwA1aYB0b5kQUgTCW98YWLI+V7/alfDk/36S+xuUT9AEwssgqEx4YJgVBtqEbK+OaTKFS4JAWs6h8jOzVeMjmVraVxZRVNtneVe2vpgbGNmOEyVdLZ/jDW3B9Y1zsyDT/eVPw9Nni8IV24knkHQJU3vTiwNxz4VKP3AB4VRSMHpUtDyBpVMe+0Q5jtYYMR9jrQoJjSvF1h1ZnD2bbmHK4yA+GFMA2Fb1yzMLwJcsqb/tvOhAZJFZvaaPayBaciZS71CQ4xUX3AmSvnYmEUHgtJjwPta0OG4K5hKgLnTIawV0l+rqw6idSIPWj/mcqCrXRxTOlCepKhiNBmD586SWArReRL11pVa2/LBLlfPkVEeyLDH+0W+8fo/EFC7wlpXdIxkuoubf+ncqP5lMRLselRiKcxOAw=" )
         val decoded = LedgerBackupCodec.decrypt(encrypted, password)
         assertEquals(null, decoded.journalEntries.single().counterparty)
+        assertEquals(listOf(null), decoded.accounts.map { it.parentCode })
         assertEquals("Venta antigua", decoded.journalEntries.single().description)
         assertEquals(1, LedgerBackupValidator.validate(decoded).journalEntryCount)
+    }
+
+    @Test
+    fun authenticatedCounterpartyOnlyV1BackupRestoresNewParentFieldAsNull() {
+        val historical = LedgerBackupSnapshot(
+            bookSettings = BookSettingsEntity(1, "Libro histórico", "USD"),
+            accounts = listOf(
+                AccountEntity("5000", "Gastos", "EXPENSE"),
+                AccountEntity("5100", "Suministros", "EXPENSE", parentCode = "5000"),
+            ),
+            journalEntries = listOf(JournalEntryEntity(
+                id = "entry-old", entryDate = "2026-01-01", description = "Venta", kind = "INCOME",
+                categoryAccountCode = "5000", paymentAccountCode = "5000", currencyCode = "USD",
+                amountMinor = 100, status = "POSTED", createdAt = "2026-01-01T00:00:00Z", counterparty = "Cliente viejo",
+            )),
+            journalLines = emptyList(), auditEvents = emptyList(), accountAuditEvents = emptyList(), periodCloses = emptyList(),
+        )
+        val currentFile = LedgerBackupCodec.encrypt(historical, password)
+        val olderFile = removeParentExtensionAndReauthenticate(currentFile, password)
+        val decoded = LedgerBackupCodec.decrypt(olderFile, password)
+        assertEquals("Cliente viejo", decoded.journalEntries.single().counterparty)
+        assertEquals(listOf(null, null), decoded.accounts.map { it.parentCode })
     }
 
     @Test
@@ -96,6 +120,36 @@ class LedgerBackupCodecTest {
         assertFalse(first.contentEquals(second))
         assertEquals(book, LedgerBackupCodec.decrypt(first, password))
         assertEquals(book, LedgerBackupCodec.decrypt(second, password))
+    }
+
+    private fun removeParentExtensionAndReauthenticate(file: ByteArray, passphrase: CharArray): ByteArray {
+        val headerSize = 44
+        val header = file.copyOfRange(0, headerSize)
+        val salt = file.copyOfRange(12, 28)
+        val nonce = file.copyOfRange(28, 40)
+        val cipherLength = java.nio.ByteBuffer.wrap(file, 40, 4).int
+        val spec = javax.crypto.spec.PBEKeySpec(passphrase, salt, 210_000, 256)
+        val keyBytes = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+        val key = javax.crypto.spec.SecretKeySpec(keyBytes, "AES")
+        val decrypt = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        decrypt.init(javax.crypto.Cipher.DECRYPT_MODE, key, javax.crypto.spec.GCMParameterSpec(128, nonce))
+        decrypt.updateAAD(header)
+        val plaintext = decrypt.doFinal(file, headerSize, cipherLength)
+        val marker = byteArrayOf(0x50, 0x41, 0x52, 0x4E)
+        val extensionStart = plaintext.toList().windowed(marker.size).indexOfFirst { window -> window.map { it.toByte() } == marker.toList() }
+        check(extensionStart >= 0) { "Expected authenticated account-parent extension" }
+        val oldPlaintext = plaintext.copyOfRange(0, extensionStart)
+        val oldHeader = header.copyOf()
+        java.nio.ByteBuffer.wrap(oldHeader, 40, 4).putInt(oldPlaintext.size + 16)
+        val encrypt = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        encrypt.init(javax.crypto.Cipher.ENCRYPT_MODE, key, javax.crypto.spec.GCMParameterSpec(128, nonce))
+        encrypt.updateAAD(oldHeader)
+        val oldCiphertext = encrypt.doFinal(oldPlaintext)
+        spec.clearPassword()
+        keyBytes.fill(0)
+        plaintext.fill(0)
+        oldPlaintext.fill(0)
+        return oldHeader + oldCiphertext
     }
 
     private fun sample() = LedgerBackupSnapshot(

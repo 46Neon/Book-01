@@ -419,9 +419,10 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     }
     if (showAccountDialog) {
         NewAccountDialog(
+            accounts = accounts,
             onDismiss = { showAccountDialog = false },
-            onSave = { code, name, type, cashOrBank ->
-                withContext(Dispatchers.IO) { repository.createAccount(code, name, type, cashOrBank) }
+            onSave = { code, name, type, cashOrBank, parentCode ->
+                withContext(Dispatchers.IO) { repository.createAccount(code, name, type, cashOrBank, parentCode) }
                 showAccountDialog = false
                 snackbarHostState.showSnackbar("Cuenta agregada al plan de cuentas.")
             },
@@ -1344,7 +1345,8 @@ private fun AccountsScreen(
             Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 Row(modifier = Modifier.background(Color(0xFFF0F4F5)), verticalAlignment = Alignment.CenterVertically) {
                     TableCell("Código", 78.dp, isHeader = true)
-                    TableCell("Nombre", 170.dp, isHeader = true)
+                    TableCell("Nombre", 160.dp, isHeader = true)
+                    TableCell("Cuenta padre", 160.dp, isHeader = true)
                     TableCell("Tipo", 120.dp, isHeader = true)
                     TableCell("Estado", 88.dp, isHeader = true)
                     TableCell("Uso", 110.dp, isHeader = true)
@@ -1353,7 +1355,11 @@ private fun AccountsScreen(
                 accounts.forEach { account ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TableCell(account.code, 78.dp, color = BookMuted)
-                        TableCell(account.name, 170.dp, fontWeight = FontWeight.Medium)
+                        TableCell(account.name, 160.dp, fontWeight = FontWeight.Medium)
+                        val parentLabel = account.parentCode?.let { parentCode ->
+                            accounts.firstOrNull { it.code == parentCode }?.let { "${it.code} · ${it.name}" } ?: parentCode
+                        } ?: "—"
+                        TableCell(parentLabel, 160.dp, color = BookMuted)
                         TableCell(accountTypeLabel(account.type), 120.dp, color = BookMuted)
                         TableCell(if (account.active) "Activa" else "Inactiva", 88.dp, color = if (account.active) BookGreen else BookMuted)
                         TableCell(if (account.cashOrBank) "Caja/Banco" else "General", 110.dp, color = BookMuted)
@@ -1429,13 +1435,15 @@ private fun EditAccountDialog(
 
 @Composable
 private fun NewAccountDialog(
+    accounts: List<AccountEntity>,
     onDismiss: () -> Unit,
-    onSave: suspend (String, String, String, Boolean) -> Unit,
+    onSave: suspend (String, String, String, Boolean, String?) -> Unit,
 ) {
     var code by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf("EXPENSE") }
     var cashOrBank by rememberSaveable { mutableStateOf(false) }
+    var parentCode by rememberSaveable { mutableStateOf("") }
     var errorText by rememberSaveable { mutableStateOf<String?>(null) }
     var saving by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -1460,13 +1468,23 @@ private fun NewAccountDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                AccountTypePicker(type = type, onSelected = { type = it; if (it != "ASSET") cashOrBank = false })
+                AccountTypePicker(type = type, onSelected = {
+                    type = it
+                    if (it != "ASSET") cashOrBank = false
+                    if (accounts.none { account -> account.code == parentCode && account.active && account.type == it }) parentCode = ""
+                })
+                AccountParentPicker(
+                    accounts = accounts.filter { it.active && it.type == type },
+                    selectedCode = parentCode,
+                    onSelected = { parentCode = it },
+                )
                 if (type == "ASSET") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = cashOrBank, onCheckedChange = { cashOrBank = it })
                         Text("Usar como Caja/Banco para movimientos simples", color = BookInk, fontSize = 12.sp)
                     }
                 }
+                Text("Cuenta padre opcional. Solo se puede asignar al crear; el padre debe estar activo y ser del mismo tipo.", color = BookMuted, fontSize = 11.sp)
                 Text("Las cuentas nuevas se guardan en el dispositivo y aparecen en los informes.", color = BookMuted, fontSize = 11.sp)
                 errorText?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
             }
@@ -1482,7 +1500,7 @@ private fun NewAccountDialog(
                             saving = true
                             errorText = null
                             try {
-                                onSave(code, name, type, cashOrBank)
+                                onSave(code, name, type, cashOrBank, parentCode.ifBlank { null })
                             } catch (error: Exception) {
                                 errorText = error.message ?: "No se pudo guardar la cuenta."
                             } finally {
@@ -1495,6 +1513,45 @@ private fun NewAccountDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
+}
+
+@Composable
+private fun AccountParentPicker(
+    accounts: List<AccountEntity>,
+    selectedCode: String,
+    onSelected: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = accounts.firstOrNull { it.code == selectedCode }
+    Column {
+        Text("Cuenta padre (opcional)", color = BookMuted, fontSize = 11.sp)
+        Spacer(Modifier.height(4.dp))
+        Box {
+            Surface(
+                onClick = { expanded = true },
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFBFC8D0)),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(selected?.let { "${it.code} · ${it.name}" } ?: "Sin cuenta padre", modifier = Modifier.weight(1f), color = BookInk, fontSize = 13.sp)
+                    Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null, tint = BookMuted)
+                }
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(text = { Text("Sin cuenta padre") }, onClick = { onSelected(""); expanded = false })
+                accounts.forEach { account ->
+                    DropdownMenuItem(
+                        text = { Text("${account.code} · ${account.name}") },
+                        onClick = { onSelected(account.code); expanded = false },
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

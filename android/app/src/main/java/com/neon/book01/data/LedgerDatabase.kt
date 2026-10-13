@@ -29,13 +29,18 @@ object LedgerBookDefaults {
     val settings = BookSettingsEntity(id = 1, bookName = "Libro de prueba", baseCurrency = "USD")
 }
 
-@Entity(tableName = "accounts")
+@Entity(
+    tableName = "accounts",
+    foreignKeys = [ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["parentCode"], onDelete = ForeignKey.RESTRICT)],
+    indices = [Index("parentCode")],
+)
 data class AccountEntity(
     @PrimaryKey val code: String,
     val name: String,
     val type: String,
     val active: Boolean = true,
     @ColumnInfo(defaultValue = "0") val cashOrBank: Boolean = false,
+    val parentCode: String? = null,
 )
 
 @Entity(tableName = "journal_entries", indices = [Index(value = ["reversalOfEntryId"], unique = true)])
@@ -157,7 +162,7 @@ data class PostedEntryLockEntity(
 
 @Database(
     entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class, PostedEntryLockEntity::class],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -311,6 +316,23 @@ abstract class LedgerDatabase : RoomDatabase() {
             }
         }
 
+        private fun createAccountHierarchyGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("DROP TRIGGER IF EXISTS `accounts_parent_insert_guard`")
+            database.execSQL("CREATE TRIGGER `accounts_parent_insert_guard` BEFORE INSERT ON `accounts` WHEN NEW.`parentCode` IS NOT NULL AND (NEW.`parentCode` = NEW.`code` OR NOT EXISTS (SELECT 1 FROM `accounts` WHERE `code` = NEW.`parentCode` AND `active` = 1 AND `type` = NEW.`type`)) BEGIN SELECT RAISE(ABORT, 'account parent must exist, be active, and have the same type'); END")
+            database.execSQL("DROP TRIGGER IF EXISTS `accounts_parent_update_guard`")
+            database.execSQL("CREATE TRIGGER `accounts_parent_update_guard` BEFORE UPDATE OF `parentCode` ON `accounts` WHEN NEW.`parentCode` IS NOT OLD.`parentCode` BEGIN SELECT RAISE(ABORT, 'account parent is immutable after creation'); END")
+            database.execSQL("DROP TRIGGER IF EXISTS `accounts_parent_active_guard`")
+            database.execSQL("CREATE TRIGGER `accounts_parent_active_guard` BEFORE UPDATE OF `active` ON `accounts` WHEN OLD.`active` = 1 AND NEW.`active` = 0 AND EXISTS (SELECT 1 FROM `accounts` WHERE `parentCode` = OLD.`code`) BEGIN SELECT RAISE(ABORT, 'an account with child accounts must remain active'); END")
+        }
+
+        internal val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `accounts` ADD COLUMN `parentCode` TEXT REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_accounts_parentCode` ON `accounts` (`parentCode`)")
+                createAccountHierarchyGuards(database)
+            }
+        }
+
         internal fun integrityGuardsCallback(): RoomDatabase.Callback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 createAuditGuards(db)
@@ -319,6 +341,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                 createPeriodCloseGuards(db)
                 createPostedEntryLockGuards(db)
                 createDraftEntryGuards(db)
+                createAccountHierarchyGuards(db)
             }
         }
 
@@ -331,7 +354,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .addCallback(integrityGuardsCallback())
                     .build().also { instance = it }
             }

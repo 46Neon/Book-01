@@ -35,7 +35,8 @@ class LedgerRepositoryBackupRestoreTest {
     }
 
     @Test fun restoresFullAuthenticatedSnapshotExactlyIncludingAuditsSnapshotsAndCloses() = runBlocking {
-        val backup = createHistoricalBook()
+        val historical = createHistoricalBook()
+        val backup = historical.copy(accounts = historical.accounts.reversed())
         destinationRepository.initializeBook()
         val preview = destinationRepository.previewBackupRestore(backup)
         assertEquals("Libro de prueba", preview.bookName)
@@ -45,7 +46,7 @@ class LedgerRepositoryBackupRestoreTest {
 
         destinationRepository.restoreBackup(backup)
 
-        assertEquals(backup, destinationRepository.createBackupSnapshot())
+        assertEquals(backup.copy(accounts = backup.accounts.sortedBy { it.code }), destinationRepository.createBackupSnapshot())
         assertEquals(3, destination.ledgerDao().getAllEntries().size)
         assertEquals(3L, destination.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks").use { it.moveToFirst(); it.getLong(0) })
         assertEquals(1, destination.ledgerDao().getAllAccountAuditEvents().size)
@@ -56,6 +57,27 @@ class LedgerRepositoryBackupRestoreTest {
         val backup = createHistoricalBook()
         destinationRepository.restoreBackup(backup)
         assertEquals(backup, destinationRepository.createBackupSnapshot())
+    }
+
+    @Test fun repositoryEnforcesParentEligibilityAndPreventsReparentingOrDeactivation() = runBlocking {
+        destinationRepository.initializeBook()
+        destinationRepository.createAccount("5800", "Gastos principales", "EXPENSE", cashOrBank = false, parentCode = "5100")
+        destinationRepository.createAccount("5810", "Gastos menores", "EXPENSE", cashOrBank = false, parentCode = "5800")
+        assertEquals("5800", destination.ledgerDao().getAccount("5810")?.parentCode)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { destinationRepository.createAccount("5820", "Otra cuenta", "EXPENSE", cashOrBank = false, parentCode = "4000") }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { destinationRepository.updateAccountSettings("5800", "Gastos principales", active = false) }
+        }
+        destinationRepository.createAccount("5900", "Padre inactivo", "EXPENSE", cashOrBank = false)
+        destinationRepository.updateAccountSettings("5900", "Padre inactivo", active = false)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { destinationRepository.createAccount("5910", "Hijo inválido", "EXPENSE", cashOrBank = false, parentCode = "5900") }
+        }
+        assertThrows(android.database.SQLException::class.java) {
+            runBlocking { destination.ledgerDao().updateAccount(destination.ledgerDao().getAccount("5810")!!.copy(parentCode = null)) }
+        }
     }
 
     @Test fun nonemptyAndModifiedBooksAreRefusedWithoutPartialWrites() = runBlocking {
@@ -98,6 +120,39 @@ class LedgerRepositoryBackupRestoreTest {
         assertEquals(before, destinationRepository.createBackupSnapshot())
     }
 
+    @Test fun authenticatedHierarchyWithMissingWrongTypeInactiveParentOrCycleIsRejected() = runBlocking {
+        val valid = createHistoricalBook()
+        val customParent = valid.accounts.first { it.code == "5200" }
+        val customChild = valid.accounts.first { it.code == "5210" }
+        val invalidSnapshots = listOf(
+            valid.copy(accounts = valid.accounts.map { if (it.code == "5200") it.copy(parentCode = "9999") else it }),
+            valid.copy(accounts = valid.accounts.map { if (it.code == "5200") it.copy(parentCode = "4000") else it }),
+            valid.copy(accounts = valid.accounts.map { if (it.code == "5100") it.copy(active = false) else it }),
+            valid.copy(accounts = valid.accounts.map {
+                when (it.code) {
+                    customParent.code -> it.copy(parentCode = customChild.code)
+                    customChild.code -> it.copy(parentCode = customParent.code)
+                    else -> it
+                }
+            }),
+        )
+        val before = destinationRepository.createBackupSnapshot()
+        invalidSnapshots.forEach { invalid ->
+            val passphrase = "authenticated hierarchy fixture".toCharArray()
+            val encrypted = LedgerBackupCodec.encrypt(invalid, passphrase)
+            try {
+                assertThrows(IllegalArgumentException::class.java) {
+                    val authenticated = LedgerBackupCodec.decrypt(encrypted, passphrase)
+                    runBlocking { destinationRepository.previewBackupRestore(authenticated) }
+                }
+            } finally {
+                passphrase.fill(Char.MIN_VALUE)
+                encrypted.fill(0)
+            }
+        }
+        assertEquals(before, destinationRepository.createBackupSnapshot())
+    }
+
     @Test fun authenticatedInvalidCloseIsRejectedBeforeAnyPristineRestoreWrites() = runBlocking {
         val historical = createHistoricalBook()
         val invalid = historical.copy(
@@ -137,6 +192,8 @@ class LedgerRepositoryBackupRestoreTest {
 
     private suspend fun createHistoricalBook(): LedgerBackupSnapshot {
         sourceRepository.initializeBook()
+        sourceRepository.createAccount("5200", "Gastos operativos", "EXPENSE", cashOrBank = false, parentCode = "5100")
+        sourceRepository.createAccount("5210", "Suministros", "EXPENSE", cashOrBank = false, parentCode = "5200")
         sourceRepository.recordSimpleEntry("2024-01-15", "Ingreso exacto", EntryKind.INCOME, "4000", "1000", 12_345L)
         sourceRepository.updateAccountSettings("1000", "Caja histórica", active = false)
         val original = source.ledgerDao().getAllEntries().single().entry

@@ -20,6 +20,32 @@ data class LedgerBackupPreview(
     val periodCloseCount: Int,
 )
 
+/** Parent-first deterministic ordering used by restore even when serialized rows are shuffled. */
+internal fun parentFirstAccounts(accounts: List<AccountEntity>): List<AccountEntity> {
+    val byCode = accounts.associateBy { it.code }
+    require(byCode.size == accounts.size) { "Hay códigos de cuenta duplicados." }
+    accounts.forEach { account ->
+        account.parentCode?.let { parentCode ->
+            val parent = byCode[parentCode]
+                ?: throw IllegalArgumentException("La cuenta ${account.code} hace referencia a un padre que no existe.")
+            require(parentCode != account.code) { "Una cuenta no puede ser su propio padre." }
+            require(parent.active) { "La cuenta padre ${parent.code} debe estar activa." }
+            require(parent.type == account.type) { "La cuenta padre debe tener la misma clasificación." }
+        }
+    }
+    val childrenByParent = accounts.filter { it.parentCode != null }.groupBy { it.parentCode!! }
+    val ready = java.util.PriorityQueue<String>()
+    accounts.filter { it.parentCode == null }.forEach { ready.add(it.code) }
+    val ordered = mutableListOf<AccountEntity>()
+    while (ready.isNotEmpty()) {
+        val code = ready.remove()
+        ordered += byCode.getValue(code)
+        childrenByParent[code].orEmpty().forEach { child -> ready.add(child.code) }
+    }
+    require(ordered.size == accounts.size) { "La jerarquía de cuentas contiene un ciclo." }
+    return ordered
+}
+
 /** Structural and accounting consistency checks for authenticated v1 snapshots. */
 object LedgerBackupValidator {
     fun validate(snapshot: LedgerBackupSnapshot): LedgerBackupPreview {
@@ -46,7 +72,11 @@ object LedgerBackupValidator {
             require(accountTypes[seeded.code] == seeded.type) {
                 "La copia no conserva la clasificación inmutable de las cuentas predeterminadas."
             }
+            require(accounts.getValue(seeded.code).parentCode == null) {
+                "Las cuentas predeterminadas deben conservar su jerarquía original."
+            }
         }
+        parentFirstAccounts(snapshot.accounts)
 
         val entries = snapshot.journalEntries.associateBy { it.id }
         val reversedIds = snapshot.journalEntries.mapNotNull { it.reversalOfEntryId }
