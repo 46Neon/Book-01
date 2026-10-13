@@ -119,7 +119,7 @@ export function createHandler(env: Env = (name) => Deno.env.get(name), fetcher: 
     try {
       // Auth endpoint verifies token signature/expiry and returns its canonical user identity.
       const authResponse = await fetcher(`${supabaseUrl}/auth/v1/user`, {
-        method: "GET", headers: { apikey: publicKey, Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: controller.signal,
+        method: "GET", headers: { apikey: publicKey, Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: controller.signal, redirect: "error",
       });
       if (authResponse.status === 401 || authResponse.status === 403) return Response.json({ code: "unauthorized", message: "The bearer token was rejected.", requestId }, { status: 401, headers: { ...corsHeaders, "WWW-Authenticate": "Bearer" } });
       if (!authResponse.ok) return Response.json({ code: "upstream_unavailable", message: "Authentication service is unavailable.", requestId }, { status: 502, headers: corsHeaders });
@@ -138,7 +138,7 @@ export function createHandler(env: Env = (name) => Deno.env.get(name), fetcher: 
       const baseHeaders = { apikey: publicKey, Authorization: `Bearer ${token}`, Accept: "application/json" };
       const fetchRows = async (table: string, params: Record<string, string>): Promise<Record<string, unknown>[]> => {
         const query = new URLSearchParams(params);
-        const response = await fetcher(`${supabaseUrl}/rest/v1/${table}?${query}`, { method: "GET", headers: baseHeaders, signal: controller.signal });
+        const response = await fetcher(`${supabaseUrl}/rest/v1/${table}?${query}`, { method: "GET", headers: baseHeaders, signal: controller.signal, redirect: "error" });
         if (response.status === 401) throw new RouteError(401, "unauthorized", "The bearer token was rejected.");
         if (response.status === 403) throw new RouteError(403, "forbidden", "Access to this accounting resource is denied.");
         if (!response.ok) throw new RouteError(response.status >= 500 ? 502 : 422, response.status >= 500 ? "upstream_unavailable" : "upstream_request_rejected", "Accounting data service could not process the request.");
