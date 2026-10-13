@@ -1,5 +1,4 @@
 name: Supabase database migration checks
-
 on:
   push:
     branches: [main]
@@ -10,10 +9,8 @@ on:
     paths:
       - 'supabase/**'
       - '.github/workflows/supabase-db.yml'
-
 permissions:
   contents: read
-
 jobs:
   postgres-integration:
     runs-on: ubuntu-latest
@@ -44,7 +41,19 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Bootstrap test-only Supabase Auth prerequisites
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/bootstrap.sql
-      - name: Apply versioned migrations
+      - name: Apply baseline migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610120001_initial_core.sql
-      - name: Test tenant RLS and accounting invariants
+      - name: Test baseline tenant RLS and accounting invariants
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/rls_and_invariants.sql
+      - name: Apply remaining versioned migrations
+        shell: bash
+        run: |
+          for migration in supabase/migrations/*.sql; do
+            if [[ "$migration" == "supabase/migrations/202610120001_initial_core.sql" ]]; then
+              continue
+            fi
+            echo "Applying $migration"
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Test final read-only REST grants and RLS
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/read_only_permissions.sql
