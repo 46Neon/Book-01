@@ -20,6 +20,7 @@ class JournalFiltersTest {
             id = "draft-expense",
             dateIso = "2026-03-31",
             description = "Pago de Papelería",
+            counterparty = "Papelería Central",
             kind = "EXPENSE",
             status = JournalFilterStatus.DRAFT,
             accounts = listOf(JournalFilterAccount("5100", "Papelería"), JournalFilterAccount("1000", "Caja")),
@@ -96,6 +97,39 @@ class JournalFiltersTest {
     @Test
     fun noMatchReturnsAnEmptyList() {
         assertTrue(filterJournalRecords(records, JournalFilterCriteria(searchText = "no existe")).isEmpty())
+    }
+
+
+    @Test
+    fun dedicatedCounterpartyFilterMatchesSubstring() {
+        assertEquals(
+            listOf("posted-income"),
+            filterJournalRecords(records, JournalFilterCriteria(counterpartyQuery = "Central")).map { it.id },
+        )
+    }
+
+    @Test
+    fun dedicatedCounterpartyFilterNoMatchReturnsEmpty() {
+        assertTrue(filterJournalRecords(records, JournalFilterCriteria(counterpartyQuery = "No existe")).isEmpty())
+    }
+
+    @Test
+    fun dedicatedCounterpartyFilterIsCaseInsensitiveAndIncludesDrafts() {
+        assertEquals(
+            listOf("posted-income", "draft-expense"),
+            filterJournalRecords(records, JournalFilterCriteria(counterpartyQuery = "cEnTrAl")).map { it.id },
+        )
+    }
+
+    @Test
+    fun dedicatedCounterpartyFilterCombinesWithOtherCriteria() {
+        assertEquals(
+            listOf("posted-income"),
+            filterJournalRecords(
+                records,
+                JournalFilterCriteria(kind = "INCOME", status = JournalFilterStatus.POSTED, counterpartyQuery = "CENTRAL"),
+            ).map { it.id },
+        )
     }
 
     @Test

@@ -852,6 +852,7 @@ private fun JournalFilterDialog(
     var fromDate by rememberSaveable(criteria) { mutableStateOf(criteria.fromDate) }
     var toDate by rememberSaveable(criteria) { mutableStateOf(criteria.toDate) }
     var searchText by rememberSaveable(criteria) { mutableStateOf(criteria.searchText) }
+    var counterpartyQuery by rememberSaveable(criteria) { mutableStateOf(criteria.counterpartyQuery) }
     var accountCode by rememberSaveable(criteria) { mutableStateOf(criteria.accountCode) }
     var kind by rememberSaveable(criteria) { mutableStateOf(criteria.kind) }
     var status by rememberSaveable(criteria) { mutableStateOf(criteria.status) }
@@ -929,16 +930,18 @@ private fun JournalFilterDialog(
                     FilterChip(selected = status == JournalFilterStatus.POSTED, onClick = { status = JournalFilterStatus.POSTED }, label = { Text("Contabilizados") })
                     FilterChip(selected = status == JournalFilterStatus.DRAFT, onClick = { status = JournalFilterStatus.DRAFT }, label = { Text("Borradores") })
                 }
-                Text(
-                    "Filtro por contraparte: pendiente; el modelo actual no guarda ese dato.",
-                    color = BookMuted,
-                    fontSize = 11.sp,
+                OutlinedTextField(
+                    value = counterpartyQuery,
+                    onValueChange = { counterpartyQuery = it },
+                    label = { Text("Contraparte") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onApply(JournalFilterCriteria(fromDate, toDate, searchText, accountCode, kind, status)) },
+                onClick = { onApply(JournalFilterCriteria(fromDate, toDate, searchText, accountCode, kind, status, counterpartyQuery)) },
                 enabled = dateValidation.isValid,
             ) { Text("Aplicar") }
         },
@@ -952,7 +955,7 @@ private fun JournalFilterDialog(
 }
 
 private fun JournalFilterCriteria.hasActiveJournalFilters(): Boolean =
-    fromDate.isNotEmpty() || toDate.isNotEmpty() || searchText.isNotBlank() || accountCode != null || kind != null || status != JournalFilterStatus.ALL
+    fromDate.isNotEmpty() || toDate.isNotEmpty() || searchText.isNotBlank() || counterpartyQuery.isNotBlank() || accountCode != null || kind != null || status != JournalFilterStatus.ALL
 
 private fun EntryWithLines.toJournalFilterRecord(accounts: List<AccountEntity>): JournalFilterRecord {
     val accountNames = accounts.associate { it.code to it.name }

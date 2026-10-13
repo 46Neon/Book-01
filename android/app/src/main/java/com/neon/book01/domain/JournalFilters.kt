@@ -32,6 +32,8 @@ data class JournalFilterCriteria(
     /** `INCOME`, `EXPENSE`, or null for both. */
     val kind: String? = null,
     val status: JournalFilterStatus = JournalFilterStatus.ALL,
+    /** Optional dedicated case-insensitive substring match on the counterparty field. */
+    val counterpartyQuery: String = "",
 )
 
 data class JournalDateRangeValidation(
@@ -69,6 +71,7 @@ fun filterJournalRecords(
     val dateRange = validateJournalDateRange(criteria.fromDate, criteria.toDate)
     if (!dateRange.isValid) return emptyList()
     val query = criteria.searchText.trim()
+    val counterpartyQuery = criteria.counterpartyQuery.trim()
     return records.filter { record ->
         val recordDate = parseJournalDate(record.dateIso) ?: return@filter false
         (dateRange.fromDate == null || !recordDate.isBefore(dateRange.fromDate)) &&
@@ -76,6 +79,7 @@ fun filterJournalRecords(
             (criteria.kind == null || record.kind.equals(criteria.kind, ignoreCase = true)) &&
             (criteria.status == JournalFilterStatus.ALL || record.status == criteria.status) &&
             (criteria.accountCode == null || record.accounts.any { it.code == criteria.accountCode }) &&
+            (counterpartyQuery.isEmpty() || record.counterparty?.contains(counterpartyQuery, ignoreCase = true) == true) &&
             (query.isEmpty() || record.description.contains(query, ignoreCase = true) ||
                 record.counterparty?.contains(query, ignoreCase = true) == true ||
                 record.accounts.any { it.code.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true) })
