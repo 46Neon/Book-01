@@ -96,7 +96,7 @@ class LedgerBackupValidatorTest {
     @Test fun rejectsAuthenticatedCloseWithWrongTransferLines() {
         val valid = closeSnapshot(income = true)
         assertRejected(valid.copy(journalLines = valid.journalLines.map { line ->
-            if (line.id == "close-income") line.copy(accountCode = "5000") else line
+            if (line.id == "close-income") line.copy(accountCode = "5100") else line
         }))
     }
 
@@ -164,20 +164,20 @@ class LedgerBackupValidatorTest {
         val source = if (income) {
             entry("source").copy(amountMinor = 100L)
         } else {
-            entry("source").copy(kind = "EXPENSE", categoryAccountCode = "5000", amountMinor = 100L)
+            entry("source").copy(kind = "EXPENSE", categoryAccountCode = "5100", amountMinor = 100L)
         }
         val sourceLines = if (income) listOf(
             JournalLineEntity("source-cash", "source", "1000", 100L, 0L, "USD", "Caja"),
             JournalLineEntity("source-income", "source", "4000", 0L, 100L, "USD", "Ingresos"),
         ) else listOf(
-            JournalLineEntity("source-expense", "source", "5000", 100L, 0L, "USD", "Gastos"),
+            JournalLineEntity("source-expense", "source", "5100", 100L, 0L, "USD", "Papelería"),
             JournalLineEntity("source-cash", "source", "1000", 0L, 100L, "USD", "Caja"),
         )
         val transferLines = if (income) listOf(
             JournalLineEntity("close-income", "close-entry", "4000", 100L, 0L, "USD", "Ingresos"),
             JournalLineEntity("close-equity", "close-entry", "3100", 0L, 100L, "USD", "Retenidas"),
         ) else listOf(
-            JournalLineEntity("close-expense", "close-entry", "5000", 0L, 100L, "USD", "Gastos"),
+            JournalLineEntity("close-expense", "close-entry", "5100", 0L, 100L, "USD", "Papelería"),
             JournalLineEntity("close-equity", "close-entry", "3100", 100L, 0L, "USD", "Retenidas"),
         )
         val close = entry("close-entry", kind = "PERIOD_CLOSE", date = "2024-01-31").copy(

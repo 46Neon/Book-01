@@ -51,7 +51,6 @@ object LedgerBackupValidator {
         val entries = snapshot.journalEntries.associateBy { it.id }
         val reversedIds = snapshot.journalEntries.mapNotNull { it.reversalOfEntryId }
         requireUnique(reversedIds, "vínculos de reversa")
-        val reversedIdSet = reversedIds.toSet()
         snapshot.journalEntries.forEach { entry ->
             require(entry.id.isNotBlank() && entry.createdAt.isNotBlank()) {
                 "Un asiento de la copia tiene datos incompletos."
@@ -71,7 +70,8 @@ object LedgerBackupValidator {
                 require(originalId != entry.id && original != null) { "Un vínculo de reversa no apunta a un asiento existente." }
                 require(entry.kind == "REVERSAL" && entry.status == "POSTED" &&
                     original.status == "POSTED" && original.kind != "REVERSAL" &&
-                    original.kind != "PERIOD_CLOSE" && original.id !in reversedIdSet) {
+                    original.kind != "PERIOD_CLOSE" && original.reversalOfEntryId == null &&
+                    snapshot.journalEntries.count { it.reversalOfEntryId == original.id } == 1) {
                     "El vínculo de reversa no coincide con un asiento contabilizado y reversible."
                 }
             } ?: require(entry.kind != "REVERSAL") { "Una reversa no conserva su vínculo al asiento original." }
