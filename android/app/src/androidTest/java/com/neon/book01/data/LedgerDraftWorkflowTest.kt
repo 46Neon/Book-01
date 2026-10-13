@@ -141,6 +141,7 @@ class LedgerDraftWorkflowTest {
         assertThrows(IllegalArgumentException::class.java) { runBlocking {
             repository.saveSimpleDraft("2026-09-25", "Control", EntryKind.EXPENSE, "5100", "1000", 123, counterparty = "Acme\nLtd")
         } }
+        Unit
     }
 
     private suspend fun summarizePosted(entries: List<EntryWithLines>) = OperatingSummaryCalculator.calculate(

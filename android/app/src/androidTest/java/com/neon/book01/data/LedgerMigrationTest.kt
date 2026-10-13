@@ -31,7 +31,7 @@ class LedgerMigrationTest {
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('journal_entries') WHERE name = 'counterparty'"))
-            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE counterparty IS NULL"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE counterparty IS NULL"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE entryId = 'entry-v1'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM posted_entry_locks WHERE entryId = 'entry-v1'"))
             assertEquals("DRAFT", db.stringValue("SELECT status FROM journal_entries WHERE id = 'draft-v1'"))
