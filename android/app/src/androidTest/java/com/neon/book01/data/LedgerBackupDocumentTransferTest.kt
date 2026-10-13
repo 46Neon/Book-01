@@ -55,7 +55,7 @@ class LedgerBackupDocumentTransferTest {
         assertEquals(Intent.ACTION_CREATE_DOCUMENT, createIntent.action)
         assertEquals(LedgerBackupDocumentPicker.MIME_TYPE, createIntent.type)
         assertEquals(fileName, createIntent.getStringExtra(Intent.EXTRA_TITLE))
-        assertTrue(createIntent.categories?.contains(Intent.CATEGORY_OPENABLE) == true)
+        // CreateDocument does not add CATEGORY_OPENABLE; OpenDocument does, so test that below.
 
         val mimeTypes = LedgerBackupDocumentPicker.openMimeTypes()
         val openIntent = LedgerBackupDocumentPicker.openContract().createIntent(context, mimeTypes)
