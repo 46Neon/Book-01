@@ -80,7 +80,7 @@ function jsonRows(value: unknown): Record<string, unknown>[] {
   return value as Record<string, unknown>[];
 }
 function isoDate(value: string | null, name: string): string {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new RangeError(`invalid ${name}`);
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000")) throw new RangeError(`invalid ${name}`);
   const d = new Date(`${value}T00:00:00.000Z`);
   if (!Number.isFinite(d.getTime()) || d.toISOString().slice(0, 10) !== value) throw new RangeError(`invalid ${name}`);
   return value;

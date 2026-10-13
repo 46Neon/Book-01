@@ -177,5 +177,5 @@ Deno.test("upstream redirects are refused and upstream error bodies are redacted
   });
   const response = await handler(new Request("https://edge.test/functions/v1/accounting-api/api/v1/books", { headers }));
   assertEquals(response.status, 502); // a redirect is a rejected upstream response, never followed
-  assert(!(await response.text()).includes("internal secret"));
+  assert(!(await response.text()).includes("internal secret"), "upstream error body must be redacted");
 });

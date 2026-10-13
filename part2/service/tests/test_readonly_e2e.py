@@ -224,7 +224,7 @@ def test_rls_book_picker_flow_through_postgrest_accounting_and_chat_without_groq
             assert any(query.get("id") == f"eq.{second_book}" for query in postgrest_queries)
             scoped_reads = [query for query in postgrest_queries if query.get("id") == f"eq.{second_book}"]
             assert len(scoped_reads) == 1
-            assert events.index("groq") > events.index("db:accounts:id,book_id,code,name,account_type,active")
+            assert events.index("groq") > events.index("db:accounts:id,book_id,code,name,account_type,currency_code")
             assert len(groq_requests) == 1
             assert postgrest_headers[-1]["authorization"] == f"Bearer {CALLER_TOKEN}"
             assert invalid_token not in selected.text and CALLER_TOKEN not in selected.text
