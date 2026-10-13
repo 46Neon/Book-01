@@ -1,31 +1,38 @@
 # Supabase schema (initial core)
 
+Supabase Postgres is the shared database source. FastAPI remains Book-01's accounting API and authorization boundary; the APK, web client, and chat service must call that API and must not write directly to database tables. This initial schema supports USD only and makes no foreign-exchange or fiscal-compliance claim.
+
 ## Migration order
 
-Apply SQL files in `supabase/migrations/` in filename order with the Supabase CLI (`supabase db push`) or the project's reviewed migration pipeline. `202610120001_initial_core.sql` is the first migration and assumes the standard Supabase `auth` schema, `auth.users`, `auth.uid()` function, and `anon` / `authenticated` database roles already exist. Do not apply this migration to a plain PostgreSQL database without those Supabase Auth prerequisites; the CI test bootstraps minimal equivalents only for exercising SQL behavior.
+Apply the SQL files in `supabase/migrations/` in filename order using a reviewed, versioned migration workflow. The current migrations are:
 
-The migration creates books (tenants), memberships and roles, USD-only accounts and periods, draft journal entries and lines, and trigger-generated append-only audit events. Book-scoped composite foreign keys prevent a line or period reference from crossing books. Money is PostgreSQL `numeric` (never floating point), with explicit finite, nonnegative, two-decimal validation for USD line amounts. Entry idempotency keys are unique within each book.
+1. `202610120001_initial_core.sql` — creates tenant-scoped books and memberships, USD accounts and periods, draft journal entries and lines, RLS policies, constraints, and trigger-generated append-only audit events. Book-scoped composite foreign keys prevent cross-book references. Money uses PostgreSQL `numeric` (never floating point), with finite, nonnegative, two-decimal validation for USD line amounts; entry idempotency keys are unique per book.
+2. `202610120002_read_only_rest_access.sql` — revokes all table privileges from `PUBLIC`, `anon`, and `authenticated` on the eight Book-01 tables, then grants only `SELECT` to `authenticated`. It documents the intentionally read-only Data API boundary.
 
-## Deployment prerequisites and safety boundaries
+The first migration assumes the standard Supabase `auth` schema, `auth.users`, `auth.uid()` function, and `anon` / `authenticated` database roles already exist. Do not apply it to plain PostgreSQL without those Supabase Auth prerequisites. CI creates minimal test-only equivalents to exercise SQL behavior; that is not a Supabase CLI or hosted-project validation.
 
-- Create separate Supabase development, test, and production projects; enable Supabase Auth and define the final issuer/audience and user lifecycle before connecting clients.
-- Review and apply migrations through a controlled pipeline. No Supabase project, database deployment, credentials, or secrets were created or configured as part of this commit.
-- Clients (APK, web, and chat) must call the accounting API only. Do not distribute a database password or Supabase `service_role` key. Keep Groq and any privileged Supabase credentials in server-side secret storage only.
-- RLS is defense in depth, not a replacement for backend authorization. All account and journal operations must be authorized by the accounting API for the authenticated user and requested book.
-- USD is the only supported currency in this initial schema. This does not claim multi-currency support, fiscal/legal compliance, attachment storage, or final production readiness.
+## Current development project status
 
-## Posting intentionally blocked
+The Supabase organization **Book-01 Free** and development project **Book-01-dev** exist (project ref `qjbduqwwpbnyxwyxfdsj`, East US (Ohio), Free plan). The Data API is enabled, automatic exposure of new tables is disabled, and automatic RLS is enabled. Supabase Auth email provider and email confirmation are enabled; public sign-up is disabled. No Auth users exist. **Neither migration has been applied to the project yet**; there is no production project, real ledger data, or deployed API/chat service. Project setup is not evidence that Book-01 is live-integrated.
 
-Entries default to `draft`. This migration does **not** install a `post_journal_entry` RPC: no posting transition is exposed, and triggers reject inserting or changing entries to `posted`/`void`. Draft entries and their lines remain editable subject to RLS; non-draft records are immutable. Before enabling posting, implement and review a narrow transactional operation that validates `auth.uid()`, current book membership/role, open accounting period and date match, active same-book accounts, at least two lines, equal debit/credit totals, idempotent repeats, and an atomic status change plus audit event. If implemented as `SECURITY DEFINER`, it must use a fixed empty `search_path`, fully qualify objects, revoke default/public execute, and grant execute only to the intended caller role. Keep direct table updates unable to set status. Add runtime integration tests for all failure and concurrency cases before any posting grant is introduced.
+Migrations are versioned in this repository; do not make unversioned SQL changes in the Dashboard or run `db reset`. Connect only this development project to GitHub after reviewing the migrations and CI, because GitHub pushes may automatically deploy schema changes. Confirm the target is `Book-01-dev` before any connection or migration application.
 
-## Required backend/API work before real integration
+## Data API permissions and posting intentionally blocked
 
-Implement Part 1's authenticated accounting API and authorization model; validate Supabase JWT issuer, audience, expiry, and identity; derive user identity from the verified token (never from client-supplied user IDs); enforce membership and role for every book-scoped operation; use transactions and idempotency keys; and keep database access on the server. Add end-to-end tests against an actual Supabase project (including cross-tenant RLS checks), operational backup/restore and migration rollback procedures, and secret management. Existing Part 2 remains a read-only scaffold and must consume the accounting API rather than connect to PostgreSQL.
+RLS is defense in depth, not a replacement for backend authorization. FastAPI must validate the Supabase JWT issuer, audience, expiry and identity; derive user identity from the verified token rather than client-supplied IDs; and check membership and role for every book-scoped operation.
 
-## Tests
+The `anon` role has no table privileges. `authenticated` has `SELECT` only on the eight listed Book-01 tables; direct `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges are intentionally absent. No client may perform direct DML, including edits to draft entries or lines. There is no `post_journal_entry` RPC or other posting transition. Triggers reject inserting/changing entries to `posted` or `void`; do not grant a direct path to `posted`.
 
-`.github/workflows/supabase-db.yml` starts PostgreSQL 16, bootstraps Supabase Auth/roles for tests, applies the migration, and runs `supabase/tests/rls_and_invariants.sql`. This exercises SQL behavior against PostgreSQL, including role/RLS, constraints, audit append-only behavior, and blocked posting. The CI bootstrap is not a substitute for testing against Supabase Auth/RLS in the deployed Supabase environment.
+Before enabling any accounting mutation or posting operation, implement and review a narrow transactional API operation that validates `auth.uid()`, current membership/role, open accounting period and date match, active same-book accounts, at least two lines, balanced debit/credit totals, idempotent repeats, and atomic status change plus audit event. If implemented as `SECURITY DEFINER`, it must use a fixed empty `search_path`, fully qualify objects, revoke default/public execute, and grant execute only to the intended caller role. Direct table updates must remain unable to set status. Add runtime tests for failure and concurrency cases before any write grant is introduced.
 
-## Live Auth/RLS smoke test
+Never use a `service_role` key in user traffic, browsers, APKs, GitHub, or prompts. Groq must not be configured or used until Elisa explicitly approves sending prompts and accounting results to it. Do not deploy the API or chat service until a hosting provider and HTTPS domain have been selected.
 
-After creating two isolated test users/books in a Supabase development project, run the opt-in, read-only test described in [`docs/supabase-live-rls-smoke-test.md`](../docs/supabase-live-rls-smoke-test.md). It checks real Auth tokens and that each user can read only their own book and accounts. It is skipped unless explicitly enabled and is not a substitute for end-to-end testing of the deployed API, web client, chat service, or Android synchronization.
+## Tests and validation limits
+
+`.github/workflows/supabase-db.yml` runs on PostgreSQL 16. It bootstraps minimal Supabase Auth/roles for CI, applies the baseline migration, runs `supabase/tests/rls_and_invariants.sql`, applies subsequent versioned migrations in filename order, then runs `supabase/tests/read_only_permissions.sql`. The latter checks RLS, the expected SELECT-only grants, and denied direct mutations under the authenticated role. The latest run for commit `64e2049` completed successfully: [run #6](https://github.com/46Neon/Book-01/actions/runs/38330073949). This is PostgreSQL CI with test bootstrap—not a live Supabase Auth/RLS test, not validation with the Supabase CLI, and not API/web/chat/Android end-to-end testing. The run reported GitHub runner/action deprecation notices, not SQL test failures.
+
+The opt-in, read-only live Auth/RLS smoke test is documented in [`docs/supabase-live-rls-smoke-test.md`](../docs/supabase-live-rls-smoke-test.md). It requires two real, controlled test Auth users, distinct books, memberships, and at least one account per book. None have been created. Do not invent users or provision them from the browser; arrange controlled test identities and follow that document. Its success would demonstrate only real Auth-token and PostgREST RLS isolation for those test records, not API or client integration.
+
+## Required work before real integration
+
+Implement Part 1's authenticated accounting API and authorization model; add end-to-end tests against the actual development Supabase project (including cross-tenant RLS checks); define controlled test-user provisioning; and document operational backup/restore and migration rollback procedures. The existing Part 2 remains a read-only scaffold and must consume the accounting API rather than connect directly to PostgreSQL. No production readiness or fiscal/legal compliance is claimed.
