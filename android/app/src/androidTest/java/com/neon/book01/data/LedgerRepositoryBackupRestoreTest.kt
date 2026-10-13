@@ -123,11 +123,11 @@ class LedgerRepositoryBackupRestoreTest {
 
     @Test fun authenticatedHierarchyWithMissingWrongTypeInactiveParentOrCycleIsRejected() = runBlocking {
         val valid = createHistoricalBook()
-        val customParent = valid.accounts.first { it.code == "5200" }
-        val customChild = valid.accounts.first { it.code == "5210" }
+        val customParent = valid.accounts.first { it.code == "5400" }
+        val customChild = valid.accounts.first { it.code == "5410" }
         val invalidSnapshots = listOf(
-            valid.copy(accounts = valid.accounts.map { if (it.code == "5200") it.copy(parentCode = "9999") else it }),
-            valid.copy(accounts = valid.accounts.map { if (it.code == "5200") it.copy(parentCode = "4000") else it }),
+            valid.copy(accounts = valid.accounts.map { if (it.code == "5400") it.copy(parentCode = "9999") else it }),
+            valid.copy(accounts = valid.accounts.map { if (it.code == "5400") it.copy(parentCode = "4000") else it }),
             valid.copy(accounts = valid.accounts.map { if (it.code == "5100") it.copy(active = false) else it }),
             valid.copy(accounts = valid.accounts.map {
                 when (it.code) {
@@ -193,8 +193,8 @@ class LedgerRepositoryBackupRestoreTest {
 
     private suspend fun createHistoricalBook(): LedgerBackupSnapshot {
         sourceRepository.initializeBook()
-        sourceRepository.createAccount("5200", "Gastos operativos", "EXPENSE", cashOrBank = false, parentCode = "5100")
-        sourceRepository.createAccount("5210", "Suministros", "EXPENSE", cashOrBank = false, parentCode = "5200")
+        sourceRepository.createAccount("5400", "Gastos operativos", "EXPENSE", cashOrBank = false, parentCode = "5100")
+        sourceRepository.createAccount("5410", "Suministros", "EXPENSE", cashOrBank = false, parentCode = "5400")
         sourceRepository.recordSimpleEntry("2024-01-15", "Ingreso exacto", EntryKind.INCOME, "4000", "1000", 12_345L)
         sourceRepository.updateAccountSettings("1000", "Caja histórica", active = false)
         val original = source.ledgerDao().getAllEntries().single().entry
