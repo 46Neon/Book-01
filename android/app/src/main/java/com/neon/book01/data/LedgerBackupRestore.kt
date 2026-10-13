@@ -1,6 +1,11 @@
 package com.neon.book01.data
 
 import com.neon.book01.domain.CounterpartyRules
+import com.neon.book01.domain.PeriodCloseAccount
+import com.neon.book01.domain.PeriodCloseCalculator
+import com.neon.book01.domain.PeriodCloseLinePlan
+import com.neon.book01.domain.PeriodClosePosting
+import com.neon.book01.domain.PeriodClosePostingLine
 import java.math.BigInteger
 import java.time.LocalDate
 
@@ -46,6 +51,7 @@ object LedgerBackupValidator {
         val entries = snapshot.journalEntries.associateBy { it.id }
         val reversedIds = snapshot.journalEntries.mapNotNull { it.reversalOfEntryId }
         requireUnique(reversedIds, "vínculos de reversa")
+        val reversedIdSet = reversedIds.toSet()
         snapshot.journalEntries.forEach { entry ->
             require(entry.id.isNotBlank() && entry.createdAt.isNotBlank()) {
                 "Un asiento de la copia tiene datos incompletos."
@@ -63,8 +69,10 @@ object LedgerBackupValidator {
             entry.reversalOfEntryId?.let { originalId ->
                 val original = entries[originalId]
                 require(originalId != entry.id && original != null) { "Un vínculo de reversa no apunta a un asiento existente." }
-                require(entry.kind == "REVERSAL" && original.kind != "REVERSAL" && original.kind != "PERIOD_CLOSE") {
-                    "El vínculo de reversa no coincide con un asiento reversible."
+                require(entry.kind == "REVERSAL" && entry.status == "POSTED" &&
+                    original.status == "POSTED" && original.kind != "REVERSAL" &&
+                    original.kind != "PERIOD_CLOSE" && original.id !in reversedIdSet) {
+                    "El vínculo de reversa no coincide con un asiento contabilizado y reversible."
                 }
             } ?: require(entry.kind != "REVERSAL") { "Una reversa no conserva su vínculo al asiento original." }
         }
@@ -102,6 +110,14 @@ object LedgerBackupValidator {
             require(event.accountCode in accounts) { "Un evento de cuenta hace referencia a una cuenta que no existe." }
         }
 
+        snapshot.journalEntries.filter { it.kind == "REVERSAL" }.forEach { reversal ->
+            val original = entries.getValue(reversal.reversalOfEntryId!!)
+            require(lineMultiset(linesByEntry.getValue(reversal.id)) ==
+                lineMultiset(linesByEntry.getValue(original.id), swapDebitAndCredit = true)) {
+                "Las líneas de la reversa no son la inversión exacta del asiento original."
+            }
+        }
+
         val closes = snapshot.periodCloses
         val closeEntryIds = closes.mapNotNull { it.closingEntryId }
         requireUnique(closeEntryIds, "vínculos de asiento de cierre")
@@ -110,12 +126,53 @@ object LedgerBackupValidator {
             val end = parseDate(close.endDate)
             require(!end.isBefore(start)) { "Un cierre tiene un rango de fechas inválido." }
             require(close.retainedEarningsAccountCode in accounts) { "Un cierre hace referencia a una cuenta que no existe." }
+
+            // Activity is recomputed from the authenticated journal, not from the saved close.
+            // Historical retained-earnings (or P&L) accounts may since have been deactivated;
+            // activity is irrelevant to arithmetic validation of a completed close.
+            val planningAccounts = snapshot.accounts.map { PeriodCloseAccount(it.code, it.type, active = true) }
+            val planningPostings = snapshot.journalEntries.asSequence()
+                .filter { entry ->
+                    entry.status == "POSTED" && entry.kind != "PERIOD_CLOSE" &&
+                        !parseDate(entry.entryDate).isBefore(start) && !parseDate(entry.entryDate).isAfter(end)
+                }
+                .map { entry ->
+                    PeriodClosePosting(
+                        entryDate = entry.entryDate,
+                        status = entry.status,
+                        currencyCode = entry.currencyCode,
+                        kind = entry.kind,
+                        lines = linesByEntry.getValue(entry.id).map { line ->
+                            PeriodClosePostingLine(line.accountCode, line.debitMinor, line.creditMinor, line.currencyCode)
+                        },
+                    )
+                }
+                .toList()
+            val plan = PeriodCloseCalculator.calculate(
+                accounts = planningAccounts,
+                postings = planningPostings,
+                startDate = close.startDate,
+                endDate = close.endDate,
+                retainedEarningsAccountCode = close.retainedEarningsAccountCode,
+            )
+            require(close.netResultMinor == plan.netResultMinor) {
+                "El resultado neto guardado no coincide con la actividad del periodo."
+            }
+            val shouldHaveEntry = plan.lines.isNotEmpty() || plan.netResultMinor != 0L
+            require((close.closingEntryId != null) == shouldHaveEntry) {
+                "La presencia del asiento de cierre no coincide con el plan calculado."
+            }
             close.closingEntryId?.let { closingId ->
                 val closing = entries[closingId]
                     ?: throw IllegalArgumentException("Un cierre hace referencia a un asiento que no existe.")
-                require(closing.kind == "PERIOD_CLOSE" && closing.entryDate == close.endDate &&
-                    closing.categoryAccountCode == close.retainedEarningsAccountCode) {
-                    "Los metadatos del cierre no coinciden con su asiento de cierre."
+                val expectedAmount = plan.lines.fold(0L) { sum, line -> Math.addExact(sum, line.debitMinor) }
+                require(closing.status == "POSTED" && closing.kind == "PERIOD_CLOSE" &&
+                    closing.entryDate == plan.endDate &&
+                    closing.categoryAccountCode == plan.retainedEarningsAccountCode &&
+                    closing.paymentAccountCode == plan.retainedEarningsAccountCode &&
+                    closing.currencyCode == "USD" && closing.amountMinor == expectedAmount &&
+                    lineMultiset(linesByEntry.getValue(closingId)) == plannedLineMultiset(plan.lines)) {
+                    "Los datos y las líneas del asiento de cierre no coinciden con el plan calculado."
                 }
             }
         }
@@ -144,6 +201,31 @@ object LedgerBackupValidator {
             periodCloseCount = snapshot.periodCloses.size,
         )
     }
+
+    private data class LedgerLineSignature(
+        val accountCode: String,
+        val currencyCode: String,
+        val debitMinor: Long,
+        val creditMinor: Long,
+    )
+
+    /** A counted multiset keeps duplicate lines significant instead of overwriting by account. */
+    private fun lineMultiset(
+        lines: List<JournalLineEntity>,
+        swapDebitAndCredit: Boolean = false,
+    ): Map<LedgerLineSignature, Int> = lines.groupingBy { line ->
+        LedgerLineSignature(
+            accountCode = line.accountCode,
+            currencyCode = line.currencyCode,
+            debitMinor = if (swapDebitAndCredit) line.creditMinor else line.debitMinor,
+            creditMinor = if (swapDebitAndCredit) line.debitMinor else line.creditMinor,
+        )
+    }.eachCount()
+
+    private fun plannedLineMultiset(lines: List<PeriodCloseLinePlan>): Map<LedgerLineSignature, Int> =
+        lines.groupingBy { line ->
+            LedgerLineSignature(line.accountCode, line.currencyCode, line.debitMinor, line.creditMinor)
+        }.eachCount()
 
     private fun requireUnique(values: List<String>, description: String) {
         require(values.size == values.toSet().size) { "La copia contiene $description duplicados." }

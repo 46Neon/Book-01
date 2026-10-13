@@ -98,6 +98,27 @@ class LedgerRepositoryBackupRestoreTest {
         assertEquals(before, destinationRepository.createBackupSnapshot())
     }
 
+    @Test fun authenticatedInvalidCloseIsRejectedBeforeAnyPristineRestoreWrites() = runBlocking {
+        val historical = createHistoricalBook()
+        val invalid = historical.copy(
+            periodCloses = historical.periodCloses.map { it.copy(netResultMinor = it.netResultMinor + 1L) },
+        )
+        val before = destinationRepository.createBackupSnapshot()
+        val passphrase = "authenticated invalid close fixture".toCharArray()
+        val encrypted = LedgerBackupCodec.encrypt(invalid, passphrase)
+        val authenticatedSnapshot = try {
+            LedgerBackupCodec.decrypt(encrypted, passphrase)
+        } finally {
+            passphrase.fill(Char.MIN_VALUE)
+            encrypted.fill(0)
+        }
+
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { destinationRepository.restoreBackup(authenticatedSnapshot) }
+        }
+        assertEquals(before, destinationRepository.createBackupSnapshot())
+    }
+
     @Test fun wrongPasswordAndTamperingNeverReachRestore() = runBlocking {
         val backup = createHistoricalBook()
         destinationRepository.initializeBook()
