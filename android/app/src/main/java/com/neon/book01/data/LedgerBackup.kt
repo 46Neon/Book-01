@@ -12,6 +12,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
+import com.neon.book01.domain.CounterpartyRules
 
 /** A consistent, full-book snapshot. Amounts remain signed 64-bit minor-unit values. */
 data class LedgerBackupSnapshot(
@@ -28,6 +29,7 @@ data class LedgerBackupSnapshot(
 object LedgerBackupCodec {
     private val MAGIC = byteArrayOf(0x42, 0x30, 0x31, 0x45) // B01E
     private const val FORMAT_VERSION = 1
+    private const val COUNTERPARTY_EXTENSION_MAGIC = 0x43505459 // CPTY
     private const val PBKDF2_ITERATIONS = 210_000
     private const val SALT_BYTES = 16
     private const val NONCE_BYTES = 12
@@ -225,11 +227,21 @@ object LedgerBackupCodec {
                 out.writeNullableString(close.closingEntryId)
                 out.writeString(close.closedAt)
             }
+            // Preserve the legacy v1 record layout. Older authenticated v1 files end here.
+            // This extension is appended inside the existing AES-GCM authenticated plaintext.
+            val counterparties = book.journalEntries.filter { it.counterparty != null }
+            out.writeInt(COUNTERPARTY_EXTENSION_MAGIC)
+            out.writeCount(counterparties.size)
+            counterparties.forEach { entry ->
+                out.writeString(entry.id)
+                require(CounterpartyRules.normalize(entry.counterparty) == entry.counterparty) { "La contraparte de la copia no es válida." }
+                out.writeNullableString(entry.counterparty)
+            }
         }
         bytes.toByteArray()
     }
 
-    private fun decodeSnapshot(plaintext: ByteArray): LedgerBackupSnapshot {
+    internal fun decodeSnapshot(plaintext: ByteArray): LedgerBackupSnapshot {
         require(plaintext.size <= MAX_FILE_BYTES) { "El contenido de la copia es demasiado grande." }
         val input = DataInputStream(ByteArrayInputStream(plaintext))
         val settings = if (input.readBoolean()) {
@@ -297,8 +309,25 @@ object LedgerBackupCodec {
                 closedAt = input.readString(),
             )
         }
-        require(input.available() == 0) { "El contenido de la copia tiene datos sobrantes." }
-        return LedgerBackupSnapshot(settings, accounts, entries, lines, audits, accountAudits, closes)
+        val restoredEntries = if (input.available() == 0) {
+            entries // Legacy v1 backup: no counterparty extension, so old entries remain null.
+        } else {
+            require(input.readInt() == COUNTERPARTY_EXTENSION_MAGIC) { "El contenido de la copia tiene datos sobrantes." }
+            val count = input.readCount(minimumRecordBytes = 9)
+            val knownIds = entries.map { it.id }.toSet()
+            val byId = LinkedHashMap<String, String>()
+            repeat(count) {
+                val entryId = input.readString()
+                val value = input.readNullableString()
+                require(entryId in knownIds && value != null && byId.put(entryId, value) == null) {
+                    "La extensión de contraparte no es válida."
+                }
+                require(CounterpartyRules.normalize(value) == value) { "La contraparte de la copia no es válida." }
+            }
+            require(input.available() == 0) { "El contenido de la copia tiene datos sobrantes." }
+            entries.map { entry -> entry.copy(counterparty = byId[entry.id]) }
+        }
+        return LedgerBackupSnapshot(settings, accounts, restoredEntries, lines, audits, accountAudits, closes)
     }
 
     private fun DataOutputStream.writeCount(count: Int) {

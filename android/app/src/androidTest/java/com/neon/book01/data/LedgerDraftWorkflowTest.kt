@@ -31,11 +31,12 @@ class LedgerDraftWorkflowTest {
 
     @Test fun draftCanBeEditedThenPostedOnceWithAppendOnlyAuditAndSqlLocks() = runBlocking {
         repository.initializeBook()
-        val id = repository.saveSimpleDraft("2026-07-15", "Ingreso temporal", EntryKind.INCOME, "4000", "1000", 12_500)
-        repository.saveSimpleDraft("2026-07-16", "Venta revisada", EntryKind.INCOME, "4000", "1010", 15_000, draftId = id)
+        val id = repository.saveSimpleDraft("2026-07-15", "Ingreso temporal", EntryKind.INCOME, "4000", "1000", 12_500, counterparty = "  Cliente Uno  ")
+        repository.saveSimpleDraft("2026-07-16", "Venta revisada", EntryKind.INCOME, "4000", "1010", 15_000, draftId = id, counterparty = "  Proveedor Dos  ")
         val draft = database.ledgerDao().getEntry(id)!!
         assertEquals("DRAFT", draft.status)
         assertEquals("Venta revisada", draft.description)
+        assertEquals("Proveedor Dos", draft.counterparty)
         assertEquals(2, database.ledgerDao().getLines(id).size)
 
         val allBeforePosting = database.ledgerDao().getAllEntries()
@@ -54,6 +55,7 @@ class LedgerDraftWorkflowTest {
 
         val sql = database.openHelper.writableDatabase
         assertThrows(android.database.SQLException::class.java) { sql.execSQL("UPDATE journal_entries SET description = 'tampered' WHERE id = '$id'") }
+        assertThrows(android.database.SQLException::class.java) { sql.execSQL("UPDATE journal_entries SET counterparty = 'Changed' WHERE id = '$id'") }
         assertThrows(android.database.SQLException::class.java) { sql.execSQL("UPDATE journal_entries SET status = 'DRAFT' WHERE id = '$id'") }
         assertThrows(android.database.SQLException::class.java) { sql.execSQL("UPDATE journal_lines SET debitMinor = debitMinor + 1 WHERE entryId = '$id'") }
         assertThrows(android.database.SQLException::class.java) { sql.execSQL("DELETE FROM journal_lines WHERE entryId = '$id'") }
@@ -80,14 +82,15 @@ class LedgerDraftWorkflowTest {
 
     @Test fun backupAndRestorePreserveDraftAndPostedStatusesAndLocks() = runBlocking {
         repository.initializeBook()
-        val draftId = repository.saveSimpleDraft("2026-09-10", "Aún pendiente", EntryKind.EXPENSE, "5100", "1000", 2_345)
-        val postedId = repository.saveSimpleDraft("2026-09-11", "Aprobado por la persona", EntryKind.INCOME, "4000", "1000", 4_567)
+        val draftId = repository.saveSimpleDraft("2026-09-10", "Aún pendiente", EntryKind.EXPENSE, "5100", "1000", 2_345, counterparty = "Cliente Norte")
+        val postedId = repository.saveSimpleDraft("2026-09-11", "Aprobado por la persona", EntryKind.INCOME, "4000", "1000", 4_567, counterparty = "Tienda Central")
         repository.postDraft(postedId)
         val secret = "correct horse battery staple".toCharArray()
         val decoded = try {
             LedgerBackupCodec.decrypt(LedgerBackupCodec.encrypt(repository.createBackupSnapshot(), secret), secret)
         } finally { secret.fill('\u0000') }
         assertEquals(mapOf(draftId to "DRAFT", postedId to "POSTED"), decoded.journalEntries.associate { it.id to it.status })
+        assertEquals(mapOf(draftId to "Cliente Norte", postedId to "Tienda Central"), decoded.journalEntries.associate { it.id to it.counterparty })
         LedgerBackupValidator.validate(decoded)
 
         val restoredDb = Room.inMemoryDatabaseBuilder(
@@ -98,6 +101,7 @@ class LedgerDraftWorkflowTest {
             restoredRepository.initializeBook()
             restoredRepository.restoreBackup(decoded)
             assertEquals(mapOf(draftId to "DRAFT", postedId to "POSTED"), restoredDb.ledgerDao().getAllEntries().associate { it.entry.id to it.entry.status })
+            assertEquals(mapOf(draftId to "Cliente Norte", postedId to "Tienda Central"), restoredDb.ledgerDao().getAllEntries().associate { it.entry.id to it.entry.counterparty })
             assertEquals(1L, restoredDb.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks WHERE entryId = '$postedId'").use { it.moveToFirst(); it.getLong(0) })
             assertEquals(0L, restoredDb.openHelper.readableDatabase.query("SELECT COUNT(*) FROM posted_entry_locks WHERE entryId = '$draftId'").use { it.moveToFirst(); it.getLong(0) })
         } finally { restoredDb.close() }
@@ -123,6 +127,20 @@ class LedgerDraftWorkflowTest {
         assertEquals(1L, sqlLong("SELECT COUNT(*) FROM posted_entry_locks WHERE entryId = '$validId'"))
         assertThrows(android.database.SQLException::class.java) { sql.execSQL("DELETE FROM journal_lines WHERE entryId = '$validId'") }
         assertEquals(1L, sqlLong("SELECT COUNT(*) FROM audit_events WHERE entryId = '$validId' AND eventType = 'DRAFT_POSTED'"))
+    }
+
+    @Test fun counterpartyIsOptionalTrimmedAndLengthLimited() = runBlocking {
+        repository.initializeBook()
+        val id = repository.saveSimpleDraft("2026-09-22", "Optional party", EntryKind.EXPENSE, "5100", "1000", 123)
+        assertEquals(null, database.ledgerDao().getEntry(id)!!.counterparty)
+        val trimmed = repository.saveSimpleDraft("2026-09-23", "Trimmed party", EntryKind.EXPENSE, "5100", "1000", 123, counterparty = "  Acme  ")
+        assertEquals("Acme", database.ledgerDao().getEntry(trimmed)!!.counterparty)
+        assertThrows(IllegalArgumentException::class.java) { runBlocking {
+            repository.saveSimpleDraft("2026-09-24", "Too long", EntryKind.EXPENSE, "5100", "1000", 123, counterparty = "x".repeat(81))
+        } }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking {
+            repository.saveSimpleDraft("2026-09-25", "Control", EntryKind.EXPENSE, "5100", "1000", 123, counterparty = "Acme\nLtd")
+        } }
     }
 
     private suspend fun summarizePosted(entries: List<EntryWithLines>) = OperatingSummaryCalculator.calculate(

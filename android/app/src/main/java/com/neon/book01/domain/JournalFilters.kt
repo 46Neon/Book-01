@@ -5,13 +5,14 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.format.ResolverStyle
 
-/** Account identity available to journal filtering; no counterparty field is modeled today. */
+/** Account identity available to journal filtering. */
 data class JournalFilterAccount(val code: String, val name: String)
 
 data class JournalFilterRecord(
     val id: String,
     val dateIso: String,
     val description: String,
+    val counterparty: String? = null,
     val kind: String,
     val status: JournalFilterStatus,
     val accounts: List<JournalFilterAccount>,
@@ -76,6 +77,7 @@ fun filterJournalRecords(
             (criteria.status == JournalFilterStatus.ALL || record.status == criteria.status) &&
             (criteria.accountCode == null || record.accounts.any { it.code == criteria.accountCode }) &&
             (query.isEmpty() || record.description.contains(query, ignoreCase = true) ||
+                record.counterparty?.contains(query, ignoreCase = true) == true ||
                 record.accounts.any { it.code.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true) })
     }
 }
@@ -88,3 +90,6 @@ private fun parseJournalDate(value: String): LocalDate? {
         null
     }
 }
+
+/** Readable value for optional counterparties in the journal table. */
+fun journalCounterpartyLabel(counterparty: String?): String = counterparty ?: "—"

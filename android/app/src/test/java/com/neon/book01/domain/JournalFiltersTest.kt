@@ -11,6 +11,7 @@ class JournalFiltersTest {
             id = "posted-income",
             dateIso = "2026-03-01",
             description = "Venta de café",
+            counterparty = "Mercado Central",
             kind = "INCOME",
             status = JournalFilterStatus.POSTED,
             accounts = listOf(JournalFilterAccount("4000", "Ventas"), JournalFilterAccount("1010", "Banco")),
@@ -45,6 +46,13 @@ class JournalFiltersTest {
             listOf("posted-income"),
             filterJournalRecords(records, JournalFilterCriteria(searchText = "CAFÉ")).map { it.id },
         )
+    }
+
+    @Test
+    fun searchMatchesCounterpartyCaseInsensitivelyAndItsLabelIsDisplayable() {
+        assertEquals(listOf("posted-income"), filterJournalRecords(records, JournalFilterCriteria(searchText = "MERCADO central")).map { it.id })
+        assertEquals("Mercado Central", journalCounterpartyLabel(records.first().counterparty))
+        assertEquals("—", journalCounterpartyLabel(null))
     }
 
     @Test

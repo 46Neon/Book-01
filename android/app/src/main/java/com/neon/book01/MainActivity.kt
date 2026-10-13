@@ -90,6 +90,7 @@ import com.neon.book01.data.LedgerBackupSnapshot
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.AccountRules
+import com.neon.book01.domain.CounterpartyRules
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.GeneralLedgerCalculator
 import com.neon.book01.domain.IncomeStatementReport
@@ -98,6 +99,7 @@ import com.neon.book01.domain.JournalFilterCriteria
 import com.neon.book01.domain.JournalFilterRecord
 import com.neon.book01.domain.JournalFilterStatus
 import com.neon.book01.domain.filterJournalRecords
+import com.neon.book01.domain.journalCounterpartyLabel
 import com.neon.book01.domain.validateJournalDateRange
 import com.neon.book01.domain.BalanceSheetReport
 import com.neon.book01.domain.FinancialStatementsCalculator
@@ -134,6 +136,7 @@ private data class BookTab(val title: String, val icon: ImageVector)
 private data class EntryDraft(
     val dateIso: String,
     val description: String,
+    val counterparty: String?,
     val kind: EntryKind,
     val categoryAccountCode: String,
     val paymentAccountCode: String,
@@ -367,6 +370,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         paymentAccountCode = draft.paymentAccountCode,
                         amountMinor = draft.amountMinor,
                         currencyCode = draft.currencyCode,
+                        counterparty = draft.counterparty,
                     )
                 }
                 showEntryDialog = false
@@ -382,6 +386,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         paymentAccountCode = draft.paymentAccountCode,
                         amountMinor = draft.amountMinor,
                         currencyCode = draft.currencyCode,
+                        counterparty = draft.counterparty,
                     )
                 }
                 showEntryDialog = false
@@ -402,6 +407,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         dateIso = draft.dateIso, description = draft.description, kind = draft.kind,
                         categoryAccountCode = draft.categoryAccountCode, paymentAccountCode = draft.paymentAccountCode,
                         amountMinor = draft.amountMinor, currencyCode = draft.currencyCode,
+                        counterparty = draft.counterparty,
                         draftId = selectedDraft.entry.id,
                     )
                 }
@@ -961,6 +967,7 @@ private fun EntryWithLines.toJournalFilterRecord(accounts: List<AccountEntity>):
         id = entry.id,
         dateIso = entry.entryDate,
         description = entry.description,
+        counterparty = entry.counterparty,
         kind = entry.kind,
         status = if (entry.status == "DRAFT") JournalFilterStatus.DRAFT else JournalFilterStatus.POSTED,
         accounts = filterAccounts,
@@ -983,6 +990,7 @@ private fun DraftEntriesSection(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) {
                         Text(item.entry.description, color = BookInk, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        item.entry.counterparty?.let { Text(it, color = BookMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         Text("${item.entry.entryDate} · ${if (item.entry.kind == "INCOME") "Ingreso" else "Gasto"} · ${money(item.entry.amountMinor, currencyCode)}", color = BookMuted, fontSize = 11.sp)
                     }
                     TextButton(onClick = { onEditDraft(item) }) { Text("Editar") }
@@ -1017,6 +1025,7 @@ private fun LedgerTable(rows: List<JournalRow>, currencyCode: String, emptyTitle
                     TableCell("#", 34.dp, isHeader = true, align = TextAlign.Center)
                     TableCell("Fecha", 66.dp, isHeader = true)
                     TableCell("Concepto", 132.dp, isHeader = true)
+                    TableCell("Contraparte", 118.dp, isHeader = true)
                     TableCell("Cuenta", 126.dp, isHeader = true)
                     TableCell("Débito", 92.dp, isHeader = true, align = TextAlign.End)
                     TableCell("Crédito", 92.dp, isHeader = true, align = TextAlign.End)
@@ -1029,6 +1038,7 @@ private fun LedgerTable(rows: List<JournalRow>, currencyCode: String, emptyTitle
                         TableCell((index + 1).toString(), 34.dp, align = TextAlign.Center, color = BookMuted)
                         TableCell(row.date, 66.dp, color = BookMuted)
                         TableCell(row.concept, 132.dp, fontWeight = FontWeight.Medium)
+                        TableCell(journalCounterpartyLabel(row.counterparty), 118.dp, color = if (row.counterparty == null) BookMuted else BookInk)
                         TableCell(row.account, 126.dp, color = BookMuted)
                         TableCell(row.debit, 92.dp, align = TextAlign.End, color = if (row.debit == "—") BookMuted else BookInk)
                         TableCell(row.credit, 92.dp, align = TextAlign.End, color = if (row.credit == "—") BookMuted else BookInk)
@@ -1038,6 +1048,7 @@ private fun LedgerTable(rows: List<JournalRow>, currencyCode: String, emptyTitle
                     TableCell("", 34.dp, isHeader = true)
                     TableCell("Total", 66.dp, isHeader = true)
                     TableCell("", 132.dp, isHeader = true)
+                    TableCell("", 118.dp, isHeader = true)
                     TableCell("", 126.dp, isHeader = true)
                     TableCell(money(UsdMoney.sumMinorUnits(baseCurrencyRows.map { it.debitMinor }), currencyCode), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
                     TableCell(money(UsdMoney.sumMinorUnits(baseCurrencyRows.map { it.creditMinor }), currencyCode), 92.dp, isHeader = true, align = TextAlign.End, color = BookGreen)
@@ -1108,6 +1119,7 @@ private fun NewEntryDialog(
 ) {
     var kind by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.kind?.let { runCatching { EntryKind.valueOf(it) }.getOrNull() } ?: EntryKind.EXPENSE) }
     var description by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.description ?: "") }
+    var counterparty by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.counterparty.orEmpty()) }
     var amountText by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.amountMinor?.let { BigDecimal.valueOf(it, 2).toPlainString() } ?: "") }
     var dateText by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.entryDate?.let { LocalDate.parse(it).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) } ?: LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))) }
     var categoryCode by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.categoryAccountCode ?: "") }
@@ -1158,6 +1170,15 @@ private fun NewEntryDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
+                    value = counterparty,
+                    onValueChange = { counterparty = it; errorText = null },
+                    label = { Text("Contraparte (opcional)") },
+                    placeholder = { Text("Ej. Cliente o proveedor") },
+                    supportingText = { Text("Máximo 80 caracteres; se guardan los espacios recortados.") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it; errorText = null },
                     label = { Text("Importe en $currencyCode") },
@@ -1192,7 +1213,7 @@ private fun NewEntryDialog(
         confirmButton = {
             Row {
                 TextButton(enabled = !saving && accounts.isNotEmpty(), onClick = {
-                    val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode, currencyCode)
+                    val draft = parseDraft(kind, description, counterparty, amountText, dateText, categoryCode, paymentCode, currencyCode)
                     if (draft == null) errorText = "Revisa concepto, cuentas, fecha e importe (máximo 2 decimales)."
                     else scope.launch {
                         saving = true
@@ -1204,7 +1225,7 @@ private fun NewEntryDialog(
                 }) { Text(if (saving) "Guardando…" else if (initial == null) "Guardar borrador" else "Guardar cambios") }
                 if (initial == null) {
                     TextButton(enabled = !saving && accounts.isNotEmpty(), onClick = {
-                        val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode, currencyCode)
+                        val draft = parseDraft(kind, description, counterparty, amountText, dateText, categoryCode, paymentCode, currencyCode)
                         if (draft == null) {
                             errorText = "Revisa concepto, fecha e importe; para USD usa máximo 2 decimales."
                         } else if (closedPeriods.any { draft.dateIso >= it.startDate && draft.dateIso <= it.endDate }) {
@@ -1271,6 +1292,7 @@ private fun AccountPicker(
 private fun parseDraft(
     kind: EntryKind,
     description: String,
+    counterparty: String,
     amountText: String,
     dateText: String,
     categoryCode: String,
@@ -1278,13 +1300,15 @@ private fun parseDraft(
     currencyCode: String,
 ): EntryDraft? {
     if (description.isBlank() || categoryCode.isBlank() || paymentCode.isBlank()) return null
+    val normalizedCounterparty = runCatching { CounterpartyRules.normalize(counterparty) }.getOrNull()
+    if (counterparty.isNotBlank() && normalizedCounterparty == null) return null
     val date = runCatching {
         LocalDate.parse(dateText.trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"))
     }.getOrNull() ?: return null
     val amount = runCatching {
         UsdMoney.parseMinorUnits(amountText)
     }.getOrNull() ?: return null
-    return EntryDraft(date.toString(), description.trim(), kind, categoryCode, paymentCode, amount, currencyCode)
+    return EntryDraft(date.toString(), description.trim(), normalizedCounterparty, kind, categoryCode, paymentCode, amount, currencyCode)
 }
 
 private val accountTypeOptions = listOf(
@@ -2336,6 +2360,7 @@ private fun EntryWithLines.toJournalRows(accounts: List<AccountEntity>): List<Jo
         JournalRow(
             date = dateLabel,
             concept = entry.description,
+            counterparty = entry.counterparty,
             account = accountName,
             debit = if (line.debitMinor == 0L) "—" else money(line.debitMinor, line.currencyCode),
             credit = if (line.creditMinor == 0L) "—" else money(line.creditMinor, line.currencyCode),
@@ -2349,6 +2374,7 @@ private fun EntryWithLines.toJournalRows(accounts: List<AccountEntity>): List<Jo
 private data class JournalRow(
     val date: String,
     val concept: String,
+    val counterparty: String?,
     val account: String,
     val debit: String,
     val credit: String,
