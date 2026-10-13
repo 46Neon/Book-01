@@ -41,6 +41,7 @@ class LedgerRepositoryBackupRestoreTest {
         val preview = destinationRepository.previewBackupRestore(backup)
         assertEquals("Libro de prueba", preview.bookName)
         assertEquals(3, preview.journalEntryCount)
+        assertEquals("REC-2024-001", backup.journalEntries.first { it.description == "Ingreso exacto" }.supportReference)
         assertEquals(1, preview.accountAuditEventCount)
         assertEquals(1, preview.periodCloseCount)
 
@@ -195,7 +196,7 @@ class LedgerRepositoryBackupRestoreTest {
         sourceRepository.initializeBook()
         sourceRepository.createAccount("5400", "Gastos operativos", "EXPENSE", cashOrBank = false, parentCode = "5100")
         sourceRepository.createAccount("5410", "Suministros", "EXPENSE", cashOrBank = false, parentCode = "5400")
-        sourceRepository.recordSimpleEntry("2024-01-15", "Ingreso exacto", EntryKind.INCOME, "4000", "1000", 12_345L)
+        sourceRepository.recordSimpleEntry("2024-01-15", "Ingreso exacto", EntryKind.INCOME, "4000", "1000", 12_345L, supportReference = "REC-2024-001")
         sourceRepository.updateAccountSettings("1000", "Caja histórica", active = false)
         val original = source.ledgerDao().getAllEntries().single().entry
         sourceRepository.reversePostedEntry(original.id, "2024-02-01", "Corrección histórica")

@@ -57,6 +57,7 @@ data class JournalEntryEntity(
     val createdAt: String,
     val reversalOfEntryId: String? = null,
     val counterparty: String? = null,
+    val supportReference: String? = null,
 )
 
 @Entity(
@@ -162,7 +163,7 @@ data class PostedEntryLockEntity(
 
 @Database(
     entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class, PostedEntryLockEntity::class],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -333,6 +334,28 @@ abstract class LedgerDatabase : RoomDatabase() {
             }
         }
 
+        private fun supportReferenceInvalidCondition(): String {
+            val controls = (0..31).plus(127).joinToString(" OR ") {
+                "instr(NEW.`supportReference`, char($it)) > 0"
+            }
+            return "length(trim(NEW.`supportReference`)) = 0 OR length(NEW.`supportReference`) > 120 OR NEW.`supportReference` != trim(NEW.`supportReference`) OR ($controls)"
+        }
+
+        private fun createSupportReferenceGuards(database: SupportSQLiteDatabase) {
+            val invalid = supportReferenceInvalidCondition()
+            database.execSQL("DROP TRIGGER IF EXISTS `journal_entries_support_reference_insert_guard`")
+            database.execSQL("CREATE TRIGGER `journal_entries_support_reference_insert_guard` BEFORE INSERT ON `journal_entries` WHEN NEW.`supportReference` IS NOT NULL AND ($invalid) BEGIN SELECT RAISE(ABORT, 'support reference is invalid'); END")
+            database.execSQL("DROP TRIGGER IF EXISTS `journal_entries_support_reference_update_guard`")
+            database.execSQL("CREATE TRIGGER `journal_entries_support_reference_update_guard` BEFORE UPDATE OF `supportReference` ON `journal_entries` WHEN NEW.`supportReference` IS NOT NULL AND ($invalid) BEGIN SELECT RAISE(ABORT, 'support reference is invalid'); END")
+        }
+
+        internal val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `journal_entries` ADD COLUMN `supportReference` TEXT")
+                createSupportReferenceGuards(database)
+            }
+        }
+
         internal fun integrityGuardsCallback(): RoomDatabase.Callback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 createAuditGuards(db)
@@ -342,6 +365,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                 createPostedEntryLockGuards(db)
                 createDraftEntryGuards(db)
                 createAccountHierarchyGuards(db)
+                createSupportReferenceGuards(db)
             }
         }
 
@@ -354,7 +378,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .addCallback(integrityGuardsCallback())
                     .build().also { instance = it }
             }

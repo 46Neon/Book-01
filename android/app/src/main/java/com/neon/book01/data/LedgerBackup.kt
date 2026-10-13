@@ -13,6 +13,7 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import com.neon.book01.domain.CounterpartyRules
+import com.neon.book01.domain.SupportReferenceRules
 
 /** A consistent, full-book snapshot. Amounts remain signed 64-bit minor-unit values. */
 data class LedgerBackupSnapshot(
@@ -31,6 +32,7 @@ object LedgerBackupCodec {
     private const val FORMAT_VERSION = 1
     private const val COUNTERPARTY_EXTENSION_MAGIC = 0x43505459 // CPTY
     private const val ACCOUNT_PARENT_EXTENSION_MAGIC = 0x5041524E // PARN
+    private const val SUPPORT_REFERENCE_EXTENSION_MAGIC = 0x53524546 // SREF
     private const val PBKDF2_ITERATIONS = 210_000
     private const val SALT_BYTES = 16
     private const val NONCE_BYTES = 12
@@ -246,6 +248,16 @@ object LedgerBackupCodec {
                 out.writeString(account.code)
                 out.writeString(account.parentCode!!)
             }
+            // Documentary references are a new authenticated v1 extension; prior files end before it.
+            val supportReferences = book.journalEntries.filter { it.supportReference != null }
+            out.writeInt(SUPPORT_REFERENCE_EXTENSION_MAGIC)
+            out.writeCount(supportReferences.size)
+            supportReferences.forEach { entry ->
+                out.writeString(entry.id)
+                val normalized = SupportReferenceRules.normalize(entry.supportReference)
+                require(normalized == entry.supportReference) { "La referencia de soporte de la copia no es válida." }
+                out.writeNullableString(entry.supportReference)
+            }
         }
         bytes.toByteArray()
     }
@@ -318,7 +330,7 @@ object LedgerBackupCodec {
                 closedAt = input.readString(),
             )
         }
-        var restoredEntries = entries // Legacy v1 snapshots end here and retain null counterparties.
+        var restoredEntries = entries // Legacy v1 snapshots end here and retain null optional references.
         var restoredAccounts = accounts // Legacy snapshots predate parentCode and retain null parents.
         if (input.available() > 0) {
             require(input.readInt() == COUNTERPARTY_EXTENSION_MAGIC) { "El contenido de la copia tiene datos sobrantes." }
@@ -348,6 +360,21 @@ object LedgerBackupCodec {
                 }
             }
             restoredAccounts = accounts.map { account -> account.copy(parentCode = parents[account.code]) }
+        }
+        if (input.available() > 0) {
+            require(input.readInt() == SUPPORT_REFERENCE_EXTENSION_MAGIC) { "El contenido de la copia tiene datos sobrantes." }
+            val count = input.readCount(minimumRecordBytes = 9)
+            val knownIds = entries.map { it.id }.toSet()
+            val references = LinkedHashMap<String, String>()
+            repeat(count) {
+                val entryId = input.readString()
+                val value = input.readNullableString()
+                require(entryId in knownIds && value != null && references.put(entryId, value) == null) {
+                    "La extensión de referencia de soporte no es válida."
+                }
+                require(SupportReferenceRules.normalize(value) == value) { "La referencia de soporte de la copia no es válida." }
+            }
+            restoredEntries = restoredEntries.map { entry -> entry.copy(supportReference = references[entry.id]) }
         }
         require(input.available() == 0) { "El contenido de la copia tiene datos sobrantes." }
         return LedgerBackupSnapshot(settings, restoredAccounts, restoredEntries, lines, audits, accountAudits, closes)

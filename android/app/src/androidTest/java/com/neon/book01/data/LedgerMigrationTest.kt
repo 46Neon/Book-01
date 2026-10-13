@@ -10,7 +10,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Instrumented runtime regression test for the full v1→v10 chain without losing or unlocking postings. */
+/** Instrumented runtime regression test for the full v1→v11 chain without losing or unlocking postings. */
 @RunWith(AndroidJUnit4::class)
 class LedgerMigrationTest {
     @Test
@@ -21,17 +21,31 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6, LedgerDatabase.MIGRATION_6_7, LedgerDatabase.MIGRATION_7_8, LedgerDatabase.MIGRATION_8_9, LedgerDatabase.MIGRATION_9_10)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6, LedgerDatabase.MIGRATION_6_7, LedgerDatabase.MIGRATION_7_8, LedgerDatabase.MIGRATION_8_9, LedgerDatabase.MIGRATION_9_10, LedgerDatabase.MIGRATION_10_11)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(10L, db.longValue("PRAGMA user_version"))
+            assertEquals(11L, db.longValue("PRAGMA user_version"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE id = 'entry-v1'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('journal_entries') WHERE name = 'counterparty'"))
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE counterparty IS NULL"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('journal_entries') WHERE name = 'supportReference'"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_entries WHERE supportReference IS NULL"))
+            assertEquals(2L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'journal_entries_support_reference_%_guard'"))
+            db.execSQL("UPDATE journal_entries SET supportReference = 'REC-2026-001' WHERE id = 'draft-v1'")
+            assertEquals("REC-2026-001", db.stringValue("SELECT supportReference FROM journal_entries WHERE id = 'draft-v1'"))
+            assertThrows(android.database.SQLException::class.java) {
+                db.execSQL("UPDATE journal_entries SET supportReference = ' REC-2026-001 ' WHERE id = 'draft-v1'")
+            }
+            assertThrows(android.database.SQLException::class.java) {
+                db.execSQL("UPDATE journal_entries SET supportReference = 'BAD\nREF' WHERE id = 'draft-v1'")
+            }
+            assertThrows(android.database.SQLException::class.java) {
+                db.execSQL("UPDATE journal_entries SET supportReference = ? WHERE id = 'draft-v1'", arrayOf("X".repeat(121)))
+            }
             assertEquals(2L, db.longValue("SELECT COUNT(*) FROM journal_lines WHERE entryId = 'entry-v1'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM posted_entry_locks WHERE entryId = 'entry-v1'"))
             assertEquals("DRAFT", db.stringValue("SELECT status FROM journal_entries WHERE id = 'draft-v1'"))

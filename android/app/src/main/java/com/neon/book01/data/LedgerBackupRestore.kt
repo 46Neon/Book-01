@@ -1,6 +1,7 @@
 package com.neon.book01.data
 
 import com.neon.book01.domain.CounterpartyRules
+import com.neon.book01.domain.SupportReferenceRules
 import com.neon.book01.domain.PeriodCloseAccount
 import com.neon.book01.domain.PeriodCloseCalculator
 import com.neon.book01.domain.PeriodCloseLinePlan
@@ -88,6 +89,7 @@ object LedgerBackupValidator {
             parseDate(entry.entryDate)
             require(entry.amountMinor >= 0L) { "Un asiento contiene un importe negativo no válido." }
             require(CounterpartyRules.normalize(entry.counterparty) == entry.counterparty) { "La contraparte de un asiento no es válida." }
+            require(SupportReferenceRules.normalize(entry.supportReference) == entry.supportReference) { "La referencia de soporte de un asiento no es válida." }
             require(entry.status == "DRAFT" || entry.status == "POSTED") { "La copia contiene un estado de asiento no válido." }
             require(entry.status != "DRAFT" || entry.kind == "INCOME" || entry.kind == "EXPENSE") {
                 "La copia contiene un borrador que no es un ingreso o gasto simple."

@@ -18,6 +18,15 @@ class LedgerBackupValidatorTest {
         assertEquals("Libro heredado", preview.bookName)
     }
 
+    @Test fun acceptsNormalizedOptionalSupportReferenceAndRejectsInvalidReference() {
+        val valid = validSnapshot().copy(journalEntries = listOf(entry("entry-1").copy(supportReference = "REC-2026-001")))
+        LedgerBackupValidator.validate(valid)
+        val invalid = valid.copy(journalEntries = listOf(valid.journalEntries.single().copy(supportReference = " REC-2026-001 ")))
+        assertThrows(IllegalArgumentException::class.java) { LedgerBackupValidator.validate(invalid) }
+        val tooLong = valid.copy(journalEntries = listOf(valid.journalEntries.single().copy(supportReference = "x".repeat(121))))
+        assertThrows(IllegalArgumentException::class.java) { LedgerBackupValidator.validate(tooLong) }
+    }
+
     @Test fun rejectsDuplicatePrimaryKeysAndReversalTargets() {
         val valid = validSnapshot()
         val duplicateEntryId = valid.copy(journalEntries = listOf(entry("entry-1"), entry("entry-1")))

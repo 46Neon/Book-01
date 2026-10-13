@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.neon.book01.domain.SupportReferenceRules
 
 class LedgerBackupCodecTest {
     private val password = "correct horse battery staple".toCharArray()
@@ -23,7 +24,7 @@ class LedgerBackupCodecTest {
                     id = "entry-1", entryDate = "2026-10-12", description = "Venta exacta", kind = "INCOME",
                     categoryAccountCode = "4000", paymentAccountCode = "1000", currencyCode = "USD",
                     amountMinor = Long.MAX_VALUE - 17, status = "POSTED", createdAt = "2026-10-12T13:14:15Z",
-                    reversalOfEntryId = null, counterparty = "Cliente — Café",
+                    reversalOfEntryId = null, counterparty = "Cliente — Café", supportReference = "FAC-2026-0001",
                 ),
                 JournalEntryEntity(
                     id = "entry-2", entryDate = "2026-10-13", description = "Reversa", kind = "REVERSAL",
@@ -63,6 +64,7 @@ class LedgerBackupCodecTest {
         val encrypted = java.util.Base64.getDecoder().decode("QjAxRQAAAAEAAzRQAAECAwQFBgcICQoLDA0ODwABAgMEBQYHCAkKCwAAAuhe75i8rdIijatlXaVnFDUj3IOncwhlX21vrRJcpY33OOBdDVeiUNiL2+ON/avFYtAwglFEfVKxFJBSrn2XgyiKTfgSD9zZzXpUbTEmPNkx/eJb5raqIe/x4WXoHgXXo0DKmjhknahC9ajGGB5iqei8hDdM2YdrbCCO44sJa87ej/FXmzL81NP3y5ca+sKN5DFbkMgrI1WcFDzBfdaZZ91RBNk71GQgDleMpKoVfXmEYX0b3bFO/In96KA6o2233kghXL+Bt8t9fmKgP9FgkXjbWvo/AwTrkfOY4nGpOIPKZC9lSMV+5dLLuiSM7KssZhaYkCLjEKUGuF3sRqHkiU2zYkrdegcTOEFOAcKy+plPKYRC4ILI0TCX4BFgmAWwquAVPHD70QnQu6JBZdEoyRowcP7amN76xabjkuZ5GfmJdxk8bUPBck41rFS1EMBT30GiDfsJDfkASqhfvAmefbg17pDQbF+7IwEUC2t5v/nL3MLHKVoHX0hE9Isrd4P8UCxp6nLdGr9Xv3PEmCM7t3x9o+GvjL8VzPpAXVsK9LqAqH48dG3IBBXw3AKGIR977+A8DPWwA1aYB0b5kQUgTCW98YWLI+V7/alfDk/36S+xuUT9AEwssgqEx4YJgVBtqEbK+OaTKFS4JAWs6h8jOzVeMjmVraVxZRVNtneVe2vpgbGNmOEyVdLZ/jDW3B9Y1zsyDT/eVPw9Nni8IV24knkHQJU3vTiwNxz4VKP3AB4VRSMHpUtDyBpVMe+0Q5jtYYMR9jrQoJjSvF1h1ZnD2bbmHK4yA+GFMA2Fb1yzMLwJcsqb/tvOhAZJFZvaaPayBaciZS71CQ4xUX3AmSvnYmEUHgtJjwPta0OG4K5hKgLnTIawV0l+rqw6idSIPWj/mcqCrXRxTOlCepKhiNBmD586SWArReRL11pVa2/LBLlfPkVEeyLDH+0W+8fo/EFC7wlpXdIxkuoubf+ncqP5lMRLselRiKcxOAw=" )
         val decoded = LedgerBackupCodec.decrypt(encrypted, password)
         assertEquals(null, decoded.journalEntries.single().counterparty)
+        assertEquals(null, decoded.journalEntries.single().supportReference)
         assertTrue(decoded.accounts.all { it.parentCode == null })
         assertEquals("Venta antigua", decoded.journalEntries.single().description)
         assertEquals(1, LedgerBackupValidator.validate(decoded).journalEntryCount)
@@ -88,6 +90,22 @@ class LedgerBackupCodecTest {
         val decoded = LedgerBackupCodec.decrypt(olderFile, password)
         assertEquals("Cliente viejo", decoded.journalEntries.single().counterparty)
         assertEquals(listOf(null, null), decoded.accounts.map { it.parentCode })
+    }
+
+    @Test
+    fun supportReferenceMustBeNormalizedBeforeExport() {
+        val invalid = sample().copy(journalEntries = listOf(
+            JournalEntryEntity(
+                id = "entry-ref", entryDate = "2026-10-13", description = "Venta", kind = "INCOME",
+                categoryAccountCode = "4000", paymentAccountCode = "1000", currencyCode = "USD",
+                amountMinor = 100, status = "POSTED", createdAt = "2026-10-13T00:00:00Z",
+                supportReference = " REF-1 ",
+            ),
+        ))
+        assertThrows(IllegalArgumentException::class.java) { LedgerBackupCodec.encrypt(invalid, password) }
+        assertThrows(IllegalArgumentException::class.java) {
+            SupportReferenceRules.normalize("x".repeat(SupportReferenceRules.MAX_LENGTH + 1))
+        }
     }
 
     @Test

@@ -12,6 +12,7 @@ import com.neon.book01.domain.PeriodClosePosting
 import com.neon.book01.domain.PeriodClosePostingLine
 import com.neon.book01.domain.UsdMoney
 import com.neon.book01.domain.CounterpartyRules
+import com.neon.book01.domain.SupportReferenceRules
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -183,8 +184,10 @@ class LedgerRepository(private val database: LedgerDatabase) {
         amountMinor: Long,
         currencyCode: String = UsdMoney.CURRENCY_CODE,
         counterparty: String? = null,
+        supportReference: String? = null,
     ) {
         val normalizedCounterparty = CounterpartyRules.normalize(counterparty)
+        val normalizedSupportReference = SupportReferenceRules.normalize(supportReference)
         require(currencyCode == UsdMoney.CURRENCY_CODE) {
             "Esta versión registra únicamente en dólares estadounidenses (USD)."
         }
@@ -235,6 +238,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 status = "POSTED",
                 createdAt = Instant.now().toString(),
                 counterparty = normalizedCounterparty,
+                supportReference = normalizedSupportReference,
             )
             dao.insertEntry(entry)
             dao.insertLines(lines)
@@ -263,8 +267,10 @@ class LedgerRepository(private val database: LedgerDatabase) {
         currencyCode: String = UsdMoney.CURRENCY_CODE,
         draftId: String? = null,
         counterparty: String? = null,
+        supportReference: String? = null,
     ): String {
         val normalizedCounterparty = CounterpartyRules.normalize(counterparty)
+        val normalizedSupportReference = SupportReferenceRules.normalize(supportReference)
         require(currencyCode == UsdMoney.CURRENCY_CODE) { "Esta versión registra únicamente en dólares estadounidenses (USD)." }
         val postingDate = PostingDateRange.parse(dateIso, dateIso).startInclusive!!.toString()
         require(postingDate == dateIso) { "La fecha debe tener el formato AAAA-MM-DD." }
@@ -286,6 +292,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 status = "DRAFT",
                 createdAt = current?.createdAt ?: Instant.now().toString(),
                 counterparty = normalizedCounterparty,
+                supportReference = normalizedSupportReference,
             )
             if (current == null) dao.insertEntry(entry) else dao.updateEntry(entry)
             if (current != null) dao.deleteLinesForDraft(id)
@@ -309,6 +316,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
         val entry = dao.getEntry(draftId) ?: throw IllegalArgumentException("No se encontró el borrador.")
         require(entry.status == "DRAFT") { "Solo se pueden publicar asientos en borrador." }
         require(CounterpartyRules.normalize(entry.counterparty) == entry.counterparty) { "La contraparte del borrador no es válida." }
+        require(SupportReferenceRules.normalize(entry.supportReference) == entry.supportReference) { "La referencia de soporte del borrador no es válida." }
         require(entry.kind == EntryKind.INCOME.name || entry.kind == EntryKind.EXPENSE.name) { "Este borrador no es un ingreso o gasto simple." }
         val postingDate = PostingDateRange.parse(entry.entryDate, entry.entryDate).startInclusive!!.toString()
         require(postingDate == entry.entryDate) { "La fecha del borrador no es válida." }
