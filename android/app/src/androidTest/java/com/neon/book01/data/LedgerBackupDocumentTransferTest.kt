@@ -1,10 +1,13 @@
 package com.neon.book01.data
 
+import android.content.Intent
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -42,5 +45,22 @@ class LedgerBackupDocumentTransferTest {
             passphrase.fill('\u0000')
             resolver.delete(uri, null, null)
         }
+    }
+
+    @Test
+    fun pickerContractsUseCreateOpenActionsAndBackupMimeTypes() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val fileName = LedgerBackupDocumentPicker.defaultFileName(java.time.LocalDate.of(2026, 10, 13))
+        val createIntent = LedgerBackupDocumentPicker.createContract().createIntent(context, fileName)
+        assertEquals(Intent.ACTION_CREATE_DOCUMENT, createIntent.action)
+        assertEquals(LedgerBackupDocumentPicker.MIME_TYPE, createIntent.type)
+        assertEquals(fileName, createIntent.getStringExtra(Intent.EXTRA_TITLE))
+        // CreateDocument does not add CATEGORY_OPENABLE; OpenDocument does, so test that below.
+
+        val mimeTypes = LedgerBackupDocumentPicker.openMimeTypes()
+        val openIntent = LedgerBackupDocumentPicker.openContract().createIntent(context, mimeTypes)
+        assertEquals(Intent.ACTION_OPEN_DOCUMENT, openIntent.action)
+        assertArrayEquals(mimeTypes, openIntent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES))
+        assertTrue(openIntent.categories?.contains(Intent.CATEGORY_OPENABLE) == true)
     }
 }

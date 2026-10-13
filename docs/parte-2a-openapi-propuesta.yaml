@@ -292,6 +292,7 @@ components:
           type: string
           enum: [asset, liability, equity, income, expense]
         active: { type: boolean }
+        parentAccountId: { type: [string, 'null'], format: uuid, description: Optional same-book parent account ID; null for root or historical accounts. }
     JournalLine:
       type: object
       required: [id, accountId, debit, credit, currency]
@@ -323,6 +324,7 @@ components:
         lines:
           type: array
           items: { $ref: '#/components/schemas/JournalLine' }
+        counterparty: { type: [string, 'null'], maxLength: 80, description: Optional normalized counterparty; null for historical entries or entries without a counterparty. }
     AppliedFilters:
       type: object
       required: [dateFrom, dateTo]

@@ -38,6 +38,7 @@ Migrations in filename order:
 1. `202610120001_initial_core.sql` — tenant-scoped books and memberships, USD accounts/periods, draft journal entries/lines, RLS, constraints, triggers and audit events.
 2. `202610120002_read_only_rest_access.sql` — removes direct DML from application roles and grants only direct table SELECT to authenticated callers.
 3. `202610130001_draft_proposals.sql` — introduces narrow draft-proposal and confirmation RPCs; it does not enable posting or voiding.
+4. `202610130002_account_hierarchy_counterparty.sql` — adds nullable same-book parent-account IDs and optional journal counterparties to align with Room v10. Historical values remain `NULL`; parent links are same-book/same-type and immutable after insertion; counterparties are normalized, control-free text limited to 80 characters. This adds no client DML grants.
 
 Migrations are versioned in this repository. This task did not connect to or inspect the hosted project, apply/rollback migrations, deploy functions, or change cloud resources. Therefore this document makes **no claim** about the present remote migration state or hosted side effects. A successful GitHub Supabase Preview check is not evidence that production/development state has been reviewed or that any endpoint is deployed.
 

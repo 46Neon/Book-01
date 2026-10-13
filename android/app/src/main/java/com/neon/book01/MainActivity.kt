@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -85,6 +84,7 @@ import com.neon.book01.data.BookSettingsEntity
 import com.neon.book01.data.EntryWithLines
 import com.neon.book01.data.PeriodCloseEntity
 import com.neon.book01.data.LedgerBackupCodec
+import com.neon.book01.data.LedgerBackupDocumentPicker
 import com.neon.book01.data.LedgerBackupDocumentTransfer
 import com.neon.book01.data.LedgerBackupPreview
 import com.neon.book01.data.LedgerBackupSnapshot
@@ -200,7 +200,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val createBackupDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/vnd.book01.encrypted-backup"),
+        LedgerBackupDocumentPicker.createContract(),
     ) { uri ->
         if (uri == null) {
             backupDestination = null
@@ -210,7 +210,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
         }
     }
     val openBackupDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
+        LedgerBackupDocumentPicker.openContract(),
     ) { uri ->
         restoreSource = uri
         showRestorePassphraseDialog = uri != null
@@ -344,8 +344,8 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                         },
                         onOpenAudit = { showAuditHistory = true },
                         onOpenStatements = { showFinancialStatements = true },
-                        onOpenBackup = { createBackupDocument.launch("Book-01-backup-${LocalDate.now()}.b01") },
-                        onOpenRestore = { openBackupDocument.launch(arrayOf("application/vnd.book01.encrypted-backup", "application/octet-stream", "application/*")) },
+                        onOpenBackup = { createBackupDocument.launch(LedgerBackupDocumentPicker.defaultFileName(LocalDate.now())) },
+                        onOpenRestore = { openBackupDocument.launch(LedgerBackupDocumentPicker.openMimeTypes()) },
                     )
                 }
             } else {

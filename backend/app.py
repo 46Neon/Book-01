@@ -85,6 +85,7 @@ class Account(BaseModel):
     name: str
     type: Literal["asset", "liability", "equity", "income", "expense"]
     active: bool
+    parentAccountId: uuid.UUID | None = None
 
 
 class MoneyTotal(BaseModel):
@@ -107,6 +108,7 @@ class JournalEntry(BaseModel):
     description: str
     status: Literal["draft", "posted", "void"]
     lines: list[JournalLine]
+    counterparty: str | None = Field(default=None, max_length=80)
 
 
 class DateRange(BaseModel):
@@ -440,7 +442,7 @@ def create_app() -> FastAPI:
         ctx = await authorize_book(ctx, book_id)
         offset = page_offset(cursor)
         cfg, token, client = ctx
-        params: dict[str, Any] = {"select": "id,book_id,code,name,account_type,active", "book_id": f"eq.{book_id}", "order": "code.asc,id.asc", "limit": str(page_size + 1), "offset": str(offset)}
+        params: dict[str, Any] = {"select": "id,book_id,code,name,account_type,active,parent_account_id", "book_id": f"eq.{book_id}", "order": "code.asc,id.asc", "limit": str(page_size + 1), "offset": str(offset)}
         if active_only:
             params["active"] = "eq.true"
         rows = await upstream(cfg, token, client, "accounts", params)
@@ -448,8 +450,7 @@ def create_app() -> FastAPI:
         visible = rows[:page_size]
         items = []
         for row in visible:
-            # The migration has no parent_account_id; null is the honest proposal-compatible value.
-            items.append(Account(id=row["id"], code=row["code"], name=row["name"], type=row["account_type"], active=row["active"]))
+            items.append(Account(id=row["id"], code=row["code"], name=row["name"], type=row["account_type"], active=row["active"], parentAccountId=row.get("parent_account_id")))
         return {"items": items, "nextCursor": next_cursor(offset, page_size, has_more)}
 
     @app.get(f"{API_PREFIX}/books/{{bookId}}/journal-entries", operation_id="listJournalEntries", response_model=JournalPage, responses={400: {"model": ApiError}, **ERROR_401, **ERROR_403, **ERROR_404, **ERROR_422, **ERROR_UPSTREAM})
@@ -478,7 +479,7 @@ def create_app() -> FastAPI:
         offset = page_offset(cursor)
         cfg, token, client = ctx
         params: dict[str, Any] = {
-            "select": "id,book_id,entry_date,description,currency_code,status",
+            "select": "id,book_id,entry_date,description,currency_code,status,counterparty",
             "book_id": f"eq.{book_id}", "entry_date": f"gte.{start.isoformat()}",
             "and": f"(entry_date.lte.{end.isoformat()})", "order": "entry_date.asc,id.asc",
             "limit": str(MAX_REPORT_ENTRIES + 1),
@@ -518,7 +519,7 @@ def create_app() -> FastAPI:
         credit_total = sum((decimal_value(line["credit"]) for line in page_lines), Decimal("0"))
         items = [{
             "id": entry["id"], "date": entry["entry_date"], "description": entry["description"],
-            "status": entry["status"],
+            "status": entry["status"], "counterparty": entry.get("counterparty"),
             "lines": [{"id": line["id"], "accountId": line["account_id"], "description": line.get("description"),
                        "debit": money(decimal_value(line["debit"])), "credit": money(decimal_value(line["credit"])),
                        "currency": line["currency_code"]}
