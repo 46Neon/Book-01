@@ -167,15 +167,15 @@ export function createHandler(env: Env = (name) => Deno.env.get(name), fetcher: 
         if (books.length === 0) throw new RouteError(404, "not_found", "Book was not found or is not accessible.");
         const activeOnly = url.searchParams.get("activeOnly") ?? "true";
         if (activeOnly !== "true" && activeOnly !== "false") throw new RangeError("invalid activeOnly");
-        const params: Record<string, string> = { select: "id,book_id,code,name,account_type,active", book_id: `eq.${bookId}`, order: "code.asc,id.asc", limit: String(pageSize + 1), offset: String(offset) };
+        const params: Record<string, string> = { select: "id,book_id,code,name,account_type,active,parent_account_id", book_id: `eq.${bookId}`, order: "code.asc,id.asc", limit: String(pageSize + 1), offset: String(offset) };
         if (activeOnly === "true") params.active = "eq.true";
         const rows = await fetchRows("accounts", params);
         const hasMore = rows.length > pageSize;
         const items = rows.slice(0, pageSize).map((row) => {
-          if (typeof row.id !== "string" || !UUID.test(row.id) || row.book_id !== bookId || typeof row.code !== "string" || typeof row.name !== "string" || typeof row.active !== "boolean" || typeof row.account_type !== "string" || !ACCOUNT_TYPES.has(row.account_type)) {
+          if (typeof row.id !== "string" || !UUID.test(row.id) || row.book_id !== bookId || typeof row.code !== "string" || typeof row.name !== "string" || typeof row.active !== "boolean" || typeof row.account_type !== "string" || !ACCOUNT_TYPES.has(row.account_type) || (row.parent_account_id !== null && (typeof row.parent_account_id !== "string" || !UUID.test(row.parent_account_id)))) {
             throw new RouteError(502, "upstream_invalid_response", "Accounting data service returned an invalid account list.");
           }
-          return { id: row.id, code: row.code, name: row.name, type: row.account_type, active: row.active };
+          return { id: row.id, code: row.code, name: row.name, type: row.account_type, active: row.active, parentAccountId: row.parent_account_id };
         });
         result = { items, nextCursor: encodeCursor(offset, pageSize, hasMore) };
       }

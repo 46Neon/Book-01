@@ -56,14 +56,15 @@ Deno.test("account listing first checks book membership and scopes accounts to t
     seen.push(url);
     if (url.endsWith("/auth/v1/user")) return respond(user);
     if (url.includes("/rest/v1/books?")) return respond([{ id: "11111111-1111-4111-8111-111111111111" }]);
-    return respond([{ id: "33333333-3333-4333-8333-333333333333", book_id: "11111111-1111-4111-8111-111111111111", code: "1000", name: "Cash", account_type: "asset", active: true }]);
+    return respond([{ id: "33333333-3333-4333-8333-333333333333", book_id: "11111111-1111-4111-8111-111111111111", code: "1000", name: "Cash", account_type: "asset", active: true, parent_account_id: null }]);
   };
   const handler = createHandler(env, fetcher);
   const response = await handler(new Request("https://edge.test/functions/v1/accounting-api/api/v1/books/11111111-1111-4111-8111-111111111111/accounts", { headers }));
   assertEquals(response.status, 200);
-  assertEquals(await response.json(), { items: [{ id: "33333333-3333-4333-8333-333333333333", code: "1000", name: "Cash", type: "asset", active: true }], nextCursor: null });
+  assertEquals(await response.json(), { items: [{ id: "33333333-3333-4333-8333-333333333333", code: "1000", name: "Cash", type: "asset", active: true, parentAccountId: null }], nextCursor: null });
   assertEquals(seen.length, 3);
   assertStringIncludes(seen[1], "id=eq.11111111-1111-4111-8111-111111111111");
+  assertStringIncludes(seen[2], "select=id%2Cbook_id%2Ccode%2Cname%2Caccount_type%2Cactive%2Cparent_account_id");
   assertStringIncludes(seen[2], "book_id=eq.11111111-1111-4111-8111-111111111111");
 });
 
