@@ -156,7 +156,7 @@ data class PostedEntryLockEntity(
 
 @Database(
     entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class, PostedEntryLockEntity::class],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -240,7 +240,7 @@ abstract class LedgerDatabase : RoomDatabase() {
         private fun createImmutableLedgerGuards(database: SupportSQLiteDatabase) {
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `accounts_code_type_immutable` BEFORE UPDATE OF `code`, `type` ON `accounts` WHEN NEW.`code` != OLD.`code` OR NEW.`type` != OLD.`type` BEGIN SELECT RAISE(ABORT, 'account code and type are immutable'); END")
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `accounts_no_delete` BEFORE DELETE ON `accounts` BEGIN SELECT RAISE(ABORT, 'accounts cannot be deleted'); END")
-            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_no_update` BEFORE UPDATE ON `journal_entries` BEGIN SELECT RAISE(ABORT, 'posted journal entries are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_no_update` BEFORE UPDATE ON `journal_entries` WHEN OLD.`status` = 'POSTED' BEGIN SELECT RAISE(ABORT, 'posted journal entries are immutable'); END")
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_no_delete` BEFORE DELETE ON `journal_entries` BEGIN SELECT RAISE(ABORT, 'journal entries cannot be deleted'); END")
         }
 
@@ -273,8 +273,8 @@ abstract class LedgerDatabase : RoomDatabase() {
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `posted_entry_locks_no_update` BEFORE UPDATE ON `posted_entry_locks` BEGIN SELECT RAISE(ABORT, 'posted entry locks are immutable'); END")
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `posted_entry_locks_no_delete` BEFORE DELETE ON `posted_entry_locks` BEGIN SELECT RAISE(ABORT, 'posted entry locks are immutable'); END")
             database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_insert_after_lock` BEFORE INSERT ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = NEW.`entryId`) BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
-            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_update_after_lock` BEFORE UPDATE ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = OLD.`entryId`) OR EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = NEW.`entryId`) BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
-            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_delete_after_lock` BEFORE DELETE ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = OLD.`entryId`) BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_update_after_lock` BEFORE UPDATE ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = OLD.`entryId`) OR EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = NEW.`entryId`) OR EXISTS (SELECT 1 FROM `journal_entries` WHERE `id` = OLD.`entryId` AND `status` = 'POSTED') OR EXISTS (SELECT 1 FROM `journal_entries` WHERE `id` = NEW.`entryId` AND `status` = 'POSTED') BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_lines_no_delete_after_lock` BEFORE DELETE ON `journal_lines` WHEN EXISTS (SELECT 1 FROM `posted_entry_locks` WHERE `entryId` = OLD.`entryId`) OR EXISTS (SELECT 1 FROM `journal_entries` WHERE `id` = OLD.`entryId` AND `status` = 'POSTED') BEGIN SELECT RAISE(ABORT, 'posted journal lines are immutable'); END")
         }
 
         internal val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -285,6 +285,22 @@ abstract class LedgerDatabase : RoomDatabase() {
             }
         }
 
+        private fun createDraftEntryGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("DROP TRIGGER IF EXISTS `journal_entries_no_update`")
+            database.execSQL("DROP TRIGGER IF EXISTS `journal_lines_no_update_after_lock`")
+            database.execSQL("DROP TRIGGER IF EXISTS `journal_lines_no_delete_after_lock`")
+            database.execSQL("CREATE TRIGGER `journal_entries_no_update` BEFORE UPDATE ON `journal_entries` WHEN OLD.`status` = 'POSTED' BEGIN SELECT RAISE(ABORT, 'posted journal entries are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_draft_transition_guard` BEFORE UPDATE OF `status` ON `journal_entries` WHEN OLD.`status` != NEW.`status` AND (OLD.`status` != 'DRAFT' OR NEW.`status` != 'POSTED' OR NEW.`kind` NOT IN ('INCOME','EXPENSE') OR NEW.`currencyCode` != 'USD' OR NEW.`amountMinor` <= 0 OR length(NEW.`entryDate`) != 10 OR date(julianday(NEW.`entryDate`)) IS NULL OR date(julianday(NEW.`entryDate`)) != NEW.`entryDate` OR EXISTS (SELECT 1 FROM `period_closes` WHERE NEW.`entryDate` BETWEEN `startDate` AND `endDate`) OR NOT EXISTS (SELECT 1 FROM `accounts` WHERE `code` = NEW.`categoryAccountCode` AND `active` = 1 AND `type` = CASE NEW.`kind` WHEN 'INCOME' THEN 'INCOME' ELSE 'EXPENSE' END) OR NOT EXISTS (SELECT 1 FROM `accounts` WHERE `code` = NEW.`paymentAccountCode` AND `active` = 1 AND `cashOrBank` = 1 AND `type` = 'ASSET') OR (SELECT COUNT(*) FROM `journal_lines` WHERE `entryId` = NEW.`id`) != 2 OR NOT EXISTS (SELECT 1 FROM `journal_lines` WHERE `entryId` = NEW.`id` AND `accountCode` = NEW.`categoryAccountCode` AND `debitMinor` = CASE NEW.`kind` WHEN 'EXPENSE' THEN NEW.`amountMinor` ELSE 0 END AND `creditMinor` = CASE NEW.`kind` WHEN 'INCOME' THEN NEW.`amountMinor` ELSE 0 END) OR NOT EXISTS (SELECT 1 FROM `journal_lines` WHERE `entryId` = NEW.`id` AND `accountCode` = NEW.`paymentAccountCode` AND `debitMinor` = CASE NEW.`kind` WHEN 'INCOME' THEN NEW.`amountMinor` ELSE 0 END AND `creditMinor` = CASE NEW.`kind` WHEN 'EXPENSE' THEN NEW.`amountMinor` ELSE 0 END) OR (SELECT COALESCE(SUM(`debitMinor`),0) FROM `journal_lines` WHERE `entryId` = NEW.`id`) != NEW.`amountMinor` OR (SELECT COALESCE(SUM(`creditMinor`),0) FROM `journal_lines` WHERE `entryId` = NEW.`id`) != NEW.`amountMinor` OR EXISTS (SELECT 1 FROM `journal_lines` WHERE `entryId` = NEW.`id` AND (`currencyCode` != 'USD' OR `debitMinor` < 0 OR `creditMinor` < 0 OR (`debitMinor` = 0) = (`creditMinor` = 0)))) BEGIN SELECT RAISE(ABORT, 'draft failed posting validation'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `journal_entries_lock_after_post` AFTER UPDATE OF `status` ON `journal_entries` WHEN OLD.`status` = 'DRAFT' AND NEW.`status` = 'POSTED' BEGIN INSERT INTO `posted_entry_locks` (`entryId`) VALUES (NEW.`id`); INSERT INTO `audit_events` (`id`,`entryId`,`eventType`,`occurredAt`,`eventDate`,`reason`,`relatedEntryId`) VALUES (lower(hex(randomblob(16))),NEW.`id`,'DRAFT_POSTED',strftime('%Y-%m-%dT%H:%M:%fZ','now'),NEW.`entryDate`,'Borrador publicado tras validación.',NULL); END")
+            createPostedEntryLockGuards(database)
+        }
+
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                createDraftEntryGuards(database)
+            }
+        }
+
         internal fun integrityGuardsCallback(): RoomDatabase.Callback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 createAuditGuards(db)
@@ -292,6 +308,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                 createImmutableLedgerGuards(db)
                 createPeriodCloseGuards(db)
                 createPostedEntryLockGuards(db)
+                createDraftEntryGuards(db)
             }
         }
 
@@ -304,7 +321,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .addCallback(integrityGuardsCallback())
                     .build().also { instance = it }
             }

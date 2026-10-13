@@ -168,6 +168,7 @@ class MainActivity : ComponentActivity() {
 private fun BookHomeScreen(repository: LedgerRepository) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
+    var draftBeingEdited by remember { mutableStateOf<EntryWithLines?>(null) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var accountBeingEdited by remember { mutableStateOf<AccountEntity?>(null) }
     var showReversalDialog by rememberSaveable { mutableStateOf(false) }
@@ -238,7 +239,9 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     val incomeMinor = operatingSummary.incomeMinor
     val expenseMinor = operatingSummary.expenseMinor
     val netMinor = UsdMoney.subtractMinorUnits(incomeMinor, expenseMinor)
-    val rowItems = entries.flatMap { entry -> entry.toJournalRows(accounts) }
+    val postedEntries = entries.filter { it.entry.status == "POSTED" }
+    val draftEntries = entries.filter { it.entry.status == "DRAFT" }
+    val rowItems = postedEntries.flatMap { entry -> entry.toJournalRows(accounts) }
 
     Scaffold(
         containerColor = BookCanvas,
@@ -290,6 +293,16 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 JournalScreen(
                     rows = rowItems,
                     currencyCode = currencyCode,
+                    drafts = draftEntries,
+                    onEditDraft = { draftBeingEdited = it },
+                    onPostDraft = { id ->
+                        try {
+                            withContext(Dispatchers.IO) { repository.postDraft(id) }
+                            snackbarHostState.showSnackbar("Borrador publicado una sola vez y bloqueado para cambios.")
+                        } catch (error: Exception) {
+                            snackbarHostState.showSnackbar(error.message ?: "No se pudo publicar el borrador.")
+                        }
+                    },
                     onFilterClick = {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Los filtros se incorporarán en la siguiente iteración.")
@@ -297,11 +310,11 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                     },
                 )
             } else if (selectedTab == 1) {
-                GeneralLedgerScreen(accounts, entries, currencyCode)
+                GeneralLedgerScreen(accounts, postedEntries, currencyCode)
             } else if (selectedTab == 2) {
                 AccountsScreen(accounts, accountAuditEvents, onEditAccount = { accountBeingEdited = it })
             } else if (selectedTab == 3) {
-                TrialBalanceScreen(accounts, entries, currencyCode)
+                TrialBalanceScreen(accounts, postedEntries, currencyCode)
             } else if (selectedTab == 4) {
                 if (showAuditHistory) {
                     AuditHistoryScreen(
@@ -313,7 +326,7 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 } else if (showFinancialStatements) {
                     FinancialStatementsScreen(
                         accounts = accounts,
-                        entries = entries,
+                        entries = postedEntries,
                         periodCloses = periodCloses,
                         onClosePeriod = { start, end, equity -> withContext(Dispatchers.IO) { repository.closePeriod(start, end, equity) } },
                         onBack = { showFinancialStatements = false },
@@ -345,6 +358,21 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             closedPeriods = periodCloses.map { ClosedPeriodRange(it.startDate, it.endDate) },
             currencyCode = currencyCode,
             onDismiss = { showEntryDialog = false },
+            onSaveDraft = { draft ->
+                withContext(Dispatchers.IO) {
+                    repository.saveSimpleDraft(
+                        dateIso = draft.dateIso,
+                        description = draft.description,
+                        kind = draft.kind,
+                        categoryAccountCode = draft.categoryAccountCode,
+                        paymentAccountCode = draft.paymentAccountCode,
+                        amountMinor = draft.amountMinor,
+                        currencyCode = draft.currencyCode,
+                    )
+                }
+                showEntryDialog = false
+                snackbarHostState.showSnackbar("Borrador guardado; aún no afecta los informes ni el cierre.")
+            },
             onSave = { draft ->
                 withContext(Dispatchers.IO) {
                     repository.recordSimpleEntry(
@@ -360,6 +388,28 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                 showEntryDialog = false
                 snackbarHostState.showSnackbar("Asiento guardado en este dispositivo.")
             },
+        )
+    }
+    draftBeingEdited?.let { selectedDraft ->
+        NewEntryDialog(
+            accounts = accounts,
+            closedPeriods = periodCloses.map { ClosedPeriodRange(it.startDate, it.endDate) },
+            currencyCode = currencyCode,
+            initial = selectedDraft,
+            onDismiss = { draftBeingEdited = null },
+            onSaveDraft = { draft ->
+                withContext(Dispatchers.IO) {
+                    repository.saveSimpleDraft(
+                        dateIso = draft.dateIso, description = draft.description, kind = draft.kind,
+                        categoryAccountCode = draft.categoryAccountCode, paymentAccountCode = draft.paymentAccountCode,
+                        amountMinor = draft.amountMinor, currencyCode = draft.currencyCode,
+                        draftId = selectedDraft.entry.id,
+                    )
+                }
+                draftBeingEdited = null
+                snackbarHostState.showSnackbar("Borrador actualizado; sigue fuera de los informes.")
+            },
+            onSave = {},
         )
     }
     if (showAccountDialog) {
@@ -709,7 +759,14 @@ private fun SummaryCard(title: String, amount: String, modifier: Modifier = Modi
 }
 
 @Composable
-private fun JournalScreen(rows: List<JournalRow>, currencyCode: String, onFilterClick: () -> Unit) {
+private fun JournalScreen(
+    rows: List<JournalRow>,
+    currencyCode: String,
+    drafts: List<EntryWithLines>,
+    onEditDraft: (EntryWithLines) -> Unit,
+    onPostDraft: suspend (String) -> Unit,
+    onFilterClick: () -> Unit,
+) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Diario", color = BookInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
@@ -739,7 +796,37 @@ private fun JournalScreen(rows: List<JournalRow>, currencyCode: String, onFilter
         }
     }
     Spacer(Modifier.height(12.dp))
+    if (drafts.isNotEmpty()) {
+        DraftEntriesSection(drafts, currencyCode, onEditDraft, onPostDraft)
+        Spacer(Modifier.height(12.dp))
+    }
     LedgerTable(rows, currencyCode)
+}
+
+@Composable
+private fun DraftEntriesSection(
+    drafts: List<EntryWithLines>,
+    currencyCode: String,
+    onEditDraft: (EntryWithLines) -> Unit,
+    onPostDraft: suspend (String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Borradores · ${drafts.size}", color = BookInk, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("No afectan los informes ni los cierres hasta que los publiques.", color = BookMuted, fontSize = 11.sp)
+            drafts.forEach { item ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(item.entry.description, color = BookInk, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${item.entry.entryDate} · ${if (item.entry.kind == "INCOME") "Ingreso" else "Gasto"} · ${money(item.entry.amountMinor, currencyCode)}", color = BookMuted, fontSize = 11.sp)
+                    }
+                    TextButton(onClick = { onEditDraft(item) }) { Text("Editar") }
+                    TextButton(onClick = { scope.launch { try { onPostDraft(item.entry.id) } catch (_: Exception) { /* surfaced by repository caller */ } } }) { Text("Publicar") }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -851,14 +938,16 @@ private fun NewEntryDialog(
     closedPeriods: List<ClosedPeriodRange>,
     currencyCode: String,
     onDismiss: () -> Unit,
+    onSaveDraft: suspend (EntryDraft) -> Unit,
     onSave: suspend (EntryDraft) -> Unit,
+    initial: EntryWithLines? = null,
 ) {
-    var kind by rememberSaveable { mutableStateOf(EntryKind.EXPENSE) }
-    var description by rememberSaveable { mutableStateOf("") }
-    var amountText by rememberSaveable { mutableStateOf("") }
-    var dateText by rememberSaveable { mutableStateOf(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))) }
-    var categoryCode by rememberSaveable { mutableStateOf("") }
-    var paymentCode by rememberSaveable { mutableStateOf("1000") }
+    var kind by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.kind?.let { runCatching { EntryKind.valueOf(it) }.getOrNull() } ?: EntryKind.EXPENSE) }
+    var description by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.description ?: "") }
+    var amountText by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.amountMinor?.let { BigDecimal.valueOf(it, 2).toPlainString() } ?: "") }
+    var dateText by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.entryDate?.let { LocalDate.parse(it).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) } ?: LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))) }
+    var categoryCode by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.categoryAccountCode ?: "") }
+    var paymentCode by rememberSaveable(initial?.entry?.id) { mutableStateOf(initial?.entry?.paymentAccountCode ?: "1000") }
     var errorText by rememberSaveable { mutableStateOf<String?>(null) }
     var saving by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -878,7 +967,7 @@ private fun NewEntryDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        title = { Text("Nuevo asiento", color = BookInk, fontWeight = FontWeight.Bold) },
+        title = { Text(if (initial == null) "Nuevo asiento" else "Editar borrador", color = BookInk, fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -937,29 +1026,35 @@ private fun NewEntryDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = !saving && accounts.isNotEmpty(),
-                onClick = {
+            Row {
+                TextButton(enabled = !saving && accounts.isNotEmpty(), onClick = {
                     val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode, currencyCode)
-                    if (draft == null) {
-                        errorText = "Revisa concepto y fecha; para USD usa, por ejemplo, 1234.56, 1,234.56 o 1.234,56 (máximo 2 decimales)."
-                    } else if (closedPeriods.any { draft.dateIso >= it.startDate && draft.dateIso <= it.endDate }) {
-                        errorText = "La fecha elegida pertenece a un periodo cerrado. Selecciona una fecha abierta."
-                    } else {
-                        scope.launch {
+                    if (draft == null) errorText = "Revisa concepto, cuentas, fecha e importe (máximo 2 decimales)."
+                    else scope.launch {
+                        saving = true
+                        errorText = null
+                        try { onSaveDraft(draft) }
+                        catch (error: Exception) { errorText = error.message ?: "No se pudo guardar el borrador." }
+                        finally { saving = false }
+                    }
+                }) { Text(if (saving) "Guardando…" else if (initial == null) "Guardar borrador" else "Guardar cambios") }
+                if (initial == null) {
+                    TextButton(enabled = !saving && accounts.isNotEmpty(), onClick = {
+                        val draft = parseDraft(kind, description, amountText, dateText, categoryCode, paymentCode, currencyCode)
+                        if (draft == null) {
+                            errorText = "Revisa concepto, fecha e importe; para USD usa máximo 2 decimales."
+                        } else if (closedPeriods.any { draft.dateIso >= it.startDate && draft.dateIso <= it.endDate }) {
+                            errorText = "La fecha elegida pertenece a un periodo cerrado. Selecciona una fecha abierta."
+                        } else scope.launch {
                             saving = true
                             errorText = null
-                            try {
-                                onSave(draft)
-                            } catch (error: Exception) {
-                                errorText = error.message ?: "No se pudo guardar el asiento."
-                            } finally {
-                                saving = false
-                            }
+                            try { onSave(draft) }
+                            catch (error: Exception) { errorText = error.message ?: "No se pudo publicar el asiento." }
+                            finally { saving = false }
                         }
-                    }
-                },
-            ) { Text(if (saving) "Guardando…" else "Guardar asiento") }
+                    }) { Text(if (saving) "Guardando…" else "Publicar ahora") }
+                }
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )

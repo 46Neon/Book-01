@@ -14,6 +14,10 @@ interface LedgerDao {
     @Transaction
     fun observeEntries(): Flow<List<EntryWithLines>>
 
+    @Query("SELECT * FROM journal_entries WHERE status = 'DRAFT' ORDER BY entryDate DESC, createdAt DESC")
+    @Transaction
+    fun observeDraftEntries(): Flow<List<EntryWithLines>>
+
     @Query("SELECT * FROM journal_entries ORDER BY entryDate DESC, createdAt DESC")
     @Transaction
     suspend fun getAllEntries(): List<EntryWithLines>
@@ -110,6 +114,12 @@ interface LedgerDao {
 
     @Insert
     suspend fun insertEntry(entry: JournalEntryEntity)
+
+    @Update
+    suspend fun updateEntry(entry: JournalEntryEntity)
+
+    @Query("DELETE FROM journal_lines WHERE entryId = :entryId")
+    suspend fun deleteLinesForDraft(entryId: String)
 
     @Insert
     suspend fun insertLines(lines: List<JournalLineEntity>)

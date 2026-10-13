@@ -21,6 +21,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     fun observeEntries(): Flow<List<EntryWithLines>> = dao.observeEntries()
 
+    fun observeDraftEntries(): Flow<List<EntryWithLines>> = dao.observeDraftEntries()
+
     fun observeAuditEvents(): Flow<List<AuditEventEntity>> = dao.observeAuditEvents()
 
     fun observeAccountAuditEvents(): Flow<List<AccountAuditEventEntity>> = dao.observeAccountAuditEvents()
@@ -237,6 +239,106 @@ class LedgerRepository(private val database: LedgerDatabase) {
         }
     }
 
+    /** Save or edit a simple income/expense locally without including it in posted accounting. */
+    suspend fun saveSimpleDraft(
+        dateIso: String,
+        description: String,
+        kind: EntryKind,
+        categoryAccountCode: String,
+        paymentAccountCode: String,
+        amountMinor: Long,
+        currencyCode: String = UsdMoney.CURRENCY_CODE,
+        draftId: String? = null,
+    ): String {
+        require(currencyCode == UsdMoney.CURRENCY_CODE) { "Esta versión registra únicamente en dólares estadounidenses (USD)." }
+        val postingDate = PostingDateRange.parse(dateIso, dateIso).startInclusive!!.toString()
+        require(postingDate == dateIso) { "La fecha debe tener el formato AAAA-MM-DD." }
+        val id = draftId ?: UUID.randomUUID().toString()
+        return database.withTransaction {
+            val current = draftId?.let { dao.getEntry(it) }
+            if (draftId != null) require(current?.status == "DRAFT") { "Solo se pueden editar asientos en borrador." }
+            val descriptionClean = description.trim()
+            val lines = makeSimpleEntryLines(id, descriptionClean, kind, categoryAccountCode, paymentAccountCode, amountMinor, currencyCode)
+            val entry = JournalEntryEntity(
+                id = id,
+                entryDate = dateIso,
+                description = descriptionClean,
+                kind = kind.name,
+                categoryAccountCode = categoryAccountCode,
+                paymentAccountCode = paymentAccountCode,
+                currencyCode = currencyCode,
+                amountMinor = amountMinor,
+                status = "DRAFT",
+                createdAt = current?.createdAt ?: Instant.now().toString(),
+            )
+            if (current == null) dao.insertEntry(entry) else dao.updateEntry(entry)
+            if (current != null) dao.deleteLinesForDraft(id)
+            dao.insertLines(lines)
+            dao.insertAuditEvent(
+                AuditEventEntity(
+                    id = UUID.randomUUID().toString(),
+                    entryId = id,
+                    eventType = if (current == null) "DRAFT_CREATED" else "DRAFT_EDITED",
+                    occurredAt = Instant.now().toString(),
+                    eventDate = dateIso,
+                    reason = if (current == null) "Borrador guardado en este dispositivo." else "Borrador editado antes de publicar.",
+                ),
+            )
+            id
+        }
+    }
+
+    /** Final validation is repeated transactionally; the database trigger locks lines and audits the one-way post. */
+    suspend fun postDraft(draftId: String) = database.withTransaction {
+        val entry = dao.getEntry(draftId) ?: throw IllegalArgumentException("No se encontró el borrador.")
+        require(entry.status == "DRAFT") { "Solo se pueden publicar asientos en borrador." }
+        require(entry.kind == EntryKind.INCOME.name || entry.kind == EntryKind.EXPENSE.name) { "Este borrador no es un ingreso o gasto simple." }
+        val postingDate = PostingDateRange.parse(entry.entryDate, entry.entryDate).startInclusive!!.toString()
+        require(postingDate == entry.entryDate) { "La fecha del borrador no es válida." }
+        require(!dao.isDateClosed(postingDate)) { "La fecha pertenece a un periodo cerrado; no se puede publicar." }
+        val expected = makeSimpleEntryLines(
+            entry.id,
+            entry.description,
+            EntryKind.valueOf(entry.kind),
+            entry.categoryAccountCode,
+            entry.paymentAccountCode,
+            entry.amountMinor,
+            entry.currencyCode,
+        )
+        val actual = dao.getLines(entry.id)
+        require(actual.size == expected.size && actual.map { listOf(it.accountCode, it.debitMinor, it.creditMinor, it.currencyCode) }.toSet() ==
+            expected.map { listOf(it.accountCode, it.debitMinor, it.creditMinor, it.currencyCode) }.toSet()) {
+            "Las líneas del borrador no coinciden con el asiento balanceado."
+        }
+        dao.updateEntry(entry.copy(status = "POSTED"))
+    }
+
+    private suspend fun makeSimpleEntryLines(
+        entryId: String,
+        description: String,
+        kind: EntryKind,
+        categoryAccountCode: String,
+        paymentAccountCode: String,
+        amountMinor: Long,
+        currencyCode: String,
+    ): List<JournalLineEntity> {
+        val category = dao.getAccount(categoryAccountCode) ?: throw IllegalArgumentException("La categoría seleccionada no existe.")
+        val payment = dao.getAccount(paymentAccountCode) ?: throw IllegalArgumentException("La cuenta de pago seleccionada no existe.")
+        require(category.active) { "No se pueden registrar movimientos en una cuenta inactiva." }
+        require(payment.active && payment.cashOrBank) { "Selecciona una cuenta activa de Caja o Banco." }
+        val postings = AccountingRules.simpleCashEntry(
+            kind, description, category.code, category.type, payment.code, payment.type, amountMinor, currencyCode,
+        )
+        val names = mapOf(category.code to category.name, payment.code to payment.name)
+        return postings.map { line ->
+            JournalLineEntity(
+                id = UUID.randomUUID().toString(), entryId = entryId, accountCode = line.accountCode,
+                debitMinor = line.debitMinor, creditMinor = line.creditMinor, currencyCode = line.currencyCode,
+                accountNameSnapshot = names.getValue(line.accountCode),
+            )
+        }
+    }
+
     /** Add an exact counter-entry; the immutable original is never changed. */
     suspend fun reversePostedEntry(originalEntryId: String, reversalDateIso: String, reason: String): String {
         ReversalRules.validateRequest(reversalDateIso, reason)
@@ -324,7 +426,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
             val allEntries = dao.getAllEntries()
             val plan = PeriodCloseCalculator.calculate(
                 accounts = allAccounts.map { PeriodCloseAccount(it.code, it.type, it.active) },
-                postings = allEntries.map { entry ->
+                postings = allEntries.filter { it.entry.status == "POSTED" }.map { entry ->
                     PeriodClosePosting(
                         entryDate = entry.entry.entryDate,
                         status = entry.entry.status,

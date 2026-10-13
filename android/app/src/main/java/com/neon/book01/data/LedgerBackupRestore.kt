@@ -51,6 +51,10 @@ object LedgerBackupValidator {
             }
             parseDate(entry.entryDate)
             require(entry.amountMinor >= 0L) { "Un asiento contiene un importe negativo no válido." }
+            require(entry.status == "DRAFT" || entry.status == "POSTED") { "La copia contiene un estado de asiento no válido." }
+            require(entry.status != "DRAFT" || entry.kind == "INCOME" || entry.kind == "EXPENSE") {
+                "La copia contiene un borrador que no es un ingreso o gasto simple."
+            }
             require(entry.categoryAccountCode in accounts && entry.paymentAccountCode in accounts) {
                 "Un asiento hace referencia a una cuenta que no existe."
             }
