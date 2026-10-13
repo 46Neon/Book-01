@@ -1,0 +1,11 @@
+\set ON_ERROR_STOP on
+INSERT INTO public.books (id, name, created_by)
+VALUES ('11000000-0000-0000-0000-000000000001', 'Concurrent proposal test', '00000000-0000-0000-0000-000000000001');
+INSERT INTO public.book_memberships (book_id, user_id, role)
+VALUES ('11000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'owner');
+INSERT INTO public.accounts (id, book_id, code, name, account_type)
+VALUES
+ ('21000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-000000000001', '1000', 'Cash', 'asset'),
+ ('21000000-0000-0000-0000-000000000002', '11000000-0000-0000-0000-000000000001', '4000', 'Income', 'income');
+INSERT INTO public.accounting_periods (id, book_id, name, start_date, end_date)
+VALUES ('31000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-000000000001', '2026', '2026-01-01', '2026-12-31');
