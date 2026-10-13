@@ -107,7 +107,9 @@ class LedgerDraftWorkflowTest {
         repository.initializeBook()
         val badId = repository.saveSimpleDraft("2026-09-20", "Prueba", EntryKind.INCOME, "4000", "1000", 1_000)
         val sql = database.openHelper.writableDatabase
-        sql.execSQL("UPDATE journal_entries SET amountMinor = 2, status = 'POSTED' WHERE id = '$badId'")
+        assertThrows(android.database.SQLException::class.java) {
+            sql.execSQL("UPDATE journal_entries SET amountMinor = 2, status = 'POSTED' WHERE id = '$badId'")
+        }
         assertEquals("DRAFT", database.ledgerDao().getEntry(badId)!!.status)
         assertEquals(1_000L, database.ledgerDao().getEntry(badId)!!.amountMinor)
         assertThrows(android.database.SQLException::class.java) {
