@@ -104,7 +104,7 @@ def test_account_reads_forward_only_caller_bearer_and_scope_book(monkeypatch):
         if request.url.path.endswith("/accounts"):
             return json_response([{
                 "id": CASH, "book_id": BOOK, "code": "1000", "name": "Cash",
-                "account_type": "asset", "active": True,
+                "account_type": "asset", "active": True, "parent_account_id": EQUITY,
             }])
         raise AssertionError(request.url)
 
@@ -115,7 +115,7 @@ def test_account_reads_forward_only_caller_bearer_and_scope_book(monkeypatch):
     )
     assert response.status_code == 200, response.text
     assert response.json() == {
-        "items": [{"id": CASH, "code": "1000", "name": "Cash", "type": "asset", "active": True}],
+        "items": [{"id": CASH, "code": "1000", "name": "Cash", "type": "asset", "active": True, "parentAccountId": EQUITY}],
         "nextCursor": None,
     }
     book_query = calls[0].url.params
@@ -125,6 +125,7 @@ def test_account_reads_forward_only_caller_bearer_and_scope_book(monkeypatch):
     assert account_query["active"] == "eq.true"
     assert account_query["limit"] == "21"
     assert account_query["order"] == "code.asc,id.asc"
+    assert account_query["select"] == "id,book_id,code,name,account_type,active,parent_account_id"
 
 
 def test_cross_book_access_is_not_found_under_rls_and_never_queries_accounts(monkeypatch):
@@ -228,7 +229,7 @@ def test_journal_returns_truthful_database_fields_for_drafts(monkeypatch):
         if request.url.path.endswith("/journal_entries"):
             return json_response([{
                 "id": PERIOD_ENTRY, "book_id": BOOK, "entry_date": "2026-02-02", "description": "draft",
-                "idempotency_key": "key", "currency_code": "USD", "status": "draft",
+                "idempotency_key": "key", "currency_code": "USD", "status": "draft", "counterparty": "Acme Ltd.",
             }])
         if request.url.path.endswith("/journal_entry_lines"):
             return json_response([{"id": "40000000-0000-4000-8000-000000000001", "book_id": BOOK, "journal_entry_id": PERIOD_ENTRY, "account_id": CASH, "line_number": 1, "debit": "1.00", "credit": "0.00", "currency_code": "USD"}, {"id": "40000000-0000-4000-8000-000000000002", "book_id": BOOK, "journal_entry_id": PERIOD_ENTRY, "account_id": EQUITY, "line_number": 2, "debit": "0.00", "credit": "1.00", "currency_code": "USD"}])
@@ -244,6 +245,7 @@ def test_journal_returns_truthful_database_fields_for_drafts(monkeypatch):
     assert entry["id"] == PERIOD_ENTRY
     assert entry["status"] == "draft"
     assert entry["description"] == "draft"
+    assert entry["counterparty"] == "Acme Ltd."
     assert "reference" not in entry
     assert "reversalOfEntryId" not in entry
     assert entry["lines"][0]["debit"] == "1.00"
@@ -308,9 +310,13 @@ def test_api_routes_match_proposal_paths_and_operation_ids():
     assert journal_response == {"$ref": "#/components/schemas/JournalPage"}
     journal = schema["components"]["schemas"]["JournalEntry"]
     assert journal["required"] == ["id", "date", "description", "status", "lines"]
-    assert set(journal["properties"]) == {"id", "date", "description", "status", "lines"}
+    assert set(journal["properties"]) == {"id", "date", "description", "status", "lines", "counterparty"}
     assert journal["properties"]["status"]["enum"] == ["draft", "posted", "void"]
-    assert set(schema["components"]["schemas"]["Account"]["properties"]) == {"id", "code", "name", "type", "active"}
+    account = schema["components"]["schemas"]["Account"]
+    assert set(account["properties"]) == {"id", "code", "name", "type", "active", "parentAccountId"}
+    assert account["required"] == ["id", "code", "name", "type", "active"]
+    assert account["properties"]["parentAccountId"]["anyOf"][0]["format"] == "uuid"
+    assert journal["properties"]["counterparty"]["anyOf"][0]["maxLength"] == 80
 
 
 def test_draft_openapi_contract_matches_live_fastapi_shape():
@@ -331,5 +337,7 @@ def test_draft_openapi_contract_matches_live_fastapi_shape():
     assert set(contract_schemas["JournalLine"]["properties"]) == set(runtime_schemas["JournalLine"]["properties"])
     assert set(contract_schemas["AppliedFilters"]["properties"]) == set(runtime_schemas["AppliedFilters"]["properties"])
     assert contract_schemas["Account"]["properties"]["type"]["enum"] == runtime_schemas["Account"]["properties"]["type"]["enum"]
+    assert contract_schemas["Account"]["properties"]["parentAccountId"]["type"] == ["string", "null"]
+    assert contract_schemas["JournalEntry"]["properties"]["counterparty"]["maxLength"] == 80
     assert contract_schemas["CurrencyCode"]["enum"] == ["USD"]
     assert set(contract["paths"]) == set(runtime["paths"])

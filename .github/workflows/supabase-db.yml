@@ -55,6 +55,8 @@ jobs:
             echo "Applying $migration"
             psql -v ON_ERROR_STOP=1 -f "$migration"
           done
+      - name: Test Room v10 account hierarchy and counterparty alignment
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/account_hierarchy_counterparty.sql
       - name: Test proposal/confirmation transaction RPCs
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/draft_proposals.sql
       - name: Test concurrent confirmation idempotency
