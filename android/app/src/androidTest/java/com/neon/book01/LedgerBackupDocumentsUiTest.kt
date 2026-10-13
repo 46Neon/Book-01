@@ -26,8 +26,22 @@ class LedgerBackupDocumentsUiTest {
             assertTrue("Book-01 did not reach the foreground", device.wait(Until.hasObject(By.pkg(appPackage)), TIMEOUT_MS))
             device.wait(Until.findObject(By.text("Más")), TIMEOUT_MS)
                 ?.click() ?: throw AssertionError("The Más tab was not visible")
-            device.wait(Until.findObject(By.text("Restaurar copia cifrada")), TIMEOUT_MS)
-                ?.click() ?: throw AssertionError("The restore action was not visible")
+            val restoreAction = By.text("Restaurar copia cifrada")
+            var restoreActionVisible = device.wait(Until.hasObject(restoreAction), 500L)
+            for (attempt in 0 until 5) {
+                if (restoreActionVisible) break
+                device.swipe(
+                    device.displayWidth / 2,
+                    device.displayHeight * 3 / 4,
+                    device.displayWidth / 2,
+                    device.displayHeight / 3,
+                    10,
+                )
+                restoreActionVisible = device.wait(Until.hasObject(restoreAction), 1_000L)
+            }
+            assertTrue("The restore action was not visible after scrolling", restoreActionVisible)
+            device.wait(Until.findObject(restoreAction), TIMEOUT_MS)
+                ?.click() ?: throw AssertionError("The restore action could not be clicked")
 
             val pickerOpened = device.wait(Until.hasObject(By.pkg("com.android.documentsui")), TIMEOUT_MS) ||
                 device.wait(Until.hasObject(By.pkg("com.google.android.documentsui")), TIMEOUT_MS)
