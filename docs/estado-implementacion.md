@@ -2,7 +2,7 @@
 
 ## Implementado en el prototipo Android
 
-- Filtros funcionales del Diario para rango inclusivo desde/hasta con validación estricta `AAAA-MM-DD`, búsqueda insensible a mayúsculas en descripción, contraparte y nombre/código de cuenta, cuenta/categoría, tipo ingreso/gasto y estado todos/contabilizados/borradores. Se filtra a nivel de asiento, conserva juntas todas sus líneas y aplica los mismos criterios a borradores y contabilizados; no cambia almacenamiento, informes ni cálculos.
+- Filtros funcionales del Diario para rango inclusivo desde/hasta con validación estricta `AAAA-MM-DD`, búsqueda general insensible a mayúsculas en descripción, contraparte y nombre/código de cuenta, filtro dedicado de contraparte por subcadena (insensible a mayúsculas), cuenta/categoría, tipo ingreso/gasto y estado todos/contabilizados/borradores. Los criterios se combinan y se aplican a nivel de asiento tanto a borradores como a contabilizados; conserva juntas todas sus líneas y no cambia almacenamiento, informes ni cálculos.
 
 - Diario local de asientos sencillos ingreso/gasto en doble partida; Room y las cinco pestañas existentes (Diario, Mayor, Cuentas, Balance y Más).
 - Plan de cuentas editable en nombre/estado, con códigos y tipos inmutables, auditoría append-only e instantáneas del nombre contable.
@@ -19,7 +19,7 @@
 
 ## Pendiente / límites conocidos
 
-- La contraparte opcional ya se captura, persiste en Room v9, se muestra en el Diario y participa en la búsqueda textual. Sigue pendiente un filtro dedicado por contraparte; el filtro no debe confundirse con la API/backend de producción.
+- La contraparte opcional se captura, persiste en Room v9 y se muestra en el Diario. El filtro dedicado ya implementado permite buscar una subcadena de contraparte, se combina con los demás filtros y aplica de forma uniforme a borradores y asientos contabilizados. Esto no equivale a un servicio de búsqueda/backend de producción.
 
 - Este hito no completa la Parte 1; faltan API/backend de producción, sincronización, usuarios/roles, aprobación y hardening de producción. La restauración implementada es deliberadamente estrecha: no recupera sobre un libro existente o personalizado.
 - Exportación/restauración no define una política de respaldo de producción. Siguen pendientes revisión independiente de criptografía y seguridad, gestión de frase/archivo, amenazas, recuperación ante pérdida, retención, disponibilidad y pruebas del flujo SAF en dispositivos reales; el procedimiento está en [`prueba-manual-saf.md`](prueba-manual-saf.md).
@@ -36,3 +36,6 @@ En la revisión del flujo de borradores, GitHub Actions [run 38327256848](https:
 
 El validador de instantáneas autenticadas recibió hardening acotado en [`dcee04e`](https://github.com/46Neon/Book-01/commit/dcee04e238e72c827da833a3a5e4e41f3c321f05) y [`3209fae`](https://github.com/46Neon/Book-01/commit/3209faebcde01f1f828ca903bac298265acaf825). Ahora exige originales de reversa POSTED y elegibles, compara como multiconjunto las líneas exactas debit/credit invertidas y recalcula cada plan de cierre desde movimientos POSTED inclusivos, comparando metadatos y asiento/transferencia. Se añadieron casos autenticados negativos y positivos, incluida restauración transaccional sin escrituras parciales y cierre metadata-only. [Run build 38336118120](https://github.com/46Neon/Book-01/actions/runs/38336118120) pasó las pruebas unitarias, compilación Android-test y APK debug; [run instrumentado 38336123295](https://github.com/46Neon/Book-01/actions/runs/38336123295) pasó **25/25 pruebas** en emulador (0 fallas, 0 errores, 0 omitidas). El [artefacto XML](https://github.com/46Neon/Book-01/actions/runs/38336123295/artifacts/11784513287) conserva los resultados. No se afirma revisión profesional externa ni preparación para producción.
 
+
+
+El filtro dedicado de contraparte se incorporó en [commit `e89c107`](https://github.com/46Neon/Book-01/commit/e89c107c2e595f41c115fa201da676e92d4b1e62), con la expectativa de prueba ajustada en [commit `9dfb5f3`](https://github.com/46Neon/Book-01/commit/9dfb5f35f37078b154813c27ba2e6f7339337fc1). En [run build 38337744833](https://github.com/46Neon/Book-01/actions/runs/38337744833) pasaron pruebas unitarias, compilación de Android-test y APK debug. El [run instrumentado 38337744608](https://github.com/46Neon/Book-01/actions/runs/38337744608) pasó **25/25 pruebas en emulador** (0 fallas, 0 errores, 0 omitidas); el [artefacto XML](https://github.com/46Neon/Book-01/actions/runs/38337744608/artifacts/11786450416) conserva el informe. Esto solo verifica la suite Android en CI y no acredita pruebas SAF en un teléfono físico, backend/sincronización, roles ni revisión profesional externa.
