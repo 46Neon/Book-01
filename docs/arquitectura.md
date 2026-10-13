@@ -3,30 +3,31 @@
 ## Diagrama
 
 ```text
-APK Android
-  Jetpack Compose → casos de uso → repositorios
-                                  ├── Room / SQLite (fuente local para UI)
-                                  └── sync HTTPS
-                                         ↓
-                                API contable → dominio → PostgreSQL
-                                                ├── validación
-                                                ├── autorización
-                                                └── auditoría
+Android (Room / SQLite) ─┐
+Web (Vite) ──────────────┼── HTTPS + sesión Supabase Auth ──> Supabase Edge Functions (Deno/TypeScript)
+                         │                                      ├── accounting-api → PostgREST (JWT usuario + clave pública)
+Conversational client ───┘                                      └── conversational function (pendiente)
+                                                                    ↓
+                                                         PostgreSQL + RLS
+                                                         ├── tenant/book authorization
+                                                         ├── accounting invariants
+                                                         └── audit / guarded RPCs
 
-Chat de otro mantenedor → MCP/API pública documentada → mismos casos de uso
+FastAPI accounting + conversational services: permanecerán en el repo durante la revisión de paridad;
+no son el destino de despliegue aprobado ni se eliminan en esta fase.
 ```
 
-El bloque de chatbot/MCP se muestra solo para definir el límite de integración: **no forma parte de la implementación de Parte 1**.
+El destino de migración aprobado para ambos servicios del servidor es Supabase Edge Functions. La API contable ya tiene una implementación Edge de solo lectura en curso; la función conversacional todavía no está portada. No se afirma despliegue ni paridad live.
 
 ## Decisiones base
 
 - **Android:** Kotlin + Jetpack Compose; navegación y componentes de tabla adaptativos.
 - **Persistencia local:** Room/SQLite, con migraciones versionadas.
 - **Trabajo diferido:** WorkManager para reintentos de sincronización; la UI muestra pendiente/sincronizado/error y no promete sincronización inmediata.
-- **Servidor:** API HTTPS documentada con OpenAPI y PostgreSQL gestionado en Supabase. El framework backend queda por confirmar antes de iniciar ese módulo.
-- **Límite arquitectónico:** APK, web y chatbot no acceden directamente a tablas ni ejecutan SQL; las operaciones pasan por la API y el dominio contable.
-- **Aislamiento:** cada solicitud se autoriza por libro/empresa en servidor; las políticas RLS de PostgreSQL/Supabase serán una defensa adicional, no sustituyen las validaciones del dominio.
-- **Secretos:** `GROQ_API_KEY`, credenciales de conexión y cualquier clave Supabase privilegiada viven solo en el servidor/secrets del despliegue; nunca en APK, navegador, Git ni logs.
+- **Servidor/destino:** ambos servicios FastAPI se portan a Supabase Edge Functions (Deno/TypeScript), con PostgreSQL gestionado por Supabase; Vite y Android siguen siendo clientes. FastAPI queda durante revisión de paridad.
+- **Límite arquitectónico:** APK, web y conversación no acceden directamente a tablas ni ejecutan SQL; las lecturas pasan por el accounting Edge API y cualquier escritura futura por RPCs autorizados y confirmados.
+- **Aislamiento:** la Edge Function verifica el bearer con Supabase Auth y reenvía el mismo JWT con la publishable/anon key a PostgREST; RLS es la autorización final, además de la comprobación explícita de libro en API.
+- **Secretos:** ninguna clave `service_role` va en tráfico de usuario. `GROQ_API_KEY` y cualquier clave privilegiada viven solo como secretos del servidor, nunca en APK, navegador, Git ni logs; Groq requiere una aprobación de privacidad antes de habilitarse.
 
 ## Datos contables iniciales
 

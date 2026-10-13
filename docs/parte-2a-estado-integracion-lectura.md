@@ -1,42 +1,44 @@
-# Parte 2A — corte técnico reproducible de solo lectura
+# Parte 2A — migración a Supabase Edge Functions y paridad de lectura
 
-Estado al 12 de octubre de 2026: se cerraron brechas de esquema/contrato y se añadieron pruebas offline; **no** es una integración live ni completa. La selección de FastAPI sigue siendo provisional y reversible.
+Estado al 13 de octubre de 2026. La arquitectura objetivo aprobada conserva Vite y Android como clientes y migra ambos servicios de servidor a Supabase Edge Functions (Deno/TypeScript). FastAPI permanece en el repositorio para revisión comparada; no se afirma despliegue ni paridad live.
 
-## Qué está preparado
+## Rutas contables cubiertas por `accounting-api`
 
-- La API FastAPI consulta Supabase PostgREST por HTTPS enviando el JWT del usuario y solo la publishable/anon key en `apikey`; sin clave `service_role`, SQL directo, conexión de base de datos ni endpoints de escritura.
-- Las respuestas ahora reflejan campos y enums del esquema migrado: entradas `draft|posted|void`, cuentas `asset|liability|equity|income|expense`, importes USD exactos y descripción/fecha/estado/líneas. Se retiraron del borrador OpenAPI los campos no persistidos de referencia, contraparte, jerarquía de cuenta, reversa y costo. `idempotency_key` no se expone como referencia contable.
-- Listado de asientos admite búsqueda literal por descripción, filtro por cuenta/moneda/estado, fechas inclusivas y cursor. Los importes de la página se suman con `Decimal` desde las líneas realmente leídas. Listado de cuentas no completa datos faltantes con valores inventados.
-- Balance por cuenta y balance de comprobación calculan movimientos `posted`; USD y precision decimal permanecen acotados. El estado de resultados devuelve `501 not_implemented` si encuentra asientos contabilizados porque el esquema no diferencia costos de gastos.
-- La API incluye `GET /api/v1/books`, una lista paginada `id,name` bajo RLS que reenvía el bearer del llamante y usa solo la clave publicable/anon. No acepta identidad de usuario, no usa `service_role` y conserva errores tipados.
-- El servicio conversacional mantiene cinco herramientas de lectura GET para Groq (sin cambios de escritura), USD por defecto y fallo cerrado si falta endpoint/key. Su `GET /v1/books` autenticado reenvía el mismo bearer a la lista contable, limita las páginas a 200 y no llama Groq. Antes de procesar chat, vuelve a verificar el `bookId` elegido por la persona mediante la API contable.
-- La UI se conecta por código a Supabase Auth, carga la lista tras iniciar sesión y presenta un `<select>` accesible con nombres como texto seguro y UUID opacos como valores. Pagina resultados, no pide UUID escrito, deshabilita el chat hasta una selección y muestra un estado explícito cuando no hay libros. Las sesiones/tokens permanecen en memoria y no se guarda lista ni token en almacenamiento del navegador. CORS permite solo GET+POST, orígenes HTTPS exactos y sin cookies. No existe proyecto/servicio live configurado.
-- CORS del servicio acepta solo orígenes HTTPS exactos declarados en `CORS_ALLOWED_ORIGINS`; por defecto no hay acceso cross-origin, y cookies no se permiten. Suites offline cubren bearer/preflight/autorización, además de contratos OpenAPI; CI construye/prueba el cliente Node y el servicio Python.
+Las rutas se exponen bajo `/functions/v1/accounting-api/api/v1` y conservan sus contratos `/api/v1`:
 
-## Verificación reproducible local
+| Ruta | Estado de código Edge |
+|---|---|
+| `GET /books` | Lista paginada bajo RLS. |
+| `GET /books/{bookId}/accounts` | Lista paginada, `activeOnly`, jerarquía. Verifica acceso al libro antes de consultar cuentas. |
+| `GET /books/{bookId}/journal-entries` | Fechas inclusivas, filtro de estado (valores de esquema `draft|posted|void`, por defecto `posted`), cuenta, moneda USD, búsqueda literal y cursor estable; totales corresponden a las líneas de la página. |
+| `GET /books/{bookId}/accounts/{accountId}/balance` | Saldo hasta `asOf` calculado solo con entradas `posted` y lado normal por tipo de cuenta. |
+| `GET /books/{bookId}/reports/trial-balance` | Débitos/créditos iniciales, del período y finales; fechas inclusivas y estados `posted`. |
+| `GET /books/{bookId}/reports/income-statement` | Devuelve cero únicamente cuando no hay entradas `posted` en el período; devuelve `501 not_implemented` si las hay porque el esquema no distingue costo de gasto. No inventa clasificación ni importes. |
 
-Desde la raíz:
+Todos los importes se calculan con centavos enteros `BigInt`, preservando el texto numérico de PostgREST antes de analizar JSON; no se convierten a `Number` para sumas. Las lecturas tienen límites de filas/respuesta, orden estable por clave de ordenación más UUID, parámetros allow-list y errores tipados que no propagan cuerpos del upstream. No hay DML ni SQL arbitrario.
+
+## Seguridad e integración
+
+- El bearer se valida con `GET /auth/v1/user`; las consultas PostgREST reenvían el mismo bearer y usan solamente `SUPABASE_PUBLISHABLE_KEY` o `SUPABASE_ANON_KEY`. RLS sigue siendo la autorización final; ausencia y falta de acceso al libro son indistinguibles.
+- La URL destino se fija por configuración del proyecto. No hay URL introducida por usuario, proxy, redirecciones, `service_role`, ni integración Groq.
+- Las rutas aceptan solo GET/OPTIONS y rechazan parámetros desconocidos, duplicados ambiguos, rango/UUID/moneda/estado inválidos, cursores fuera del límite y escrituras.
+- Se conserva el esquema aditivo reciente de jerarquía de cuentas y contraparte. No se alteró ni eliminó la migración de propuestas/RPC.
+
+## Pruebas y alcance de verificación
+
+La suite Deno en `supabase/functions/accounting-api/index_test.ts` usa `fetch` simulado y cubre Auth, bearer/public key, aislamiento por libro, paginación y validación, cálculos decimales exactos, errores redactados, escritura rechazada e indicación de `redirect: "error"`. Se ejecuta con:
 
 ```sh
-python -m pip install -r backend/requirements.txt
-python -m pytest backend/tests
-python -m pip install -r part2/service/requirements.txt
-python -m pytest part2/service/tests
-cd part2/web && npm ci && npm run check
+deno test supabase/functions/accounting-api/index_test.ts
 ```
 
-Las pruebas usan únicamente transportes sintéticos; no llaman Supabase, Groq ni una URL de producción. Los workflows correspondientes son `.github/workflows/backend-api.yml` y `.github/workflows/part2-service.yml`.
+El workflow `.github/workflows/supabase-functions.yml` verifica Edge Functions. El workflow `.github/workflows/supabase-db.yml` ejecuta Postgres 16, aplica migraciones y prueba RLS, invariantes, jerarquía/contraparte, RPCs y permisos REST. Son resultados separados: las pruebas mock de Deno no sustituyen Postgres.
 
-## Qué falta para probar con datos reales
+**No se usó Supabase CLI, Dashboard, base remota, despliegue ni llamadas live durante esta fase.** No se inspeccionaron efectos de preview hospedado. La verificación con Auth/RLS real queda pendiente.
 
-No hay valores de un proyecto Supabase, usuarios/JWT, clave Groq, despliegue ni hosting disponibles, por lo que no se configuró ni afirmó una conexión live. Antes del despliegue, owner/backend deberá determinar/configurar:
+## Pendiente
 
-**Ajustes no secretos del proyecto/hosting:** URL y project ref de Supabase (`SUPABASE_URL`); URL issuer, audience, proveedor(es) Auth y reglas de sesión; exposición REST del esquema `public`, grants de `authenticated`, migraciones, membership/RLS y libros/usuarios de prueba; URL HTTPS del API contable que incluya `/api/v1` (`ACCOUNTING_API_BASE_URL`); URL HTTPS del servicio y origen web; CORS restringido o routing same-origin; nombre de modelo aprobado (`GROQ_MODEL`, opcional).
-
-**Settings/secret store del entorno servidor (no chat, no repositorio):** publishable/anon key para PostgREST (`SUPABASE_PUBLISHABLE_KEY` o `SUPABASE_ANON_KEY`; no usar service-role); `GROQ_API_KEY` solo después de aprobación de privacidad/procesamiento. Configurar `SUPPORTED_CURRENCIES=USD`, acorde al CHECK de la migración. Nunca persistir bearer JWT de usuario en archivos, logs, localStorage o sessionStorage.
-
-El flujo del cliente ya está cableado, pero falta provisionar proveedor/usuarios y configurar las variables públicas de build (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_CHAT_SERVICE_BASE_URL`) en un hosting HTTPS real. Después de configurar el proyecto, ejecutar pruebas reales de issuer/audience, RLS/no acceso entre libros, solo GET, expiración de sesión, CORS y contrato end-to-end con datos de prueba. Sin ello, este hito es integración de código testeable offline, no una conexión live.
-
-## Revisión de contrato pendiente
-
-La propuesta OpenAPI revisada describe el esquema actual, pero decisiones de producto requieren revisión del owner/backend antes de declararla canónica: estado/status que el asistente debe exponer a usuario final (por defecto conserva `posted`; `draft`/`void` solo si se solicitan), si y cómo se clasifican costo vs. gasto, y si más adelante se añaden referencia, counterparty, parent account o reversas al modelo con migración aditiva, mismas-book FKs, RLS y pruebas. Hasta esas decisiones, la API no deduce esos atributos. La contabilización sigue bloqueada por diseño; este alcance no añade writes.
+- Portar el servicio conversacional como otra Edge Function; no se utilizó Groq ni se hicieron búsquedas web. Falta política aprobada de procesamiento de datos para Groq y proveedor de búsqueda aprobado.
+- Fase 2B: wrapper/UI para propuestas y confirmación de RPC, separado de las lecturas; ningún endpoint Edge de escritura se habilita aquí.
+- Pruebas reales de Supabase Auth/RLS, publicación del esquema y aislamiento multiusuario; configurar y verificar el hosting estático Vite.
+- Comparación final de FastAPI contra Edge y aprobación del contrato canónico antes de retirar servicios FastAPI.

@@ -3,8 +3,8 @@ info:
   title: Book-01 Accounting Read API (proposal)
   version: 0.1.0-draft
   description: >-
-    Proposed read-only contract for Part 2A. Draft for owner/backend review;
-    not yet the repository's canonical API and not a substitute for server implementation.
+    Read-only Part 2A contract proposal with a Supabase Edge Function implementation
+    in parity review. FastAPI remains available for comparison; live Auth/RLS is not verified.
 servers:
   - url: https://{host}/api/v1
     variables:
@@ -292,7 +292,6 @@ components:
           type: string
           enum: [asset, liability, equity, income, expense]
         active: { type: boolean }
-        parentAccountId: { type: [string, 'null'], format: uuid, description: Optional same-book parent account ID; null for root or historical accounts. }
     JournalLine:
       type: object
       required: [id, accountId, debit, credit, currency]
@@ -324,7 +323,6 @@ components:
         lines:
           type: array
           items: { $ref: '#/components/schemas/JournalLine' }
-        counterparty: { type: [string, 'null'], maxLength: 80, description: Optional normalized counterparty; null for historical entries or entries without a counterparty. }
     AppliedFilters:
       type: object
       required: [dateFrom, dateTo]
