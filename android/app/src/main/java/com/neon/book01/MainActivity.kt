@@ -93,6 +93,12 @@ import com.neon.book01.domain.AccountRules
 import com.neon.book01.domain.EntryKind
 import com.neon.book01.domain.GeneralLedgerCalculator
 import com.neon.book01.domain.IncomeStatementReport
+import com.neon.book01.domain.JournalFilterAccount
+import com.neon.book01.domain.JournalFilterCriteria
+import com.neon.book01.domain.JournalFilterRecord
+import com.neon.book01.domain.JournalFilterStatus
+import com.neon.book01.domain.filterJournalRecords
+import com.neon.book01.domain.validateJournalDateRange
 import com.neon.book01.domain.BalanceSheetReport
 import com.neon.book01.domain.FinancialStatementsCalculator
 import com.neon.book01.domain.ClosedPeriodRange
@@ -240,8 +246,6 @@ private fun BookHomeScreen(repository: LedgerRepository) {
     val expenseMinor = operatingSummary.expenseMinor
     val netMinor = UsdMoney.subtractMinorUnits(incomeMinor, expenseMinor)
     val postedEntries = entries.filter { it.entry.status == "POSTED" }
-    val draftEntries = entries.filter { it.entry.status == "DRAFT" }
-    val rowItems = postedEntries.flatMap { entry -> entry.toJournalRows(accounts) }
 
     Scaffold(
         containerColor = BookCanvas,
@@ -291,9 +295,9 @@ private fun BookHomeScreen(repository: LedgerRepository) {
 
             if (selectedTab == 0) {
                 JournalScreen(
-                    rows = rowItems,
+                    entries = entries,
+                    accounts = accounts,
                     currencyCode = currencyCode,
-                    drafts = draftEntries,
                     onEditDraft = { draftBeingEdited = it },
                     onPostDraft = { id ->
                         try {
@@ -301,11 +305,6 @@ private fun BookHomeScreen(repository: LedgerRepository) {
                             snackbarHostState.showSnackbar("Borrador publicado una sola vez y bloqueado para cambios.")
                         } catch (error: Exception) {
                             snackbarHostState.showSnackbar(error.message ?: "No se pudo publicar el borrador.")
-                        }
-                    },
-                    onFilterClick = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Los filtros se incorporarán en la siguiente iteración.")
                         }
                     },
                 )
@@ -760,13 +759,24 @@ private fun SummaryCard(title: String, amount: String, modifier: Modifier = Modi
 
 @Composable
 private fun JournalScreen(
-    rows: List<JournalRow>,
+    entries: List<EntryWithLines>,
+    accounts: List<AccountEntity>,
     currencyCode: String,
-    drafts: List<EntryWithLines>,
     onEditDraft: (EntryWithLines) -> Unit,
     onPostDraft: suspend (String) -> Unit,
-    onFilterClick: () -> Unit,
 ) {
+    var appliedFilters by remember { mutableStateOf(JournalFilterCriteria()) }
+    var showFilterDialog by rememberSaveable { mutableStateOf(false) }
+    val filteredIds = remember(entries, accounts, appliedFilters) {
+        filterJournalRecords(entries.map { it.toJournalFilterRecord(accounts) }, appliedFilters)
+            .mapTo(mutableSetOf()) { it.id }
+    }
+    val matchingEntries = entries.filter { it.entry.id in filteredIds }
+    val drafts = matchingEntries.filter { it.entry.status == "DRAFT" }
+    val postedRows = matchingEntries.filter { it.entry.status == "POSTED" }
+        .flatMap { it.toJournalRows(accounts) }
+    val activeFilters = appliedFilters.hasActiveJournalFilters()
+
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Diario", color = BookInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
@@ -781,17 +791,23 @@ private fun JournalScreen(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Surface(shape = RoundedCornerShape(10.dp), color = Color.White, onClick = { }) {
+        Surface(shape = RoundedCornerShape(10.dp), color = Color.White, onClick = { showFilterDialog = true }) {
             Row(modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Todos los periodos", color = BookInk, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                val periodLabel = when {
+                    appliedFilters.fromDate.isNotEmpty() && appliedFilters.toDate.isNotEmpty() -> "${appliedFilters.fromDate} – ${appliedFilters.toDate}"
+                    appliedFilters.fromDate.isNotEmpty() -> "Desde ${appliedFilters.fromDate}"
+                    appliedFilters.toDate.isNotEmpty() -> "Hasta ${appliedFilters.toDate}"
+                    else -> "Todos los periodos"
+                }
+                Text(periodLabel, color = BookInk, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Elegir periodo", tint = BookMuted, modifier = Modifier.size(18.dp))
             }
         }
-        Surface(shape = RoundedCornerShape(10.dp), color = Color.White, onClick = onFilterClick) {
+        Surface(shape = RoundedCornerShape(10.dp), color = Color.White, onClick = { showFilterDialog = true }) {
             Row(modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.FilterList, contentDescription = null, tint = BookGreen, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(5.dp))
-                Text("Filtrar", color = BookGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (activeFilters) "Filtros activos" else "Filtrar", color = BookGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -800,7 +816,155 @@ private fun JournalScreen(
         DraftEntriesSection(drafts, currencyCode, onEditDraft, onPostDraft)
         Spacer(Modifier.height(12.dp))
     }
-    LedgerTable(rows, currencyCode)
+    LedgerTable(
+        rows = postedRows,
+        currencyCode = currencyCode,
+        emptyTitle = if (activeFilters) "Sin asientos contabilizados coincidentes" else "Todavía no hay asientos",
+        emptyMessage = if (activeFilters) "Prueba otros criterios o limpia los filtros para ver todos los movimientos." else "Usa “Nuevo asiento” para registrar el primero.",
+    )
+
+    if (showFilterDialog) {
+        JournalFilterDialog(
+            criteria = appliedFilters,
+            accounts = accounts,
+            onDismiss = { showFilterDialog = false },
+            onApply = { criteria ->
+                appliedFilters = criteria
+                showFilterDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun JournalFilterDialog(
+    criteria: JournalFilterCriteria,
+    accounts: List<AccountEntity>,
+    onDismiss: () -> Unit,
+    onApply: (JournalFilterCriteria) -> Unit,
+) {
+    var fromDate by rememberSaveable(criteria) { mutableStateOf(criteria.fromDate) }
+    var toDate by rememberSaveable(criteria) { mutableStateOf(criteria.toDate) }
+    var searchText by rememberSaveable(criteria) { mutableStateOf(criteria.searchText) }
+    var accountCode by rememberSaveable(criteria) { mutableStateOf(criteria.accountCode) }
+    var kind by rememberSaveable(criteria) { mutableStateOf(criteria.kind) }
+    var status by rememberSaveable(criteria) { mutableStateOf(criteria.status) }
+    var accountMenuExpanded by remember { mutableStateOf(false) }
+    val dateValidation = validateJournalDateRange(fromDate, toDate)
+    val accountLabel = accounts.firstOrNull { it.code == accountCode }?.let { "${it.code} · ${it.name}" } ?: "Todas las cuentas"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Filtros del diario") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = fromDate,
+                    onValueChange = { fromDate = it },
+                    label = { Text("Desde · AAAA-MM-DD") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = toDate,
+                    onValueChange = { toDate = it },
+                    label = { Text("Hasta · AAAA-MM-DD") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (!dateValidation.isValid) {
+                    Text(dateValidation.error.orEmpty(), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { searchText = it },
+                    label = { Text("Buscar descripción, cuenta o código") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("Cuenta o categoría", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Box {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, BookMuted.copy(alpha = 0.35f)),
+                        onClick = { accountMenuExpanded = true },
+                    ) {
+                        Text(accountLabel, Modifier.padding(horizontal = 12.dp, vertical = 12.dp), color = BookInk, fontSize = 13.sp)
+                    }
+                    DropdownMenu(expanded = accountMenuExpanded, onDismissRequest = { accountMenuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Todas las cuentas") },
+                            onClick = { accountCode = null; accountMenuExpanded = false },
+                        )
+                        accounts.sortedBy { it.code }.forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text("${account.code} · ${account.name}") },
+                                onClick = { accountCode = account.code; accountMenuExpanded = false },
+                            )
+                        }
+                    }
+                }
+                Text("Tipo", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = kind == null, onClick = { kind = null }, label = { Text("Todos") })
+                    FilterChip(selected = kind == "INCOME", onClick = { kind = "INCOME" }, label = { Text("Ingresos") })
+                    FilterChip(selected = kind == "EXPENSE", onClick = { kind = "EXPENSE" }, label = { Text("Gastos") })
+                }
+                Text("Estado", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = status == JournalFilterStatus.ALL, onClick = { status = JournalFilterStatus.ALL }, label = { Text("Todos") })
+                    FilterChip(selected = status == JournalFilterStatus.POSTED, onClick = { status = JournalFilterStatus.POSTED }, label = { Text("Contabilizados") })
+                    FilterChip(selected = status == JournalFilterStatus.DRAFT, onClick = { status = JournalFilterStatus.DRAFT }, label = { Text("Borradores") })
+                }
+                Text(
+                    "Filtro por contraparte: pendiente; el modelo actual no guarda ese dato.",
+                    color = BookMuted,
+                    fontSize = 11.sp,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onApply(JournalFilterCriteria(fromDate, toDate, searchText, accountCode, kind, status)) },
+                enabled = dateValidation.isValid,
+            ) { Text("Aplicar") }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = { onApply(JournalFilterCriteria()) }) { Text("Limpiar") }
+                TextButton(onClick = onDismiss) { Text("Cancelar") }
+            }
+        },
+    )
+}
+
+private fun JournalFilterCriteria.hasActiveJournalFilters(): Boolean =
+    fromDate.isNotEmpty() || toDate.isNotEmpty() || searchText.isNotBlank() || accountCode != null || kind != null || status != JournalFilterStatus.ALL
+
+private fun EntryWithLines.toJournalFilterRecord(accounts: List<AccountEntity>): JournalFilterRecord {
+    val accountNames = accounts.associate { it.code to it.name }
+    val filterAccounts = buildList {
+        add(JournalFilterAccount(entry.categoryAccountCode, accountNames[entry.categoryAccountCode].orEmpty()))
+        add(JournalFilterAccount(entry.paymentAccountCode, accountNames[entry.paymentAccountCode].orEmpty()))
+        lines.forEach { line ->
+            add(JournalFilterAccount(line.accountCode, line.accountNameSnapshot.ifBlank { accountNames[line.accountCode].orEmpty() }))
+        }
+    }
+    return JournalFilterRecord(
+        id = entry.id,
+        dateIso = entry.entryDate,
+        description = entry.description,
+        kind = entry.kind,
+        status = if (entry.status == "DRAFT") JournalFilterStatus.DRAFT else JournalFilterStatus.POSTED,
+        accounts = filterAccounts,
+    )
 }
 
 @Composable
@@ -830,7 +994,7 @@ private fun DraftEntriesSection(
 }
 
 @Composable
-private fun LedgerTable(rows: List<JournalRow>, currencyCode: String) {
+private fun LedgerTable(rows: List<JournalRow>, currencyCode: String, emptyTitle: String, emptyMessage: String) {
     val baseCurrencyRows = rows.filter { it.currencyCode == currencyCode }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -843,9 +1007,9 @@ private fun LedgerTable(rows: List<JournalRow>, currencyCode: String) {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 30.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Todavía no hay asientos", color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text(emptyTitle, color = BookInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 Spacer(Modifier.height(5.dp))
-                Text("Usa “Nuevo asiento” para registrar el primero.", color = BookMuted, fontSize = 12.sp, textAlign = TextAlign.Center)
+                Text(emptyMessage, color = BookMuted, fontSize = 12.sp, textAlign = TextAlign.Center)
             }
         } else {
             Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {

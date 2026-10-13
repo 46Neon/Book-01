@@ -9,6 +9,7 @@ La maqueta aprobada por la persona usuaria guía la primera pantalla del APK. Es
 - Pestañas de libro y filas/columnas con separadores sutiles.
 - Importes alineados a la derecha; fechas, cuentas y descripción legibles.
 - Resúmenes de saldo, ingresos y gastos sobre la tabla.
+- Controles visibles para intervalo de fechas y filtros de texto, cuenta/categoría, tipo y estado; fechas estrictas `AAAA-MM-DD` y acción para limpiar.
 - En móvil, desplazamiento horizontal explícito para columnas adicionales; en tablet, aprovechar más ancho.
 - Cada fila se podrá abrir como detalle; no depender de gestos ocultos para acciones importantes.
 - Estados de borrador, contabilizado, pendiente de sincronización y error deberán distinguirse claramente.
@@ -17,7 +18,7 @@ La maqueta aprobada por la persona usuaria guía la primera pantalla del APK. Es
 
 - Cabecera con nombre del libro y selector.
 - Resumen de cifras del periodo.
-- Hoja Diario con selector de periodo, filtros y tabla.
+- Hoja Diario con selector de periodo, filtros y tabla. El selector abre los filtros por fechas inclusivas; búsqueda de descripción/cuenta/código; cuenta/categoría; ingreso/gasto; y borrador/contabilizado. Borradores y asientos contabilizados se filtran con los mismos criterios, sin separar las líneas del asiento. La contraparte no es filtrable hasta que Room almacene ese dato.
 - Acción principal “Nuevo asiento”.
 - Navegación inferior: Diario, Mayor, Cuentas, Balance y Más.
 

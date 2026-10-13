@@ -2,6 +2,8 @@
 
 ## Implementado en el prototipo Android
 
+- Filtros funcionales del Diario para rango inclusivo desde/hasta con validación estricta `AAAA-MM-DD`, búsqueda insensible a mayúsculas en descripción y nombre/código de cuenta, cuenta/categoría, tipo ingreso/gasto y estado todos/contabilizados/borradores. Se filtra a nivel de asiento, conserva juntas todas sus líneas y aplica los mismos criterios a borradores y contabilizados; no cambia almacenamiento, informes ni cálculos.
+
 - Diario local de asientos sencillos ingreso/gasto en doble partida; Room y las cinco pestañas existentes (Diario, Mayor, Cuentas, Balance y Más).
 - Plan de cuentas editable en nombre/estado, con códigos y tipos inmutables, auditoría append-only e instantáneas del nombre contable.
 - Mayor, balance de comprobación y estados financieros con filtros inclusivos estrictos `AAAA-MM-DD`.
@@ -16,6 +18,8 @@
 - Cada asiento `POSTED` tiene un bloqueo derivado e inmutable con FK al asiento. Las líneas se insertan antes del bloqueo, dentro de la misma transacción; triggers rechazan insertar líneas después del bloqueo y modificar o borrar líneas protegidas. v6→v7 rellena bloqueos para todos los asientos contabilizados existentes; v7→v8 añade guardas para editar borradores y validar su publicación. Restaurar reconstruye bloqueos después de insertar líneas; no se incluyen en la copia cifrada. Los cierres solo de metadatos no crean asiento ni bloqueo.
 
 ## Pendiente / límites conocidos
+
+- El filtro por contraparte permanece pendiente: las entidades y el esquema Room actuales no tienen un campo de contraparte, así que la interfaz lo identifica como no disponible en lugar de inferirlo.
 
 - Este hito no completa la Parte 1; faltan API/backend de producción, sincronización, usuarios/roles, aprobación y hardening de producción. La restauración implementada es deliberadamente estrecha: no recupera sobre un libro existente o personalizado.
 - Exportación/restauración no define una política de respaldo de producción. Siguen pendientes revisión independiente de criptografía y seguridad, gestión de frase/archivo, amenazas, recuperación ante pérdida, retención, disponibilidad y pruebas del flujo SAF en dispositivos reales; el procedimiento está en [`prueba-manual-saf.md`](prueba-manual-saf.md).
