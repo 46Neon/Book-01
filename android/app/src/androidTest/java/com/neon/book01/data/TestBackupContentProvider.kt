@@ -34,10 +34,14 @@ class TestBackupContentProvider : ContentProvider() {
         selectionArgs: Array<out String>?,
     ): Int = 0
 
-    override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
-        val file = backupFile(uri)
+    // Android invokes this across the test APK's provider boundary. Nullable platform
+    // parameters avoid Kotlin's generated Intrinsics call in the provider process.
+    override fun openFile(uri: Uri?, mode: String?): ParcelFileDescriptor {
+        val safeUri = uri ?: throw FileNotFoundException("Missing test document URI")
+        val safeMode = mode ?: throw FileNotFoundException("Missing test document mode")
+        val file = backupFile(safeUri)
         file.parentFile?.mkdirs()
-        val flags = when (mode) {
+        val flags = when (safeMode) {
             "r" -> ParcelFileDescriptor.MODE_READ_ONLY
             "w" -> ParcelFileDescriptor.MODE_WRITE_ONLY or
                 ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_TRUNCATE
@@ -46,8 +50,9 @@ class TestBackupContentProvider : ContentProvider() {
         return ParcelFileDescriptor.open(file, flags)
     }
 
-    private fun backupFile(uri: Uri): File {
-        val name = uri.lastPathSegment ?: throw FileNotFoundException("Missing test document name")
+    private fun backupFile(uri: Uri?): File {
+        val safeUri = uri ?: throw FileNotFoundException("Missing test document URI")
+        val name = safeUri.lastPathSegment ?: throw FileNotFoundException("Missing test document name")
         if (!name.matches(Regex("[A-Za-z0-9._-]{1,80}"))) {
             throw FileNotFoundException("Invalid test document name")
         }
