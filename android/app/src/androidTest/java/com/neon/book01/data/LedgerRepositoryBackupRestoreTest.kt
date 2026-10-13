@@ -78,6 +78,7 @@ class LedgerRepositoryBackupRestoreTest {
         assertThrows(android.database.SQLException::class.java) {
             runBlocking { destination.ledgerDao().updateAccount(destination.ledgerDao().getAccount("5810")!!.copy(parentCode = null)) }
         }
+        Unit
     }
 
     @Test fun nonemptyAndModifiedBooksAreRefusedWithoutPartialWrites() = runBlocking {
