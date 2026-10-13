@@ -21,7 +21,7 @@ Crear el libro contable y su APK Android antes de integrar la experiencia de cha
 ## Experiencia tipo hoja de cálculo
 
 - Pestañas con nombres claros; cuadrícula con encabezados y filas identificables.
-- Filtro por fecha, cuenta, categoría, contraparte y estado; búsqueda textual. En el prototipo actual del Diario ya están implementados fecha inclusiva, cuenta/categoría, tipo ingreso/gasto, estado y búsqueda de descripción/cuenta/código; la contraparte queda pendiente porque el esquema Room no la modela.
+- Filtro por fecha, cuenta, categoría, contraparte y estado; búsqueda textual. En el prototipo actual del Diario ya están implementados fecha inclusiva, cuenta/categoría, tipo ingreso/gasto, estado y búsqueda de descripción/contraparte/cuenta/código. La contraparte opcional se persiste en Room v9; un filtro dedicado por contraparte sigue pendiente.
 - Encabezados y columnas clave persistentes al desplazarse.
 - Totales y periodo visibles; selección de fila para abrir el detalle.
 - En móvil, mostrar columnas prioritarias y abrir el resto en un detalle; en tablet, tabla más ancha.
@@ -53,5 +53,5 @@ El prototipo local admite cierres de rango inclusivo como un asiento USD nuevo, 
 - Mostrar Diario, Plan de cuentas, Mayor, Balance de comprobación y Resultados.
 - Los asientos desbalanceados, los accesos no autorizados y las operaciones duplicadas deben rechazarse.
 - Las correcciones dejan historia consultable.
-- La interfaz permite filtrar y revisar filas con claridad en teléfono y tablet. El filtro de contraparte requiere previamente un campo en el modelo/Room.
+- La interfaz permite filtrar y revisar filas con claridad en teléfono y tablet. El modelo/Room v9 ya incluye contraparte opcional; un filtro dedicado para este campo sigue pendiente.
 - La API documentada permite consultar y crear borradores con los mismos controles.

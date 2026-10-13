@@ -18,7 +18,7 @@ La maqueta aprobada por la persona usuaria guía la primera pantalla del APK. Es
 
 - Cabecera con nombre del libro y selector.
 - Resumen de cifras del periodo.
-- Hoja Diario con selector de periodo, filtros y tabla. El selector abre los filtros por fechas inclusivas; búsqueda de descripción/cuenta/código; cuenta/categoría; ingreso/gasto; y borrador/contabilizado. Borradores y asientos contabilizados se filtran con los mismos criterios, sin separar las líneas del asiento. La contraparte no es filtrable hasta que Room almacene ese dato.
+- Hoja Diario con selector de periodo, filtros y tabla. El selector abre los filtros por fechas inclusivas; búsqueda de descripción/cuenta/código; cuenta/categoría; ingreso/gasto; y borrador/contabilizado. Borradores y asientos contabilizados se filtran con los mismos criterios, sin separar las líneas del asiento. La contraparte opcional se muestra en el Diario y entra en la búsqueda de texto; no existe un filtro dedicado por contraparte.
 - Acción principal “Nuevo asiento”.
 - Navegación inferior: Diario, Mayor, Cuentas, Balance y Más.
 
