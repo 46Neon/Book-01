@@ -1,38 +1,59 @@
-# Supabase schema (initial core)
+# Supabase / Edge Functions target architecture
 
-Supabase Postgres is the shared database source. FastAPI remains Book-01's accounting API and authorization boundary; the APK, web client, and chat service must call that API and must not write directly to database tables. This initial schema supports USD only and makes no foreign-exchange or fiscal-compliance claim.
+Owner-directed target: move both FastAPI server services (the accounting API and Part 2 conversational gateway) to Supabase Edge Functions (Deno/TypeScript), using Supabase Postgres/Auth. The Vite web app and Android APK remain clients and must call the server/API boundary; neither client may connect directly to PostgreSQL or perform table writes. This repository currently contains **only a Deno-testable candidate vertical slice** of that port: `accounting-api` serves books and accounts. It is not a complete backend migration and is not deployed.
 
-## Migration order
+Supabase Edge Functions do not host the Vite static client. A static hosting target and HTTPS domain are still to be selected; no provider or cost is approved by this work. Android remains a separate client.
 
-Apply the SQL files in `supabase/migrations/` in filename order using a reviewed, versioned migration workflow. The current migrations are:
+## Current Edge Function route mapping and parity status
 
-1. `202610120001_initial_core.sql` — creates tenant-scoped books and memberships, USD accounts and periods, draft journal entries and lines, RLS policies, constraints, and trigger-generated append-only audit events. Book-scoped composite foreign keys prevent cross-book references. Money uses PostgreSQL `numeric` (never floating point), with finite, nonnegative, two-decimal validation for USD line amounts; entry idempotency keys are unique per book.
-2. `202610120002_read_only_rest_access.sql` — revokes all table privileges from `PUBLIC`, `anon`, and `authenticated` on the eight Book-01 tables, then grants only `SELECT` to `authenticated`. It documents the intentionally read-only Data API boundary.
+Supabase function base URL is `https://<project-ref>.supabase.co/functions/v1/accounting-api`; the function exposes the `/api/v1` contract suffixes below:
 
-The first migration assumes the standard Supabase `auth` schema, `auth.users`, `auth.uid()` function, and `anon` / `authenticated` database roles already exist. Do not apply it to plain PostgreSQL without those Supabase Auth prerequisites. CI creates minimal test-only equivalents to exercise SQL behavior; that is not a Supabase CLI or hosted-project validation.
+| Existing contract | Edge Function path | Status |
+| --- | --- | --- |
+| `GET /api/v1/books` | `GET /functions/v1/accounting-api/api/v1/books` | Implemented as the initial TypeScript slice; cursor/page-size behavior and response envelope retained. |
+| `GET /api/v1/books/{bookId}/accounts` | `GET /functions/v1/accounting-api/api/v1/books/{bookId}/accounts` | Implemented as the initial TypeScript slice; membership is checked through RLS-visible book lookup. |
+| `GET /api/v1/books/{bookId}/journal-entries` | same suffix under `accounting-api` | Not yet ported; existing FastAPI source remains for parity review. |
+| `GET /api/v1/books/{bookId}/accounts/{accountId}/balance` | same suffix under `accounting-api` | Not yet ported. |
+| `GET /api/v1/books/{bookId}/reports/trial-balance` | same suffix under `accounting-api` | Not yet ported. |
+| `GET /api/v1/books/{bookId}/reports/income-statement` | same suffix under `accounting-api` | Not yet ported; existing API intentionally returns a limitation where cost-vs-expense cannot be faithfully classified. |
+| Part 2 chat/book-list routes | A second conversational Edge Function is not yet implemented. | Not ported. No model integration is configured. |
+| Part 2B proposal creation/confirmation routes | Not yet exposed through an Edge Function. | SQL migration/RPC work exists separately; no client or edge route is complete. |
 
-## Current development project status
+The FastAPI source under `backend/` and `part2/service/` is retained for route-contract/parity review, not declared as the target hosting architecture. The Edge Function slice is read-only and denies unknown paths/parameters and write methods. It calls Auth `/user` to verify the bearer token server-side, derives only the identity returned by Auth, then uses the caller's JWT and publishable key for PostgREST reads. Postgres RLS remains the tenant boundary. It does not accept user/tenant/role claims from clients and does not use a `service_role` secret.
 
-The Supabase organization **Book-01 Free** and development project **Book-01-dev** exist (project ref `qjbduqwwpbnyxwyxfdsj`, East US (Ohio), Free plan). The Data API is enabled, automatic exposure of new tables is disabled, and automatic RLS is enabled. Supabase Auth email provider and email confirmation are enabled; public sign-up is disabled. No Auth users exist. **Neither migration has been applied to the project yet**; there is no production project, real ledger data, or deployed API/chat service. Project setup is not evidence that Book-01 is live-integrated.
+## Function configuration and local testing
 
-Migrations are versioned in this repository; do not make unversioned SQL changes in the Dashboard or run `db reset`. Connect only this development project to GitHub after reviewing the migrations and CI, because GitHub pushes may automatically deploy schema changes. Confirm the target is `Book-01-dev` before any connection or migration application.
+`supabase/config.toml` enables gateway JWT verification for `accounting-api`; the function also verifies the bearer with Supabase Auth. The function reads:
 
-## Data API permissions and posting intentionally blocked
+- `SUPABASE_URL` — Supabase project URL.
+- `SUPABASE_PUBLISHABLE_KEY` (preferred) or `SUPABASE_ANON_KEY` — public project key used in the server-side Auth/PostgREST calls.
+- `CORS_ALLOWED_ORIGINS` — optional comma-separated exact HTTPS origins; unset means browser cross-origin calls are denied. Do not use wildcard origins.
 
-RLS is defense in depth, not a replacement for backend authorization. FastAPI must validate the Supabase JWT issuer, audience, expiry and identity; derive user identity from the verified token rather than client-supplied IDs; and check membership and role for every book-scoped operation.
+No service-role/secret key belongs in source, web, Android, or caller requests. The project URL and publishable key are public configuration, not secrets. The Edge Function does not yet implement the complete existing accounting contract or conversational service. `.github/workflows/supabase-functions.yml` runs Deno type-checking/tests with mocked Auth/PostgREST responses only; it never contacts the hosted project. No local Deno executable was available in the implementation environment, so those tests were authored but not executed there; the workflow result is the next validation gate.
 
-The `anon` role has no table privileges. `authenticated` has `SELECT` only on the eight listed Book-01 tables; direct `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges are intentionally absent. No client may perform direct DML, including edits to draft entries or lines. There is no `post_journal_entry` RPC or other posting transition. Triggers reject inserting/changing entries to `posted` or `void`; do not grant a direct path to `posted`.
+## Migrations and mutation boundary
 
-Before enabling any accounting mutation or posting operation, implement and review a narrow transactional API operation that validates `auth.uid()`, current membership/role, open accounting period and date match, active same-book accounts, at least two lines, balanced debit/credit totals, idempotent repeats, and atomic status change plus audit event. If implemented as `SECURITY DEFINER`, it must use a fixed empty `search_path`, fully qualify objects, revoke default/public execute, and grant execute only to the intended caller role. Direct table updates must remain unable to set status. Add runtime tests for failure and concurrency cases before any write grant is introduced.
+Migrations in filename order:
 
-Never use a `service_role` key in user traffic, browsers, APKs, GitHub, or prompts. Groq must not be configured or used until Elisa explicitly approves sending prompts and accounting results to it. Do not deploy the API or chat service until a hosting provider and HTTPS domain have been selected.
+1. `202610120001_initial_core.sql` — tenant-scoped books and memberships, USD accounts/periods, draft journal entries/lines, RLS, constraints, triggers and audit events.
+2. `202610120002_read_only_rest_access.sql` — removes direct DML from application roles and grants only direct table SELECT to authenticated callers.
+3. `202610130001_draft_proposals.sql` — introduces narrow draft-proposal and confirmation RPCs; it does not enable posting or voiding.
 
-## Tests and validation limits
+Migrations are versioned in this repository. This task did not connect to or inspect the hosted project, apply/rollback migrations, deploy functions, or change cloud resources. Therefore this document makes **no claim** about the present remote migration state or hosted side effects. A successful GitHub Supabase Preview check is not evidence that production/development state has been reviewed or that any endpoint is deployed.
 
-`.github/workflows/supabase-db.yml` runs on PostgreSQL 16. It bootstraps minimal Supabase Auth/roles for CI, applies the baseline migration, runs `supabase/tests/rls_and_invariants.sql`, applies subsequent versioned migrations in filename order, then runs `supabase/tests/read_only_permissions.sql`. The latter checks RLS, the expected SELECT-only grants, and denied direct mutations under the authenticated role. The latest run for commit `64e2049` completed successfully: [run #6](https://github.com/46Neon/Book-01/actions/runs/38330073949). This is PostgreSQL CI with test bootstrap—not a live Supabase Auth/RLS test, not validation with the Supabase CLI, and not API/web/chat/Android end-to-end testing. The run reported GitHub runner/action deprecation notices, not SQL test failures.
+Never weaken direct-DML revocations or use a `service_role` secret for user data operations. The permitted 2B path must call only narrow RPCs; the confirm request may take only an opaque proposal ID plus the caller bearer—not a replacement payload or `confirmed` flag. No model tool may confirm. Before exposing those routes, return the complete canonical proposal payload and expiry through a safe owner-scoped response, preserve atomicity/idempotency/role checks/expiry/audit/draft-only status, and have the UI display it and require an explicit human confirmation action.
 
-The opt-in, read-only live Auth/RLS smoke test is documented in [`docs/supabase-live-rls-smoke-test.md`](../docs/supabase-live-rls-smoke-test.md). It requires two real, controlled test Auth users, distinct books, memberships, and at least one account per book. None have been created. Do not invent users or provision them from the browser; arrange controlled test identities and follow that document. Its success would demonstrate only real Auth-token and PostgREST RLS isolation for those test records, not API or client integration.
+Policy values currently present in SQL/code (roles `owner`, `admin`, `editor` as applicable, maximum 50 lines, 10-minute proposal expiry, 1,000-character line descriptions) are **provisional and unapproved for live use** until owner review.
 
-## Required work before real integration
+## Security, model, provider and release blockers
 
-Implement Part 1's authenticated accounting API and authorization model; add end-to-end tests against the actual development Supabase project (including cross-tenant RLS checks); define controlled test-user provisioning; and document operational backup/restore and migration rollback procedures. The existing Part 2 remains a read-only scaffold and must consume the accounting API rather than connect directly to PostgreSQL. No production readiness or fiscal/legal compliance is claimed.
+- No client-supplied `user_id`, role, or tenant claim is trusted. Every operation must verify Auth server-side and use the caller JWT / RLS for book visibility and authorization.
+- Chat must remain tool-allowlisted and GET-only, except for the explicit 2B proposal and confirm endpoints. No arbitrary SQL, model-authored URLs, or model-triggered write/confirm action.
+- `GROQ_API_KEY` must remain absent/unconfigured until the owner explicitly approves sending private accounting prompts/results to Groq. If later approved, it belongs only in Supabase Function secrets. No private accounting data was sent externally for this slice.
+- No search provider is approved. Do not configure search or request provider keys until the owner chooses a provider and approves data processing.
+- No hosted migration, function deployment, dashboard, CLI, remote validation, or cloud-resource change was performed. Auth deployment/configuration and live RLS/function validation remain pending.
+- Preserve USD-only behavior and the accounting API's bounded inputs/results while porting the remaining read routes; the web/Android clients remain untrusted.
+
+## CI and release status
+
+The existing `.github/workflows/supabase-db.yml` Postgres migration/RLS workflow remains in place. It tests SQL against CI Postgres with test-only Auth scaffolding; it is not hosted Supabase validation. The new Edge Function workflow is likewise local-mock CI, not proof of hosted Auth, RLS, migration, or deployment state. Before releasing, complete API route parity tests, port and test the conversational service, integrate explicit 2B endpoints/UI safely, review provisional policy values with the owner, validate controlled test users against the intended Supabase project, select static web hosting/domain, and receive owner approval for any model/search data processing.

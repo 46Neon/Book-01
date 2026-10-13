@@ -5,3 +5,8 @@ project_id = "book-01"
 [api]
 enabled = true
 schemas = ["public"]
+
+[functions.accounting-api]
+# Gateway verification is defense in depth; the function also calls Auth /user
+# server-side before it forwards the caller JWT to PostgREST.
+verify_jwt = true
