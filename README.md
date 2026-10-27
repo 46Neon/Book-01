@@ -1,8 +1,10 @@
-# Book-01
+# Ariño
 
-Libro contable Android de uso familiar para contadores: una interfaz de tabla inspirada en hojas de cálculo, con controles contables y trazabilidad.
+Aplicación contable Android Ariño, construida sobre el proyecto Book-01: una interfaz de tabla inspirada en hojas de cálculo, con controles contables y trazabilidad.
 
 ## Alcance
+
+La identidad visible de la aplicación es **Ariño**. El `applicationId` permanece como `com.neon.book01` para mantener compatibilidad técnica con instalaciones existentes. La navegación y las funciones implementadas siguen correspondiendo al prototipo descrito en [`android/README.md`](android/README.md); las hojas de ventas, compras y carteras del plan se añadirán en fases posteriores, sin mostrarlas como disponibles antes de implementarlas. La arquitectura y el alcance F0 se documentan en [`docs/arino-f0.md`](docs/arino-f0.md).
 
 Este repositorio corresponde a la **Parte 1**: núcleo del libro contable, backend contable y APK Android. La interfaz conversacional, Groq y el servidor MCP serán responsabilidad de otro mantenedor y no se implementan en esta parte.
 
