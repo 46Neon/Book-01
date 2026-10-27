@@ -50,3 +50,8 @@ Ventas y compras permiten seleccionar un cliente/proveedor y consultar su estado
 ## Acceso al estado de cuenta en los libros auxiliares
 
 El estado de cuenta de solo lectura está disponible directamente en cada libro auxiliar mediante un selector de cliente/proveedor. Muestra las facturas y cobros/pagos guardados que corresponden a la contraparte, con referencia, cambio y saldo corrido; la vista no agrega ni altera registros. La prueba de interfaz comprueba el acceso y el estado inicial sin contraparte seleccionada.
+
+
+## Período inclusivo del estado de cuenta
+
+Se pueden indicar fechas inicial y final (AAAA-MM-DD) para consultar un tramo inclusivo del estado de cuenta. El saldo inicial se deriva de todos los movimientos guardados anteriores a la fecha inicial; los saldos corridos del tramo parten de ese importe y el saldo final coincide con el último saldo calculado (o con el saldo inicial si el tramo no tiene movimientos). Fechas omitidas dejan abierto el extremo correspondiente. Se rechaza el formato de fecha no válido y un rango invertido. La función es de solo lectura y opera en unidades monetarias menores enteras; no crea, altera ni elimina facturas, liquidaciones ni asientos. Las pruebas de dominio cubren límites inclusivos, saldo inicial, períodos vacíos y fechas inválidas.
