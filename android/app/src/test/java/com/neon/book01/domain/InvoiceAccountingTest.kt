@@ -1,1 +1,124 @@
-cGFja2FnZSBjb20ubmVvbi5ib29rMDEuZG9tYWluCgppbXBvcnQgb3JnLmp1bml0LkFzc2VydC5hc3NlcnRFcXVhbHMKaW1wb3J0IG9yZy5qdW5pdC5Bc3NlcnQuYXNzZXJ0VHJ1ZQppbXBvcnQgb3JnLmp1bml0LlRlc3QKaW1wb3J0IG9yZy5qdW5pdC5Bc3NlcnQuZmFpbAoKY2xhc3MgSW52b2ljZUFjY291bnRpbmdUZXN0IHsKICAgIHByaXZhdGUgdmFsIGFjY291bnRzID0gSW52b2ljZUFjY291bnRzKAogICAgICAgIGNhc2hPckJhbmsgPSAiMTAxMCIsIHJlY2VpdmFibGUgPSAiMTEwMCIsIHBheWFibGUgPSAiMjAwMCIsIHJldmVudWUgPSAiNDAwMCIsCiAgICAgICAgcHVyY2hhc2VDb3N0T3JFeHBlbnNlID0gIjUxMDAiLCBvdXRwdXRWYXQgPSAiMjEwMyIsIGlucHV0VmF0ID0gIjExMDUiLCBiYW5rTG9hbkxpYWJpbGl0eSA9ICIyMTAyIiwKICAgICAgICBwdXJjaGFzZVZhdFRyZWF0bWVudCA9IFB1cmNoYXNlVmF0VHJlYXRtZW50LklOUFVUX1RBWF9BU1NFVCwKICAgICkKCiAgICBwcml2YXRlIGZ1biBpbnB1dChraW5kOiBJbnZvaWNlS2luZCwgYmFzZTogTG9uZywgcmF0ZTogSW50ID0gMTYwMCwgcGFpZDogTG9uZyA9IDAsIGNvbmRpdGlvbjogUGF5bWVudENvbmRpdGlvbiA9IFBheW1lbnRDb25kaXRpb24uQ1JFRElUKSA9CiAgICAgICAgSW52b2ljZUlucHV0KGtpbmQsICIyMDI2LTAxLTEwIiwgIkYtMDAxIiwgaWYgKGtpbmQgPT0gSW52b2ljZUtpbmQuU0FMRSkgIkMtMDAxIiBlbHNlIG51bGwsCiAgICAgICAgICAgICJwYXJ0eS0xIiwgIkZhY3R1cmEgZGUgcHJ1ZWJhIiwgYmFzZSwgcmF0ZSwgY29uZGl0aW9uLCBwYWlkLCBhY2NvdW50cy5jYXNoT3JCYW5rKQoKICAgIEBUZXN0IGZ1biBzYWxlMTAwUGx1c1ZhdDE2X3Bvc3RzMTE2KCkgewogICAgICAgIHZhbCBwID0gSW52b2ljZUFjY291bnRpbmcucHJldmlldyhpbnB1dChJbnZvaWNlS2luZC5TQUxFLCAxMF8wMDAsIHBhaWQgPSAxMV82MDAsIGNvbmRpdGlvbiA9IFBheW1lbnRDb25kaXRpb24uQ0FTSCksIGFjY291bnRzKQogICAgICAgIGFzc2VydEVxdWFscygxMV82MDBMLCBwLnRvdGFsTWlub3IpCiAgICAgICAgYXNzZXJ0RXF1YWxzKDFfNjAwTCwgcC52YXRNaW5vcikKICAgICAgICBhc3NlcnRFcXVhbHMoMEwsIHAub3V0c3RhbmRpbmdNaW5vcikKICAgICAgICBhc3NlcnRCYWxhbmNlZChwLmxpbmVzKQogICAgICAgIGFzc2VydExpbmUocC5saW5lcywgIjEwMTAiLCAxMV82MDAsIDApCiAgICAgICAgYXNzZXJ0TGluZShwLmxpbmVzLCAiNDAwMCIsIDAsIDEwXzAwMCkKICAgICAgICBhc3NlcnRMaW5lKHAubGluZXMsICIyMTAzIiwgMCwgMV82MDApCiAgICB9CgogICAgQFRlc3QgZnVuIHB1cmNoYXNlNTBQbHVzVmF0OF9wb3N0czU4KCkgewogICAgICAgIHZhbCBwID0gSW52b2ljZUFjY291bnRpbmcucHJldmlldyhpbnB1dChJbnZvaWNlS2luZC5QVVJDSEFTRSwgNV8wMDAsIHBhaWQgPSA1XzgwMCwgY29uZGl0aW9uID0gUGF5bWVudENvbmRpdGlvbi5DQVNIKS5jb3B5KGludm9pY2VOdW1iZXI9IkMtMDAxIiksIGFjY291bnRzKQogICAgICAgIGFzc2VydEVxdWFscyg1XzgwMEwsIHAudG90YWxNaW5vcikKICAgICAgICBhc3NlcnRFcXVhbHMoODAwTCwgcC52YXRNaW5vcikKICAgICAgICBhc3NlcnRCYWxhbmNlZChwLmxpbmVzKQogICAgICAgIGFzc2VydExpbmUocC5saW5lcywgIjUxMDAiLCA1XzAwMCwgMCkKICAgICAgICBhc3NlcnRMaW5lKHAubGluZXMsICIxMTA1IiwgODAwLCAwKQogICAgICAgIGFzc2VydExpbmUocC5saW5lcywgIjEwMTAiLCAwLCA1XzgwMCkKICAgIH0KCiAgICBAVGVzdCBmdW4gcGFydGlhbFNhbGVPZjUwTGVhdmVzUmVjZWl2YWJsZTY2KCkgewogICAgICAgIHZhbCBwID0gSW52b2ljZUFjY291bnRpbmcucHJldmlldyhpbnB1dChJbnZvaWNlS2luZC5TQUxFLCAxMF8wMDAsIHBhaWQgPSA1XzAwMCksIGFjY291bnRzKQogICAgICAgIGFzc2VydEVxdWFscygxMV82MDBMLCBwLnRvdGFsTWlub3IpCiAgICAgICAgYXNzZXJ0RXF1YWxzKDZfNjAwTCwgcC5vdXRzdGFuZGluZ01pbm9yKQogICAgICAgIGFzc2VydExpbmUocC5saW5lcywgIjEwMTAiLCA1XzAwMCwgMCkKICAgICAgICBhc3NlcnRMaW5lKHAubGluZXMsICIxMTAwIiwgNl82MDAsIDApCiAgICAgICAgYXNzZXJ0QmFsYW5jZWQocC5saW5lcykKICAgIH0KCiAgICBAVGVzdCBmdW4gcHVyY2hhc2UzMFBheTEwTGVhdmVzUGF5YWJsZTIwKCkgewogICAgICAgIHZhbCBwID0gSW52b2ljZUFjY291bnRpbmcucHJldmlldyhpbnB1dChJbnZvaWNlS2luZC5QVVJDSEFTRSwgM18wMDAsIHJhdGUgPSAwLCBwYWlkID0gMV8wMDApLCBhY2NvdW50cykKICAgICAgICBhc3NlcnRFcXVhbHMoMl8wMDBMLCBwLm91dHN0YW5kaW5nTWlub3IpCiAgICAgICAgYXNzZXJ0TGluZShwLmxpbmVzLCAiNTEwMCIsIDNfMDAwLCAwKQogICAgICAgIGFzc2VydExpbmUocC5saW5lcywgIjEwMTAiLCAwLCAxXzAwMCkKICAgICAgICBhc3NlcnRMaW5lKHAubGluZXMsICIyMDAwIiwgMCwgMl8wMDApCiAgICAgICAgYXNzZXJ0QmFsYW5jZWQocC5saW5lcykKICAgIH0KCiAgICBAVGVzdCBmdW4gbGF0ZXJDb2xsZWN0aW9uQW5kUGF5bWVudEFyZUJhbGFuY2VkQW5kTGlua2VkQnlBcHBsaWNhdGlvbigpIHsKICAgICAgICB2YWwgY29sbGVjdGlvbiA9IEludm9pY2VBY2NvdW50aW5nLnNldHRsZW1lbnQoSW52b2ljZUtpbmQuU0FMRSwgNl82MDAsIGFjY291bnRzLmNhc2hPckJhbmssIGFjY291bnRzKQogICAgICAgIGFzc2VydExpbmUoY29sbGVjdGlvbiwgIjEwMTAiLCA2XzYwMCwgMCkKICAgICAgICBhc3NlcnRMaW5lKGNvbGxlY3Rpb24sICIxMTAwIiwgMCwgNl82MDApCiAgICAgICAgYXNzZXJ0QmFsYW5jZWQoY29sbGVjdGlvbikKICAgICAgICB2YWwgcGF5bWVudCA9IEludm9pY2VBY2NvdW50aW5nLnNldHRsZW1lbnQoSW52b2ljZUtpbmQuUFVSQ0hBU0UsIDJfMDAwLCBhY2NvdW50cy5jYXNoT3JCYW5rLCBhY2NvdW50cykKICAgICAgICBhc3NlcnRMaW5lKHBheW1lbnQsICIyMDAwIiwgMl8wMDAsIDApCiAgICAgICAgYXNzZXJ0TGluZShwYXltZW50LCAiMTAxMCIsIDAsIDJfMDAwKQogICAgICAgIGFzc2VydEJhbGFuY2VkKHBheW1lbnQpCiAgICB9CgogICAgQFRlc3QgZnVuIGxvYW5SZWNlaXB0SXNMaWFiaWxpdHlOb3RJbmNvbWUoKSB7CiAgICAgICAgdmFsIGxpbmVzID0gSW52b2ljZUFjY291bnRpbmcubG9hblJlY2VpcHQoNTAwXzAwMCwgYWNjb3VudHMuY2FzaE9yQmFuaywgYWNjb3VudHMuYmFua0xvYW5MaWFiaWxpdHkpCiAgICAgICAgYXNzZXJ0TGluZShsaW5lcywgIjEwMTAiLCA1MDBfMDAwLCAwKQogICAgICAgIGFzc2VydExpbmUobGluZXMsICIyMTAyIiwgMCwgNTAwXzAwMCkKICAgICAgICBhc3NlcnRUcnVlKGxpbmVzLm5vbmUgeyBpdC5hY2NvdW50Q29kZSA9PSBhY2NvdW50cy5yZXZlbnVlIH0pCiAgICAgICAgYXNzZXJ0QmFsYW5jZWQobGluZXMpCiAgICB9CgogICAgQFRlc3QgZnVuIGluc3VmZmljaWVudEZ1bmRzQXJlUmVqZWN0ZWQoKSB7CiAgICAgICAgZXhwZWN0RmFpbHVyZSB7IEludm9pY2VBY2NvdW50aW5nLnJlcXVpcmVTdWZmaWNpZW50RnVuZHMoOTk5LCAxXzAwMCkgfQogICAgfQoKICAgIEBUZXN0IGZ1biBjb25maWd1cmFibGVWYXRSYXRlVXNlc0V4YWN0Q2VudHMoKSB7CiAgICAgICAgdmFsIHAgPSBJbnZvaWNlQWNjb3VudGluZy5wcmV2aWV3KGlucHV0KEludm9pY2VLaW5kLlNBTEUsIDEwXzAwMCwgcmF0ZSA9IDgyNSwgcGFpZCA9IDEwXzgyNSksIGFjY291bnRzKQogICAgICAgIGFzc2VydEVxdWFscyg4MjVMLCBwLnZhdE1pbm9yKQogICAgICAgIGFzc2VydEVxdWFscygxMF84MjVMLCBwLnRvdGFsTWlub3IpCiAgICAgICAgYXNzZXJ0QmFsYW5jZWQocC5saW5lcykKICAgIH0KCiAgICBAVGVzdCBmdW4gc2FsZVJlcXVpcmVzQ29udHJvbE51bWJlckJ1dFB1cmNoYXNlRG9lc05vdCgpIHsKICAgICAgICBleHBlY3RGYWlsdXJlIHsgSW52b2ljZUFjY291bnRpbmcucHJldmlldyhpbnB1dChJbnZvaWNlS2luZC5TQUxFLCAxMF8wMDApLmNvcHkoY29udHJvbE51bWJlciA9IG51bGwpLCBhY2NvdW50cykgfQogICAgICAgIHZhbCBwdXJjaGFzZSA9IEludm9pY2VBY2NvdW50aW5nLnByZXZpZXcoaW5wdXQoSW52b2ljZUtpbmQuUFVSQ0hBU0UsIDEwXzAwMCwgcmF0ZSA9IDApLCBhY2NvdW50cykKICAgICAgICBhc3NlcnRFcXVhbHMoMTBfMDAwTCwgcHVyY2hhc2UudG90YWxNaW5vcikKICAgIH0KCiAgICBAVGVzdCBmdW4gY2FzaEludm9pY2VNdXN0QmVGdWxseVNldHRsZWRUb2RheSgpIHsKICAgICAgICBleHBlY3RGYWlsdXJlIHsgSW52b2ljZUFjY291bnRpbmcucHJldmlldyhpbnB1dChJbnZvaWNlS2luZC5TQUxFLCAxMF8wMDAsIHBhaWQgPSA1XzAwMCwgY29uZGl0aW9uID0gUGF5bWVudENvbmRpdGlvbi5DQVNIKSwgYWNjb3VudHMpIH0KICAgIH0KCiAgICBAVGVzdCBmdW4gZHVwbGljYXRlSXNTY29wZWRCeUtpbmRBbmRSZWdpc3RlcmVkUGFydHkoKSB7CiAgICAgICAgdmFsIGV4aXN0aW5nID0gc2V0T2YoSW52b2ljZUFjY291bnRpbmcuZHVwbGljYXRlS2V5KEludm9pY2VLaW5kLlNBTEUsICJjbGllbnQtMSIsICJGLTAwMSIpKQogICAgICAgIGV4cGVjdEZhaWx1cmUgeyBJbnZvaWNlQWNjb3VudGluZy5yZXF1aXJlVW5pcXVlSW52b2ljZShleGlzdGluZywgSW52b2ljZUtpbmQuU0FMRSwgIkNMSUVOVC0xIiwgImYtMDAxIikgfQogICAgICAgIEludm9pY2VBY2NvdW50aW5nLnJlcXVpcmVVbmlxdWVJbnZvaWNlKGV4aXN0aW5nLCBJbnZvaWNlS2luZC5TQUxFLCAiY2xpZW50LTIiLCAiRi0wMDEiKQogICAgICAgIEludm9pY2VBY2NvdW50aW5nLnJlcXVpcmVVbmlxdWVJbnZvaWNlKGV4aXN0aW5nLCBJbnZvaWNlS2luZC5QVVJDSEFTRSwgImNsaWVudC0xIiwgIkYtMDAxIikKICAgIH0KCiAgICBwcml2YXRlIGZ1biBhc3NlcnRMaW5lKGxpbmVzOiBMaXN0PFBvc3RpbmdMaW5lUHJvcG9zYWw+LCBhY2NvdW50OiBTdHJpbmcsIGRlYml0OiBMb25nLCBjcmVkaXQ6IExvbmcpIHsKICAgICAgICB2YWwgbGluZSA9IGxpbmVzLnNpbmdsZSB7IGl0LmFjY291bnRDb2RlID09IGFjY291bnQgfQogICAgICAgIGFzc2VydEVxdWFscyhkZWJpdCwgbGluZS5kZWJpdE1pbm9yKQogICAgICAgIGFzc2VydEVxdWFscyhjcmVkaXQsIGxpbmUuY3JlZGl0TWlub3IpCiAgICB9CgogICAgcHJpdmF0ZSBmdW4gYXNzZXJ0QmFsYW5jZWQobGluZXM6IExpc3Q8UG9zdGluZ0xpbmVQcm9wb3NhbD4pID0KICAgICAgICBhc3NlcnRFcXVhbHMobGluZXMuc3VtT2YgeyBpdC5kZWJpdE1pbm9yIH0sIGxpbmVzLnN1bU9mIHsgaXQuY3JlZGl0TWlub3IgfSkKCiAgICBwcml2YXRlIGZ1biBleHBlY3RGYWlsdXJlKGJsb2NrOiAoKSAtPiBVbml0KSB7CiAgICAgICAgdHJ5IHsgYmxvY2soKTsgZmFpbCgiU2UgZXNwZXJhYmEgdW5hIHZhbGlkYWNpw7NuIGZhbGxpZGEiKSB9IGNhdGNoIChfOiBJbGxlZ2FsQXJndW1lbnRFeGNlcHRpb24pIHsgfQogICAgfQp9Cg==
+package com.neon.book01.domain
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.Assert.fail
+
+class InvoiceAccountingTest {
+    private val accounts = InvoiceAccounts(
+        cashOrBank = "1010", receivable = "1100", payable = "2000", revenue = "4000",
+        purchaseCostOrExpense = "5100", outputVat = "2103", inputVat = "1105", bankLoanLiability = "2102",
+        purchaseVatTreatment = PurchaseVatTreatment.INPUT_TAX_ASSET,
+    )
+
+    private fun input(kind: InvoiceKind, base: Long, rate: Int = 1600, paid: Long = 0, condition: PaymentCondition = PaymentCondition.CREDIT) =
+        InvoiceInput(kind, "2026-01-10", "F-001", if (kind == InvoiceKind.SALE) "C-001" else null,
+            "party-1", "Factura de prueba", base, rate, condition, paid, accounts.cashOrBank)
+
+    @Test fun sale100PlusVat16_posts116() {
+        val p = InvoiceAccounting.preview(input(InvoiceKind.SALE, 10_000, paid = 11_600, condition = PaymentCondition.CASH), accounts)
+        assertEquals(11_600L, p.totalMinor)
+        assertEquals(1_600L, p.vatMinor)
+        assertEquals(0L, p.outstandingMinor)
+        assertBalanced(p.lines)
+        assertLine(p.lines, "1010", 11_600, 0)
+        assertLine(p.lines, "4000", 0, 10_000)
+        assertLine(p.lines, "2103", 0, 1_600)
+    }
+
+    @Test fun purchase50PlusVat8_posts58() {
+        val p = InvoiceAccounting.preview(input(InvoiceKind.PURCHASE, 5_000, paid = 5_800, condition = PaymentCondition.CASH).copy(invoiceNumber="C-001"), accounts)
+        assertEquals(5_800L, p.totalMinor)
+        assertEquals(800L, p.vatMinor)
+        assertBalanced(p.lines)
+        assertLine(p.lines, "5100", 5_000, 0)
+        assertLine(p.lines, "1105", 800, 0)
+        assertLine(p.lines, "1010", 0, 5_800)
+    }
+
+    @Test fun partialSaleOf50LeavesReceivable66() {
+        val p = InvoiceAccounting.preview(input(InvoiceKind.SALE, 10_000, paid = 5_000), accounts)
+        assertEquals(11_600L, p.totalMinor)
+        assertEquals(6_600L, p.outstandingMinor)
+        assertLine(p.lines, "1010", 5_000, 0)
+        assertLine(p.lines, "1100", 6_600, 0)
+        assertBalanced(p.lines)
+    }
+
+    @Test fun purchase30Pay10LeavesPayable20() {
+        val p = InvoiceAccounting.preview(input(InvoiceKind.PURCHASE, 3_000, rate = 0, paid = 1_000), accounts)
+        assertEquals(2_000L, p.outstandingMinor)
+        assertLine(p.lines, "5100", 3_000, 0)
+        assertLine(p.lines, "1010", 0, 1_000)
+        assertLine(p.lines, "2000", 0, 2_000)
+        assertBalanced(p.lines)
+    }
+
+    @Test fun laterCollectionAndPaymentAreBalancedAndLinkedByApplication() {
+        val collection = InvoiceAccounting.settlement(InvoiceKind.SALE, 6_600, accounts.cashOrBank, accounts)
+        assertLine(collection, "1010", 6_600, 0)
+        assertLine(collection, "1100", 0, 6_600)
+        assertBalanced(collection)
+        val payment = InvoiceAccounting.settlement(InvoiceKind.PURCHASE, 2_000, accounts.cashOrBank, accounts)
+        assertLine(payment, "2000", 2_000, 0)
+        assertLine(payment, "1010", 0, 2_000)
+        assertBalanced(payment)
+    }
+
+    @Test fun settlementCannotPrecedeInvoiceDate() {
+        InvoiceAccounting.requireSettlementDateNotBeforeInvoice("2026-01-10", "2026-01-10")
+        InvoiceAccounting.requireSettlementDateNotBeforeInvoice("2026-01-10", "2026-01-11")
+        expectFailure { InvoiceAccounting.requireSettlementDateNotBeforeInvoice("2026-01-10", "2026-01-09") }
+        expectFailure { InvoiceAccounting.requireSettlementDateNotBeforeInvoice("2026-02-30", "2026-03-01") }
+    }
+
+    @Test fun loanReceiptIsLiabilityNotIncome() {
+        val lines = InvoiceAccounting.loanReceipt(500_000, accounts.cashOrBank, accounts.bankLoanLiability)
+        assertLine(lines, "1010", 500_000, 0)
+        assertLine(lines, "2102", 0, 500_000)
+        assertTrue(lines.none { it.accountCode == accounts.revenue })
+        assertBalanced(lines)
+    }
+
+    @Test fun insufficientFundsAreRejected() {
+        expectFailure { InvoiceAccounting.requireSufficientFunds(999, 1_000) }
+    }
+
+    @Test fun configurableVatRateUsesExactCents() {
+        val p = InvoiceAccounting.preview(input(InvoiceKind.SALE, 10_000, rate = 825, paid = 10_825), accounts)
+        assertEquals(825L, p.vatMinor)
+        assertEquals(10_825L, p.totalMinor)
+        assertBalanced(p.lines)
+    }
+
+    @Test fun saleRequiresControlNumberButPurchaseDoesNot() {
+        expectFailure { InvoiceAccounting.preview(input(InvoiceKind.SALE, 10_000).copy(controlNumber = null), accounts) }
+        val purchase = InvoiceAccounting.preview(input(InvoiceKind.PURCHASE, 10_000, rate = 0), accounts)
+        assertEquals(10_000L, purchase.totalMinor)
+    }
+
+    @Test fun cashInvoiceMustBeFullySettledToday() {
+        expectFailure { InvoiceAccounting.preview(input(InvoiceKind.SALE, 10_000, paid = 5_000, condition = PaymentCondition.CASH), accounts) }
+    }
+
+    @Test fun duplicateIsScopedByKindAndRegisteredParty() {
+        val existing = setOf(InvoiceAccounting.duplicateKey(InvoiceKind.SALE, "client-1", "F-001"))
+        expectFailure { InvoiceAccounting.requireUniqueInvoice(existing, InvoiceKind.SALE, "CLIENT-1", "f-001") }
+        InvoiceAccounting.requireUniqueInvoice(existing, InvoiceKind.SALE, "client-2", "F-001")
+        InvoiceAccounting.requireUniqueInvoice(existing, InvoiceKind.PURCHASE, "client-1", "F-001")
+    }
+
+    private fun assertLine(lines: List<PostingLineProposal>, account: String, debit: Long, credit: Long) {
+        val line = lines.single { it.accountCode == account }
+        assertEquals(debit, line.debitMinor)
+        assertEquals(credit, line.creditMinor)
+    }
+
+    private fun assertBalanced(lines: List<PostingLineProposal>) =
+        assertEquals(lines.sumOf { it.debitMinor }, lines.sumOf { it.creditMinor })
+
+    private fun expectFailure(block: () -> Unit) {
+        try { block(); fail("Se esperaba una validación fallida") } catch (_: IllegalArgumentException) { }
+    }
+}
