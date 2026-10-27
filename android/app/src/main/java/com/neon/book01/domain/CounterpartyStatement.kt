@@ -80,6 +80,40 @@ fun buildCounterpartyStatement(
     }
 }
 
+/** Inclusive, display-only slice of a statement; balances remain anchored to prior movements. */
+data class CounterpartyStatementPeriod(
+    val openingBalanceMinor: Long,
+    val movements: List<CounterpartyStatementMovement>,
+    val closingBalanceMinor: Long,
+)
+
+/** Returns movements in optional inclusive ISO date bounds, rebasing balances on all prior rows. */
+fun counterpartyStatementForPeriod(
+    movements: List<CounterpartyStatementMovement>,
+    fromDate: String? = null,
+    throughDate: String? = null,
+): CounterpartyStatementPeriod {
+    fun parseBound(value: String?): LocalDate? = value?.takeIf { it.isNotBlank() }?.let {
+        LocalDate.parse(it).also { parsed -> require(parsed.toString() == it) { "La fecha debe estar en formato AAAA-MM-DD." } }
+    }
+    val from = parseBound(fromDate)
+    val through = parseBound(throughDate)
+    require(from == null || through == null || !from.isAfter(through)) { "La fecha inicial no puede ser posterior a la fecha final." }
+    val opening = if (from == null) 0L else movements.asSequence()
+        .filter { LocalDate.parse(it.date).isBefore(from) }
+        .fold(0L) { balance, movement -> Math.addExact(balance, movement.changeMinor) }
+    val selected = movements.filter { movement ->
+        val date = LocalDate.parse(movement.date)
+        (from == null || !date.isBefore(from)) && (through == null || !date.isAfter(through))
+    }
+    var balance = opening
+    val displayed = selected.map { movement ->
+        balance = Math.addExact(balance, movement.changeMinor)
+        movement.copy(balanceAfterMinor = balance)
+    }
+    return CounterpartyStatementPeriod(opening, displayed, balance)
+}
+
 private data class RawMovement(
     val date: String,
     val kind: StatementMovementKind,
