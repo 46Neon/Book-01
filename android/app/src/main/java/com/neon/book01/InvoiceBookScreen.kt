@@ -119,6 +119,7 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(if (initialKind == InvoiceKind.SALE) "Saldos por cliente" else "Saldos por proveedor", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
                 Text("Saldo pendiente y vencido calculados desde facturas y abonos guardados · al $asOf", color = Color(0xFF6B778C), fontSize = 11.sp)
+                Text("Orden: mayor saldo vencido, luego saldo pendiente y nombre", color = Color(0xFF6B778C), fontSize = 11.sp)
                 val openBalances = balanceSummaries.filter { it.outstandingMinor > 0L }
                 if (openBalances.isEmpty()) {
                     Text("Sin saldos pendientes.", color = Color(0xFF6B778C), fontSize = 12.sp)
