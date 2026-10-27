@@ -269,8 +269,10 @@ class LedgerRepository(private val database: LedgerDatabase) {
             require(purchaseDestination.active && purchaseDestination.type in setOf("EXPENSE", "ASSET")) {
                 "La cuenta de destino de compra debe ser costo/gasto o activo según la clasificación del proveedor."
             }
-            if (input.kind == com.neon.book01.domain.InvoiceKind.SALE) requireAccount(effectiveAccounts.outputVat, "LIABILITY")
-            if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && effectiveAccounts.purchaseVatTreatment == com.neon.book01.domain.PurchaseVatTreatment.INPUT_TAX_ASSET) requireAccount(effectiveAccounts.inputVat, "ASSET")
+            if (input.kind == com.neon.book01.domain.InvoiceKind.SALE && effectivePreview.vatMinor > 0) requireAccount(effectiveAccounts.outputVat, "LIABILITY")
+            if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && effectivePreview.vatMinor > 0 && effectiveAccounts.purchaseVatTreatment == com.neon.book01.domain.PurchaseVatTreatment.INPUT_TAX_ASSET) {
+                requireAccount(effectiveAccounts.inputVat, "ASSET")
+            }
             if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && input.paidTodayMinor > 0) {
                 com.neon.book01.domain.InvoiceAccounting.requireSufficientFunds(dao.accountBalanceMinor(cash.code), input.paidTodayMinor)
             }
