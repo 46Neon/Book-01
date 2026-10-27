@@ -42,6 +42,44 @@ class CounterpartyStatementTest {
         assertEquals(8_000L, rows.last().balanceAfterMinor)
     }
 
+    @Test fun periodUsesInclusiveBoundsAndRebasesRunningBalancesFromPriorMovements() {
+        val statement = buildCounterpartyStatement(
+            "customer",
+            listOf(
+                StatementInvoiceInput("before", "customer", "B-1", "2026-09-30", 1_000),
+                StatementInvoiceInput("inside", "customer", "I-1", "2026-10-01", 500),
+                StatementInvoiceInput("after", "customer", "A-1", "2026-10-04", 300),
+            ),
+            listOf(StatementSettlementInput("pay", "before", "2026-10-03", 250)),
+        )
+        val period = counterpartyStatementForPeriod(statement, "2026-10-01", "2026-10-03")
+        assertEquals(1_000L, period.openingBalanceMinor)
+        assertEquals(listOf("2026-10-01", "2026-10-03"), period.movements.map { it.date })
+        assertEquals(listOf(1_500L, 1_250L), period.movements.map { it.balanceAfterMinor })
+        assertEquals(1_250L, period.closingBalanceMinor)
+    }
+
+    @Test fun emptyPeriodKeepsOpeningAsClosingAndOpenBoundsAreSupported() {
+        val statement = buildCounterpartyStatement(
+            "c", listOf(StatementInvoiceInput("i", "c", "1", "2026-01-01", 1_000)), emptyList(),
+        )
+        val empty = counterpartyStatementForPeriod(statement, "2026-02-01", "2026-02-28")
+        assertEquals(1_000L, empty.openingBalanceMinor)
+        assertTrue(empty.movements.isEmpty())
+        assertEquals(1_000L, empty.closingBalanceMinor)
+        assertEquals(1_000L, counterpartyStatementForPeriod(statement, throughDate = "2026-01-01").closingBalanceMinor)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsReversedDateRange() {
+        counterpartyStatementForPeriod(emptyList(), "2026-02-02", "2026-02-01")
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonIsoDateRange() {
+        counterpartyStatementForPeriod(emptyList(), "10/01/2026", null)
+    }
+
     @Test fun sameDayInvoicePrecedesItsSettlementAndFinalBalanceIsOutstanding() {
         val actual = buildCounterpartyStatement(
             "vendor",
