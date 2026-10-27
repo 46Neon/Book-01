@@ -6,6 +6,7 @@ data class InvoiceBalanceInput(
     val invoiceId: String,
     val counterpartyId: String,
     val totalMinor: Long,
+    val invoiceDate: String,
     val dueDate: String?,
 )
 
@@ -72,6 +73,10 @@ fun summarizeCounterpartyBalances(
     invoices.forEach { invoice ->
         require(invoice.invoiceId.isNotBlank() && invoice.counterpartyId.isNotBlank())
         require(invoice.totalMinor >= 0L) { "El total de la factura no puede ser negativo." }
+        val issueDate = runCatching { LocalDate.parse(invoice.invoiceDate) }.getOrElse {
+            throw IllegalArgumentException("La fecha de la factura no es válida.")
+        }
+        if (issueDate.isAfter(asOf)) return@forEach
         val settled = settledByInvoice[invoice.invoiceId] ?: 0L
         require(settled <= invoice.totalMinor) { "Los abonos superan el total de la factura." }
         val pending = Math.subtractExact(invoice.totalMinor, settled)
