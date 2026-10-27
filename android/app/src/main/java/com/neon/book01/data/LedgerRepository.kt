@@ -264,7 +264,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 com.neon.book01.domain.InvoiceKind.SALE -> {
                     requireAccount(effectiveAccounts.receivable, "ASSET")
                     requireAccount(effectiveAccounts.revenue, "INCOME")
-                    requireAccount(effectiveAccounts.outputVat, "LIABILITY")
+                    if (effectivePreview.vatMinor > 0) requireAccount(effectiveAccounts.outputVat, "LIABILITY")
                 }
                 com.neon.book01.domain.InvoiceKind.PURCHASE -> {
                     requireAccount(effectiveAccounts.payable, "LIABILITY")
