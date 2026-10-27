@@ -91,6 +91,7 @@ import com.neon.book01.data.LedgerBackupSnapshot
 import com.neon.book01.data.LedgerDatabase
 import com.neon.book01.data.LedgerRepository
 import com.neon.book01.domain.AccountRules
+import com.neon.book01.domain.AccountNatureRules
 import com.neon.book01.domain.CounterpartyRules
 import com.neon.book01.domain.SupportReferenceRules
 import com.neon.book01.domain.EntryKind
@@ -1367,6 +1368,7 @@ private fun AccountsScreen(
                     TableCell("Nombre", 160.dp, isHeader = true)
                     TableCell("Cuenta padre", 160.dp, isHeader = true)
                     TableCell("Tipo", 120.dp, isHeader = true)
+                    TableCell("Aumenta por", 112.dp, isHeader = true)
                     TableCell("Estado", 88.dp, isHeader = true)
                     TableCell("Uso", 110.dp, isHeader = true)
                     TableCell("Acciones", 100.dp, isHeader = true)
@@ -1380,6 +1382,7 @@ private fun AccountsScreen(
                         } ?: "—"
                         TableCell(parentLabel, 160.dp, color = BookMuted)
                         TableCell(accountTypeLabel(account.type), 120.dp, color = BookMuted)
+                        TableCell(AccountNatureRules.increaseSideLabel(account.type), 112.dp, color = BookMuted)
                         TableCell(if (account.active) "Activa" else "Inactiva", 88.dp, color = if (account.active) BookGreen else BookMuted)
                         TableCell(if (account.cashOrBank) "Caja/Banco" else "General", 110.dp, color = BookMuted)
                         Box(Modifier.width(100.dp).height(45.dp), contentAlignment = Alignment.CenterStart) {
