@@ -161,6 +161,7 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                             invoices = bookInvoices.map { StatementInvoiceInput(it.id, it.registeredPartyId, it.invoiceNumber, it.invoiceDate, it.totalMinor) },
                             settlements = settlements.filter { settlement -> bookInvoices.any { it.id == settlement.invoiceId } }
                                 .map { StatementSettlementInput(it.id, it.invoiceId, it.settlementDate, it.amountMinor) },
+                            asOf = asOf,
                         )
                     }
                     if (statement.isFailure) {
