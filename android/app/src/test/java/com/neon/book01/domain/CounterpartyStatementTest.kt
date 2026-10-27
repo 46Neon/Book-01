@@ -24,6 +24,24 @@ class CounterpartyStatementTest {
         assertTrue(actual.all { it.kind == StatementMovementKind.INVOICE || it.kind == StatementMovementKind.SETTLEMENT })
     }
 
+    @Test fun statementAsOfExcludesFutureInvoicesAndSettlements() {
+        val asOf = java.time.LocalDate.parse("2026-10-27")
+        val rows = buildCounterpartyStatement(
+            counterpartyId = "customer",
+            invoices = listOf(
+                StatementInvoiceInput("current", "customer", "INV-1", "2026-10-01", 10_000),
+                StatementInvoiceInput("future", "customer", "INV-2", "2026-10-28", 5_000),
+            ),
+            settlements = listOf(
+                StatementSettlementInput("past", "current", "2026-10-27", 2_000),
+                StatementSettlementInput("future-pay", "current", "2026-10-28", 3_000),
+            ),
+            asOf = asOf,
+        )
+        assertEquals(listOf("2026-10-01", "2026-10-27"), rows.map { it.date })
+        assertEquals(8_000L, rows.last().balanceAfterMinor)
+    }
+
     @Test fun sameDayInvoicePrecedesItsSettlementAndFinalBalanceIsOutstanding() {
         val actual = buildCounterpartyStatement(
             "vendor",
