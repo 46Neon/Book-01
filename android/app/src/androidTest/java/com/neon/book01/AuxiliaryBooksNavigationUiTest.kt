@@ -20,6 +20,7 @@ class AuxiliaryBooksNavigationUiTest {
         try {
             assertVisible(device, "Libro auxiliar · Ventas")
             assertVisible(device, "Nueva factura de venta")
+            assertVisible(device, "Resumen del período · 0 facturas")
             assertVisible(device, "Vencidas")
             assertVisible(device, "Pagadas")
             device.wait(Until.findObject(By.text("Compras")), TIMEOUT_MS)
@@ -40,3 +41,4 @@ class AuxiliaryBooksNavigationUiTest {
 
     private companion object { const val TIMEOUT_MS = 10_000L }
 }
+

@@ -99,6 +99,13 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                 }
             }
         }
+        val periodSummary = com.neon.book01.domain.summarizeInvoiceBookTotals(periodInvoices.map { it.totalMinor })
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Resumen del período · ${periodSummary.invoiceCount} ${if (periodSummary.invoiceCount == 1) "factura" else "facturas"}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
+                Text("Total facturado ${money(periodSummary.grossTotalMinor)} · no descuenta cobros ni pagos", color = Color(0xFF6B778C), fontSize = 12.sp)
+            }
+        }
         if (bookInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Text(if (initialKind == InvoiceKind.SALE) "Aún no hay facturas de venta. Registra clientes y captura los documentos emitidos." else "Aún no hay facturas de compra. Registra proveedores y captura los documentos recibidos.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
         } else if (periodInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -285,4 +292,5 @@ private fun defaultInvoiceAccounts(accounts: List<AccountEntity>, cashCode: Stri
 )
 
 private fun money(value: Long): String = UsdMoney.format(value)
+
 
