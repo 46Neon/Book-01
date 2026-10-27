@@ -43,6 +43,8 @@ import com.neon.book01.domain.InvoiceKind
 import com.neon.book01.domain.invoiceSettlementStatus
 import com.neon.book01.domain.InvoiceBookFilter
 import com.neon.book01.domain.matchesInvoiceBookFilter
+import com.neon.book01.domain.InvoiceBookPeriod
+import com.neon.book01.domain.matchesInvoiceBookPeriod
 import com.neon.book01.domain.PaymentCondition
 import com.neon.book01.domain.PurchaseVatTreatment
 import com.neon.book01.domain.UsdMoney
@@ -69,6 +71,9 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     }
     val selectedKind = if (initialKind == InvoiceKind.SALE) "SALE" else "PURCHASE"
     val bookInvoices = invoices.filter { it.kind == selectedKind }
+    var selectedPeriod by remember(initialKind) { mutableStateOf(InvoiceBookPeriod.ALL) }
+    val asOf = LocalDate.now()
+    val periodInvoices = bookInvoices.filter { matchesInvoiceBookPeriod(it.invoiceDate, selectedPeriod, asOf) }
     val bookTitle = if (initialKind == InvoiceKind.SALE) "Libro auxiliar · Ventas" else "Libro auxiliar · Compras"
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(bookTitle, color = Color(0xFF172B4D), fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -86,10 +91,20 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                 }
             }
         }
+        Text("Período de emisión", color = Color(0xFF6B778C), fontSize = 12.sp)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            InvoiceBookPeriod.values().forEach { period ->
+                OutlinedButton(onClick = { selectedPeriod = period }) {
+                    Text((if (selectedPeriod == period) "✓ " else "") + period.displayLabel)
+                }
+            }
+        }
         if (bookInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Text(if (initialKind == InvoiceKind.SALE) "Aún no hay facturas de venta. Registra clientes y captura los documentos emitidos." else "Aún no hay facturas de compra. Registra proveedores y captura los documentos recibidos.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
+        } else if (periodInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Text("No hay facturas en este período de emisión.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
         }
-        bookInvoices.forEach { InvoiceCard(it, repository, accounts, statusFilter) }
+        periodInvoices.forEach { InvoiceCard(it, repository, accounts, statusFilter) }
     }
     if (showForm) InvoiceEntryDialog(accounts, clients, suppliers, repository, { setShowForm(false) }, snackbarHostState, initialKind)
     if (showPartyDialog) CounterpartyEntryDialog(partyKind, repository, { showPartyDialog = false }, accounts)
