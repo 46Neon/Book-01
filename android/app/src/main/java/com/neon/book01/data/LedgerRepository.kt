@@ -318,6 +318,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
         return database.withTransaction {
             require(!dao.isDateClosed(postingDate)) { "La fecha pertenece a un periodo cerrado; elige una fecha abierta." }
             val invoice = dao.getInvoice(invoiceId) ?: throw IllegalArgumentException("No se encontró la factura.")
+            com.neon.book01.domain.InvoiceAccounting.requireSettlementDateNotBeforeInvoice(invoice.invoiceDate, postingDate)
             val cash = dao.getAccount(cashAccountCode) ?: throw IllegalArgumentException("No se encontró la cuenta de caja o banco.")
             require(cash.active && cash.cashOrBank && cash.type == "ASSET") { "Selecciona una cuenta activa de Caja o Banco." }
             val remaining = Math.subtractExact(invoice.totalMinor, dao.totalSettled(invoiceId))
@@ -326,21 +327,25 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 ?: throw IllegalArgumentException("El tercero de la factura ya no existe.")
             require(invoiceParty.active) { "El tercero asociado a la factura está inactivo." }
             val kind = com.neon.book01.domain.InvoiceKind.valueOf(invoice.kind)
-            val effectiveAccounts = if (kind == com.neon.book01.domain.InvoiceKind.PURCHASE && invoiceParty.defaultAccountCode != null) {
-                val destination = dao.getAccount(invoiceParty.defaultAccountCode) ?: throw IllegalArgumentException("La cuenta predeterminada del proveedor no existe.")
-                accounts.copy(purchaseCostOrExpense = destination.code)
-            } else accounts
+            val counterAccount = dao.getAccount(invoice.counterAccountCode)
+                ?: throw IllegalArgumentException("No se encontró la cuenta por cobrar/pagar de la factura.")
+            val expectedCounterType = if (kind == com.neon.book01.domain.InvoiceKind.SALE) "ASSET" else "LIABILITY"
+            require(counterAccount.type == expectedCounterType) { "La cuenta asociada a la factura ya no tiene la clasificación contable esperada." }
+            val effectiveAccounts = when (kind) {
+                com.neon.book01.domain.InvoiceKind.SALE -> accounts.copy(receivable = counterAccount.code)
+                com.neon.book01.domain.InvoiceKind.PURCHASE -> accounts.copy(payable = counterAccount.code)
+            }
             if (kind == com.neon.book01.domain.InvoiceKind.PURCHASE) com.neon.book01.domain.InvoiceAccounting.requireSufficientFunds(dao.accountBalanceMinor(cash.code), amountMinor)
             val postings = com.neon.book01.domain.InvoiceAccounting.settlement(kind, amountMinor, cash.code, effectiveAccounts)
             val lines = postings.map { line ->
                 val account = dao.getAccount(line.accountCode) ?: throw IllegalArgumentException("No se encontró la cuenta ${line.accountCode}.")
-                require(account.active) { "La cuenta ${line.accountCode} está inactiva." }
+                require(account.active || account.code == counterAccount.code) { "La cuenta ${line.accountCode} está inactiva." }
                 JournalLineEntity(UUID.randomUUID().toString(), entryId, account.code, line.debitMinor, line.creditMinor, UsdMoney.CURRENCY_CODE, account.name)
             }
             dao.insertEntry(JournalEntryEntity(
                 id = entryId, entryDate = dateIso, description = "${if (kind == com.neon.book01.domain.InvoiceKind.SALE) "Cobro" else "Pago"} de factura ${invoice.invoiceNumber}",
                 kind = if (kind == com.neon.book01.domain.InvoiceKind.SALE) "INVOICE_COLLECTION" else "INVOICE_PAYMENT",
-                categoryAccountCode = if (kind == com.neon.book01.domain.InvoiceKind.SALE) accounts.receivable else accounts.payable,
+                categoryAccountCode = invoice.counterAccountCode,
                 paymentAccountCode = cash.code, currencyCode = UsdMoney.CURRENCY_CODE, amountMinor = amountMinor,
                 status = "POSTED", createdAt = now, counterparty = invoice.registeredPartyId, supportReference = invoice.invoiceNumber,
             ))
