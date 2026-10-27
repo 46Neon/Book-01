@@ -40,3 +40,8 @@ El resumen por cliente/proveedor también desglosa los saldos vencidos pendiente
 ## Prioridad de gestión de cobros y pagos
 
 En el resumen auxiliar, las contrapartes con mayor saldo vencido aparecen primero; después se ordena por saldo pendiente, nombre y un identificador estable para resolver empates. Esto solo organiza la vista derivada para priorizar revisión y seguimiento: no altera facturas, vencimientos, abonos ni asientos.
+
+
+## Estado de cuenta por contraparte (movimientos reales, vista de solo lectura)
+
+Ventas y compras ahora permiten seleccionar un cliente/proveedor y consultar su estado de cuenta cronológico. La vista reúne únicamente facturas guardadas para esa contraparte y cobros/pagos registrados y vinculados a ellas; cada renglón presenta fecha, referencia, cambio en unidades monetarias menores exactas y saldo acumulado. Si factura y abono tienen la misma fecha, la factura se muestra primero. El saldo final representa el pendiente de las facturas incluidas en el libro; la vista no crea asientos, no modifica registros y no calcula impuestos. Se mantienen las restricciones existentes de facturas inmutables y movimientos de liquidación separados/auditables. La prueba unitaria cubre secuencia, abonos parciales, fechas iguales, referencias y límites de integridad/overflow.
