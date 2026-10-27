@@ -324,6 +324,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
         return database.withTransaction {
             require(!dao.isDateClosed(postingDate)) { "La fecha pertenece a un periodo cerrado; elige una fecha abierta." }
             val invoice = dao.getInvoice(invoiceId) ?: throw IllegalArgumentException("No se encontró la factura.")
+            com.neon.book01.domain.InvoiceAccounting.requireSettlementDateNotBeforeInvoice(invoice.invoiceDate, postingDate)
             val cash = dao.getAccount(cashAccountCode) ?: throw IllegalArgumentException("No se encontró la cuenta de caja o banco.")
             require(cash.active && cash.cashOrBank && cash.type == "ASSET") { "Selecciona una cuenta activa de Caja o Banco." }
             val remaining = Math.subtractExact(invoice.totalMinor, dao.totalSettled(invoiceId))
