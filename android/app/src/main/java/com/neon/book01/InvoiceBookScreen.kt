@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +41,8 @@ import com.neon.book01.domain.InvoiceAccounting
 import com.neon.book01.domain.InvoiceInput
 import com.neon.book01.domain.InvoiceKind
 import com.neon.book01.domain.invoiceSettlementStatus
+import com.neon.book01.domain.InvoiceBookFilter
+import com.neon.book01.domain.matchesInvoiceBookFilter
 import com.neon.book01.domain.PaymentCondition
 import com.neon.book01.domain.PurchaseVatTreatment
 import com.neon.book01.domain.UsdMoney
@@ -74,33 +78,41 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             OutlinedButton(onClick = { setShowForm(true) }) { Text(if (initialKind == InvoiceKind.SALE) "Nueva factura de venta" else "Nueva factura de compra") }
             OutlinedButton(onClick = { partyKind = if (initialKind == InvoiceKind.SALE) "CLIENT" else "SUPPLIER"; showPartyDialog = true }) { Text(if (initialKind == InvoiceKind.SALE) "Registrar cliente" else "Registrar proveedor") }
         }
+        var statusFilter by remember(initialKind) { mutableStateOf(InvoiceBookFilter.ALL) }
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            InvoiceBookFilter.values().forEach { filter ->
+                OutlinedButton(onClick = { statusFilter = filter }) {
+                    Text((if (statusFilter == filter) "✓ " else "") + filter.displayLabel)
+                }
+            }
+        }
         if (bookInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Text(if (initialKind == InvoiceKind.SALE) "Aún no hay facturas de venta. Registra clientes y captura los documentos emitidos." else "Aún no hay facturas de compra. Registra proveedores y captura los documentos recibidos.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
         }
-        bookInvoices.forEach { InvoiceCard(it, repository, accounts) }
+        bookInvoices.forEach { InvoiceCard(it, repository, accounts, statusFilter) }
     }
     if (showForm) InvoiceEntryDialog(accounts, clients, suppliers, repository, { setShowForm(false) }, snackbarHostState, initialKind)
     if (showPartyDialog) CounterpartyEntryDialog(partyKind, repository, { showPartyDialog = false }, accounts)
 }
 
 @Composable
-private fun InvoiceCard(invoice: InvoiceEntity, repository: LedgerRepository, accounts: List<AccountEntity>) {
+private fun InvoiceCard(invoice: InvoiceEntity, repository: LedgerRepository, accounts: List<AccountEntity>, statusFilter: InvoiceBookFilter) {
     var settlements by remember(invoice.id) { mutableStateOf(emptyList<com.neon.book01.data.InvoiceSettlementEntity>()) }
     var showDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(invoice.id) { repository.observeInvoiceSettlements(invoice.id).collect { settlements = it } }
     val settled = settlements.sumOf { it.amountMinor }
     val pending = (invoice.totalMinor - settled).coerceAtLeast(0L)
+    val status = invoiceSettlementStatus(invoice.totalMinor, settled, invoice.dueDate, LocalDate.now())
     val partyFlow = remember(invoice.registeredPartyId) { repository.observeCounterparties(if (invoice.kind == "SALE") "CLIENT" else "SUPPLIER") }
     var partyName by remember(invoice.registeredPartyId) { mutableStateOf(invoice.registeredPartyId) }
     LaunchedEffect(partyFlow) { partyFlow.collect { rows -> partyName = rows.firstOrNull { it.id == invoice.registeredPartyId }?.displayName ?: invoice.registeredPartyId } }
-    Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    if (matchesInvoiceBookFilter(statusFilter, status)) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("${if (invoice.kind == "SALE") "Venta" else "Compra"} · ${invoice.invoiceNumber}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
             Text("${invoice.invoiceDate} · $partyName · ${invoice.description}", color = Color(0xFF6B778C), fontSize = 12.sp)
             Text("Base ${money(invoice.taxableBaseMinor)} · IVA ${money(invoice.vatMinor)} · Total ${money(invoice.totalMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
             Text("Abonado ${money(settled)} · pendiente ${money(pending)}", color = Color(0xFF6B778C), fontSize = 12.sp)
-            val status = invoiceSettlementStatus(invoice.totalMinor, settled, invoice.dueDate, LocalDate.now())
             Text("Estado: ${status.displayLabel}", color = if (status.displayLabel == "Vencida") Color(0xFFB3261E) else Color(0xFF6B778C), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             if (invoice.dueDate != null) Text("Vence ${invoice.dueDate}", color = Color(0xFF6B778C), fontSize = 11.sp)
             if (pending > 0) TextButton(onClick = { showDialog = true }) { Text(if (invoice.kind == "SALE") "Registrar cobro" else "Registrar pago") }
@@ -258,3 +270,4 @@ private fun defaultInvoiceAccounts(accounts: List<AccountEntity>, cashCode: Stri
 )
 
 private fun money(value: Long): String = UsdMoney.format(value)
+
