@@ -262,16 +262,22 @@ class LedgerRepository(private val database: LedgerDatabase) {
                 val account = runBlockingAccountLookup(code)
                 require(account.active && account.type == type) { "La cuenta $code debe estar activa y ser de tipo $type." }
             }
-            requireAccount(effectiveAccounts.receivable, "ASSET")
-            requireAccount(effectiveAccounts.payable, "LIABILITY")
-            requireAccount(effectiveAccounts.revenue, "INCOME")
-            val purchaseDestination = runBlockingAccountLookup(effectiveAccounts.purchaseCostOrExpense)
-            require(purchaseDestination.active && purchaseDestination.type in setOf("EXPENSE", "ASSET")) {
-                "La cuenta de destino de compra debe ser costo/gasto o activo según la clasificación del proveedor."
-            }
-            if (input.kind == com.neon.book01.domain.InvoiceKind.SALE && effectivePreview.vatMinor > 0) requireAccount(effectiveAccounts.outputVat, "LIABILITY")
-            if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && effectivePreview.vatMinor > 0 && effectiveAccounts.purchaseVatTreatment == com.neon.book01.domain.PurchaseVatTreatment.INPUT_TAX_ASSET) {
-                requireAccount(effectiveAccounts.inputVat, "ASSET")
+            when (input.kind) {
+                com.neon.book01.domain.InvoiceKind.SALE -> {
+                    requireAccount(effectiveAccounts.receivable, "ASSET")
+                    requireAccount(effectiveAccounts.revenue, "INCOME")
+                    if (effectivePreview.vatMinor > 0) requireAccount(effectiveAccounts.outputVat, "LIABILITY")
+                }
+                com.neon.book01.domain.InvoiceKind.PURCHASE -> {
+                    requireAccount(effectiveAccounts.payable, "LIABILITY")
+                    val purchaseDestination = runBlockingAccountLookup(effectiveAccounts.purchaseCostOrExpense)
+                    require(purchaseDestination.active && purchaseDestination.type in setOf("EXPENSE", "ASSET")) {
+                        "La cuenta de destino de compra debe ser costo/gasto o activo según la clasificación del proveedor."
+                    }
+                    if (effectivePreview.vatMinor > 0 && effectiveAccounts.purchaseVatTreatment == com.neon.book01.domain.PurchaseVatTreatment.INPUT_TAX_ASSET) {
+                        requireAccount(effectiveAccounts.inputVat, "ASSET")
+                    }
+                }
             }
             if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && input.paidTodayMinor > 0) {
                 com.neon.book01.domain.InvoiceAccounting.requireSufficientFunds(dao.accountBalanceMinor(cash.code), input.paidTodayMinor)
