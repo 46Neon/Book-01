@@ -23,3 +23,9 @@ The existing GitHub Actions workflow already limits the debug APK artifact to tw
 ## Invoice balance status (accounting-facing slice)
 
 Invoice cards now display a derived balance status alongside the settled and outstanding amounts: Paid, Partial, Open, or Overdue. The status is calculated from the invoice total, persisted settlements, and the due date only when one was explicitly entered. A missing or malformed due date does not imply overdue; a fully settled invoice remains Paid, and any remaining balance after a passed due date is Overdue even when partially paid. This is an informational view only: it creates no accounting entries and changes no persisted invoice or settlement data. The current settlement UI and ledger continue to use the existing USD storage model; broader currency support remains future work.
+
+
+
+## Filter by collection/payment state
+
+The sales and purchase auxiliary books now expose display-only filters for all invoices, open balances, partial settlements, overdue balances, and paid invoices. Each invoice's filter state is derived from the same persisted settlement flow and explicit due date used for its status label. The filter does not alter, post, or hide records from the ledger; changing tabs or filters only changes which cards are currently visible. Unit tests cover that each filter maps exclusively to its corresponding derived state.
