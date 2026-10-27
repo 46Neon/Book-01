@@ -42,6 +42,8 @@ import com.neon.book01.domain.InvoiceAccounts
 import com.neon.book01.domain.InvoiceAccounting
 import com.neon.book01.domain.InvoiceInput
 import com.neon.book01.domain.InvoiceKind
+import com.neon.book01.domain.InvoiceIdentity
+import com.neon.book01.domain.InvoiceDuplicateRules
 import com.neon.book01.domain.invoiceSettlementStatus
 import com.neon.book01.domain.InvoiceBookFilter
 import com.neon.book01.domain.matchesInvoiceBookFilter
@@ -212,7 +214,7 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
         }
         periodInvoices.forEach { InvoiceCard(it, repository, accounts, statusFilter) }
     }
-    if (showForm) InvoiceEntryDialog(accounts, clients, suppliers, repository, { setShowForm(false) }, snackbarHostState, initialKind)
+    if (showForm) InvoiceEntryDialog(accounts, clients, suppliers, invoices, repository, { setShowForm(false) }, snackbarHostState, initialKind)
     if (showPartyDialog) CounterpartyEntryDialog(partyKind, repository, { showPartyDialog = false }, accounts)
 }
 
@@ -306,7 +308,7 @@ private fun CounterpartyEntryDialog(kind: String, repository: LedgerRepository, 
 }
 
 @Composable
-private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<CounterpartyEntity>, suppliers: List<CounterpartyEntity>, repository: LedgerRepository, onDismiss: () -> Unit, snackbarHostState: SnackbarHostState, initialKind: InvoiceKind) {
+private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<CounterpartyEntity>, suppliers: List<CounterpartyEntity>, invoices: List<InvoiceEntity>, repository: LedgerRepository, onDismiss: () -> Unit, snackbarHostState: SnackbarHostState, initialKind: InvoiceKind) {
     var kind by remember { mutableStateOf(initialKind) }
     var date by remember { mutableStateOf(LocalDate.now().toString()) }
     var dueDate by remember { mutableStateOf("") }
@@ -327,6 +329,10 @@ private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<Coun
     val scope = rememberCoroutineScope()
     val parties = if (kind == InvoiceKind.SALE) clients else suppliers
     val supplierAccount = suppliers.firstOrNull { it.id == partyId }?.defaultAccountCode
+    val duplicateInvoice = InvoiceDuplicateRules.isDuplicate(
+        kind.name, partyId, number,
+        invoices.map { InvoiceIdentity(it.kind, it.registeredPartyId, it.invoiceNumber) },
+    )
     val accountsConfig = defaultInvoiceAccounts(accounts, cashCode, purchaseVatTreatment ?: PurchaseVatTreatment.INPUT_TAX_ASSET).let { baseAccounts ->
         if (kind == InvoiceKind.PURCHASE && supplierAccount != null) baseAccounts.copy(purchaseCostOrExpense = supplierAccount) else baseAccounts
     }
@@ -343,6 +349,7 @@ private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<Coun
             OutlinedTextField(date, { date = it; error = null }, label = { Text("Fecha (AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedButton(onClick = { condition = PaymentCondition.CASH; if (paidText.isBlank()) paidText = baseText }, modifier = Modifier.fillMaxWidth()) { Text("Condición seleccionada: ${if (condition == PaymentCondition.CASH) "Contado" else "Crédito"}") }
             OutlinedTextField(number, { number = it; error = null }, label = { Text("Número de factura") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            if (duplicateInvoice) Text("Ya existe una factura con ese número para este tercero en este libro. Verifica la referencia antes de guardar.", color = Color(0xFFB3261E), fontSize = 12.sp)
             if (condition == PaymentCondition.CREDIT) OutlinedTextField(dueDate, { dueDate = it; error = null }, label = { Text("Vencimiento (opcional, AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             if (kind == InvoiceKind.SALE) OutlinedTextField(control, { control = it; error = null }, label = { Text("Número de control") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Text(if (kind == InvoiceKind.SALE) "Cliente registrado" else "Proveedor registrado", fontSize = 12.sp, color = Color(0xFF6B778C))
@@ -372,7 +379,7 @@ private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<Coun
             } } }
             error?.let { Text(it, color = Color(0xFFB3261E), fontSize = 12.sp) }
         } },
-        confirmButton = { Button(enabled = !saving && input != null && preview != null && partyId.isNotBlank() && (kind != InvoiceKind.PURCHASE || purchaseVatTreatment != null), onClick = { val value = input ?: return@Button; scope.launch { saving = true; try {
+        confirmButton = { Button(enabled = !saving && input != null && preview != null && partyId.isNotBlank() && !duplicateInvoice && (kind != InvoiceKind.PURCHASE || purchaseVatTreatment != null), onClick = { val value = input ?: return@Button; scope.launch { saving = true; try {
             withContext(Dispatchers.IO) {
                 val party = parties.firstOrNull { it.id == value.registeredPartyId && it.active } ?: throw IllegalArgumentException("Registra o selecciona un tercero activo.")
                 require(party.kind == if (kind == InvoiceKind.SALE) "CLIENT" else "SUPPLIER") { "El tercero no corresponde al tipo de factura." }
