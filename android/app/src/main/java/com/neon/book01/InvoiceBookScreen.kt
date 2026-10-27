@@ -65,9 +65,6 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     var settlements by remember { mutableStateOf<List<com.neon.book01.data.InvoiceSettlementEntity>>(emptyList()) }
     var showPartyDialog by remember { mutableStateOf(false) }
     var partyKind by remember { mutableStateOf("CLIENT") }
-    var statementPartyId by remember(initialKind) { mutableStateOf<String?>(null) }
-    var statementPartyMenuExpanded by remember { mutableStateOf(false) }
-    var statementDialogVisible by remember { mutableStateOf(false) }
     LaunchedEffect(repository) {
         launch { repository.observeInvoices().collect { invoices = it } }
         launch { repository.observeCounterparties("CLIENT").collect { clients = it } }
@@ -80,21 +77,10 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     val asOf = LocalDate.now()
     val periodInvoices = bookInvoices.filter { matchesInvoiceBookPeriod(it.invoiceDate, selectedPeriod, asOf) }
     val partyNames = (if (initialKind == InvoiceKind.SALE) clients else suppliers).associate { it.id to it.displayName }
-    val selectedBookInvoices = bookInvoices.map {
-        com.neon.book01.domain.StatementInvoiceInput(it.id, it.registeredPartyId, it.invoiceNumber, it.invoiceDate, it.totalMinor)
-    }
-    val bookInvoiceIds = bookInvoices.mapTo(hashSetOf()) { it.id }
-    val selectedBookSettlements = settlements.filter { it.invoiceId in bookInvoiceIds }.map {
-        com.neon.book01.domain.StatementSettlementInput(it.id, it.invoiceId, it.settlementDate, it.amountMinor)
-    }
-    val statement = statementPartyId?.let {
-        com.neon.book01.domain.buildCounterpartyStatement(it, selectedBookInvoices, selectedBookSettlements)
-    }.orEmpty()
-    val statementPartyLabel = statementPartyId?.let { partyNames[it] ?: it }
     val balanceSummaries = com.neon.book01.domain.summarizeCounterpartyBalances(
         invoices = bookInvoices.map { com.neon.book01.domain.InvoiceBalanceInput(it.id, it.registeredPartyId, it.totalMinor, it.dueDate) },
         settlements = settlements.filter { settlement -> bookInvoices.any { it.id == settlement.invoiceId } }
-            .map { com.neon.book01.domain.SettlementBalanceInput(it.invoiceId, it.amountMinor) },
+            .map { com.neon.book01.domain.SettlementBalanceInput(it.invoiceId, it.amountMinor, it.settlementDate) },
         asOf = asOf,
     )
     val bookTitle = if (initialKind == InvoiceKind.SALE) "Libro auxiliar · Ventas" else "Libro auxiliar · Compras"
@@ -147,35 +133,6 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                 }
             }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
-            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(if (initialKind == InvoiceKind.SALE) "Estado de cuenta del cliente" else "Estado de cuenta del proveedor", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
-                Text("Movimientos guardados de facturas y cobros/pagos · orden cronológico · solo lectura", color = Color(0xFF6B778C), fontSize = 11.sp)
-                OutlinedButton(onClick = { statementPartyMenuExpanded = true }) {
-                    Text(statementPartyLabel ?: "Seleccionar ${if (initialKind == InvoiceKind.SALE) "cliente" else "proveedor"}")
-                }
-                DropdownMenu(expanded = statementPartyMenuExpanded, onDismissRequest = { statementPartyMenuExpanded = false }) {
-                    (if (initialKind == InvoiceKind.SALE) clients else suppliers).forEach { party ->
-                        DropdownMenuItem(text = { Text(party.displayName) }, onClick = {
-                            statementPartyId = party.id
-                            statementPartyMenuExpanded = false
-                        })
-                    }
-                }
-                if (statementPartyId != null) {
-                    if (statement.isEmpty()) {
-                        Text("Sin movimientos registrados para esta contraparte.", color = Color(0xFF6B778C), fontSize = 12.sp)
-                    } else {
-                        statement.forEach { movement ->
-                            val kindLabel = if (movement.kind == com.neon.book01.domain.StatementMovementKind.INVOICE) "Factura" else if (initialKind == InvoiceKind.SALE) "Cobro" else "Pago"
-                            val amountLabel = if (movement.changeMinor >= 0L) "+${money(movement.changeMinor)}" else "−${money(Math.negateExact(movement.changeMinor))}"
-                            Text("${movement.date} · $kindLabel ${movement.reference} · $amountLabel · saldo ${money(movement.balanceAfterMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
-                        }
-                        Text("Saldo pendiente ${money(statement.last().balanceAfterMinor)}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                    }
-                }
-            }
-        }
         if (bookInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Text(if (initialKind == InvoiceKind.SALE) "Aún no hay facturas de venta. Registra clientes y captura los documentos emitidos." else "Aún no hay facturas de compra. Registra proveedores y captura los documentos recibidos.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
         } else if (periodInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -193,9 +150,14 @@ private fun InvoiceCard(invoice: InvoiceEntity, repository: LedgerRepository, ac
     var showDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(invoice.id) { repository.observeInvoiceSettlements(invoice.id).collect { settlements = it } }
-    val settled = settlements.sumOf { it.amountMinor }
+    val asOf = LocalDate.now()
+    val settled = com.neon.book01.domain.settledMinorAsOf(
+        invoice.id,
+        settlements.map { com.neon.book01.domain.SettlementBalanceInput(it.invoiceId, it.amountMinor, it.settlementDate) },
+        asOf,
+    )
     val pending = (invoice.totalMinor - settled).coerceAtLeast(0L)
-    val status = invoiceSettlementStatus(invoice.totalMinor, settled, invoice.dueDate, LocalDate.now())
+    val status = invoiceSettlementStatus(invoice.totalMinor, settled, invoice.dueDate, asOf)
     val partyFlow = remember(invoice.registeredPartyId) { repository.observeCounterparties(if (invoice.kind == "SALE") "CLIENT" else "SUPPLIER") }
     var partyName by remember(invoice.registeredPartyId) { mutableStateOf(invoice.registeredPartyId) }
     LaunchedEffect(partyFlow) { partyFlow.collect { rows -> partyName = rows.firstOrNull { it.id == invoice.registeredPartyId }?.displayName ?: invoice.registeredPartyId } }
