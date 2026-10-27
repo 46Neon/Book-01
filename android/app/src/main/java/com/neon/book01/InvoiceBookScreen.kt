@@ -122,7 +122,7 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                 val openBalances = balanceSummaries.filter { it.outstandingMinor > 0L }
                 if (openBalances.isEmpty()) {
                     Text("Sin saldos pendientes.", color = Color(0xFF6B778C), fontSize = 12.sp)
-                } else openBalances.forEach { balance ->
+                } else com.neon.book01.domain.sortCounterpartyBalanceSummaries(openBalances) { partyNames[it] ?: it }.forEach { balance ->
                     val label = partyNames[balance.counterpartyId] ?: balance.counterpartyId
                     Text("$label · pendiente ${money(balance.outstandingMinor)} · vencido ${money(balance.overdueMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
                     if (balance.overdueMinor > 0L) Text(
