@@ -20,6 +20,8 @@ class AuxiliaryBooksNavigationUiTest {
         try {
             assertVisible(device, "Libro auxiliar · Ventas")
             assertVisible(device, "Nueva factura de venta")
+            assertVisible(device, "Vencidas")
+            assertVisible(device, "Pagadas")
             device.wait(Until.findObject(By.text("Compras")), TIMEOUT_MS)
                 ?.click() ?: throw AssertionError("Compras book tab was not visible")
             assertVisible(device, "Libro auxiliar · Compras")
