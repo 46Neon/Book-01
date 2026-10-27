@@ -125,6 +125,10 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                 } else openBalances.forEach { balance ->
                     val label = partyNames[balance.counterpartyId] ?: balance.counterpartyId
                     Text("$label · pendiente ${money(balance.outstandingMinor)} · vencido ${money(balance.overdueMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
+                    if (balance.overdueMinor > 0L) Text(
+                        "Antigüedad del vencido: 1–30 días ${money(balance.overdue1To30Minor)} · 31–60 días ${money(balance.overdue31To60Minor)} · más de 60 días ${money(balance.overdueOver60Minor)}",
+                        color = Color(0xFF6B778C), fontSize = 11.sp,
+                    )
                 }
             }
         }

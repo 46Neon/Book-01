@@ -30,3 +30,8 @@ The sales and purchase auxiliary books now expose display-only filters for all i
 ## Customer and supplier balance overview (derived, no new accounting records)
 
 Each auxiliary book now provides a per-customer or per-supplier balance summary sourced from saved invoice totals and their saved initial/later settlements. It shows remaining and overdue amounts as of the current device date; past-due amounts require an explicitly stored due date and an outstanding balance. Fully settled invoices contribute zero, missing or malformed dates are not treated as overdue, and aggregation uses exact integer minor units with overflow/over-settlement rejection. The overview is derived only: no ledger postings or database schema changes are introduced. The summary covers the currently selected auxiliary book kind and is independent of the invoice issue-period filter.
+
+
+## Antigüedad de saldos vencidos
+
+El resumen por cliente/proveedor también desglosa los saldos vencidos pendientes en 1–30, 31–60 y más de 60 días, calculados por días transcurridos desde la fecha de vencimiento hasta la fecha local de consulta. El día de vencimiento todavía no se considera vencido; la suma de los tres tramos coincide con el saldo vencido. Cada tramo parte del saldo restante tras los abonos guardados, usa centavos enteros y trata una fecha ausente o inválida como antigüedad desconocida (no vencida). Es una vista informativa, no una modificación de facturas ni asientos.

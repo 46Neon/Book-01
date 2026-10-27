@@ -20,11 +20,32 @@ class CounterpartyBalanceSummaryTest {
         )
         assertEquals(
             listOf(
-                CounterpartyBalanceSummary("client-a", 2, 11_000, 6_000),
-                CounterpartyBalanceSummary("client-b", 2, 3_000, 0),
+                CounterpartyBalanceSummary("client-a", 2, 11_000, 6_000, 6_000, 0, 0),
+                CounterpartyBalanceSummary("client-b", 2, 3_000, 0, 0, 0, 0),
             ),
             actual,
         )
+    }
+
+    @Test fun agingBucketsUseElapsedDaysAfterDueDateAndExcludeTodayAndUnknownDates() {
+        val actual = summarizeCounterpartyBalances(
+            invoices = listOf(
+                InvoiceBalanceInput("today", "p", 100, "2026-10-27"),
+                InvoiceBalanceInput("day1", "p", 200, "2026-10-26"),
+                InvoiceBalanceInput("day30", "p", 300, "2026-09-27"),
+                InvoiceBalanceInput("day31", "p", 400, "2026-09-26"),
+                InvoiceBalanceInput("day60", "p", 500, "2026-08-28"),
+                InvoiceBalanceInput("day61", "p", 600, "2026-08-27"),
+                InvoiceBalanceInput("invalid", "p", 700, "not-a-date"),
+            ),
+            settlements = listOf(SettlementBalanceInput("day1", 50)),
+            asOf = today,
+        ).single()
+        assertEquals(2_750L, actual.outstandingMinor)
+        assertEquals(1_950L, actual.overdueMinor)
+        assertEquals(450L, actual.overdue1To30Minor)
+        assertEquals(900L, actual.overdue31To60Minor)
+        assertEquals(600L, actual.overdueOver60Minor)
     }
 
     @Test fun fullySettledAndUndatedInvoicesDoNotCreateOverdueBalances() {
