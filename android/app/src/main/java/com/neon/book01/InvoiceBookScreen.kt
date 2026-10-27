@@ -71,6 +71,8 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     var partyKind by remember { mutableStateOf("CLIENT") }
     var statementPartyId by remember(initialKind) { mutableStateOf("") }
     var statementPartyExpanded by remember { mutableStateOf(false) }
+    var statementFromDate by remember(initialKind) { mutableStateOf("") }
+    var statementThroughDate by remember(initialKind) { mutableStateOf("") }
     LaunchedEffect(repository) {
         launch { repository.observeInvoices().collect { invoices = it } }
         launch { repository.observeCounterparties("CLIENT").collect { clients = it } }
@@ -144,6 +146,9 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Estado de cuenta", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
                 Text("Movimientos de facturas guardadas y cobros/pagos vinculados · solo lectura", color = Color(0xFF6B778C), fontSize = 11.sp)
+                OutlinedTextField(statementFromDate, { statementFromDate = it }, label = { Text("Desde (AAAA-MM-DD), opcional") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(statementThroughDate, { statementThroughDate = it }, label = { Text("Hasta (AAAA-MM-DD), opcional") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Text("Rango inclusivo; el saldo inicial incluye movimientos anteriores al período.", color = Color(0xFF6B778C), fontSize = 11.sp)
                 OutlinedButton(onClick = { statementPartyExpanded = true }) {
                     Text(statementParties.firstOrNull { it.id == statementPartyId }?.displayName ?: if (initialKind == InvoiceKind.SALE) "Seleccionar cliente" else "Seleccionar proveedor")
                 }
@@ -167,11 +172,21 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                     if (statement.isFailure) {
                         Text("No se pudo calcular el estado de cuenta: ${statement.exceptionOrNull()?.message ?: "revisa los datos guardados"}", color = Color(0xFFB3261E), fontSize = 12.sp)
                     } else {
-                        val rows = statement.getOrThrow()
-                        if (rows.isEmpty()) Text("Sin facturas ni movimientos para esta contraparte.", color = Color(0xFF6B778C), fontSize = 12.sp)
-                        rows.forEach { row ->
-                            val movement = if (row.kind == StatementMovementKind.INVOICE) "Factura" else if (initialKind == InvoiceKind.SALE) "Cobro" else "Pago"
-                            Text("${row.date} · $movement ${row.reference} · ${money(row.changeMinor)} · saldo ${money(row.balanceAfterMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
+                        val period = runCatching {
+                            com.neon.book01.domain.counterpartyStatementForPeriod(
+                                statement.getOrThrow(), statementFromDate.takeIf { it.isNotBlank() }, statementThroughDate.takeIf { it.isNotBlank() },
+                            )
+                        }
+                        if (period.isFailure) {
+                            Text("Rango no válido: ${period.exceptionOrNull()?.message ?: "revisa las fechas"}", color = Color(0xFFB3261E), fontSize = 12.sp)
+                        } else {
+                            val statementPeriod = period.getOrThrow()
+                            Text("Saldo inicial ${money(statementPeriod.openingBalanceMinor)} · saldo final ${money(statementPeriod.closingBalanceMinor)}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            if (statementPeriod.movements.isEmpty()) Text("Sin movimientos en el período.", color = Color(0xFF6B778C), fontSize = 12.sp)
+                            statementPeriod.movements.forEach { row ->
+                                val movement = if (row.kind == StatementMovementKind.INVOICE) "Factura" else if (initialKind == InvoiceKind.SALE) "Cobro" else "Pago"
+                                Text("${row.date} · $movement ${row.reference} · ${money(row.changeMinor)} · saldo ${money(row.balanceAfterMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
+                            }
                         }
                     }
                 }
