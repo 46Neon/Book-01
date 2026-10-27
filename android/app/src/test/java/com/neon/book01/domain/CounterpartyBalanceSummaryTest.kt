@@ -69,4 +69,15 @@ class CounterpartyBalanceSummaryTest {
             listOf(InvoiceBalanceInput("a", "p", Long.MAX_VALUE, null), InvoiceBalanceInput("b", "p", 1, null)), emptyList(), today,
         )
     }
+
+    @Test fun prioritizesPastDueThenLargestBalanceAndUsesPartyNameForTies() {
+        val summaries = listOf(
+            CounterpartyBalanceSummary("z", 1, 500, 0),
+            CounterpartyBalanceSummary("b", 1, 900, 300),
+            CounterpartyBalanceSummary("a", 1, 900, 300),
+            CounterpartyBalanceSummary("c", 1, 1_000, 100),
+        )
+        val ordered = sortCounterpartyBalanceSummaries(summaries) { id -> mapOf("a" to "Beta", "b" to "Alpha", "c" to "Gamma", "z" to "Zeta")[id]!! }
+        assertEquals(listOf("b", "a", "c", "z"), ordered.map { it.counterpartyId })
+    }
 }
