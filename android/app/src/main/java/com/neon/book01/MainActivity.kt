@@ -712,7 +712,7 @@ private fun BookHeader(bookName: String, currencyCode: String) {
             }
         }
         Column(modifier = Modifier.weight(1f).padding(start = 11.dp)) {
-            Text("Book-01", color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Ariño", color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("$bookName · $currencyCode", color = BookMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Icon(
@@ -2420,7 +2420,7 @@ private fun ComingSoonScreen(section: String) {
             Text(section, color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(5.dp))
             Text(
-                "Esta hoja se habilitará en una siguiente etapa de Book-01.",
+                "Esta sección estará disponible en una siguiente etapa de Ariño.",
                 color = BookMuted,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
