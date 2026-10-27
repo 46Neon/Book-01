@@ -38,9 +38,11 @@ fun buildCounterpartyStatement(
     counterpartyId: String,
     invoices: List<StatementInvoiceInput>,
     settlements: List<StatementSettlementInput>,
+    asOf: LocalDate? = null,
 ): List<CounterpartyStatementMovement> {
     require(counterpartyId.isNotBlank()) { "La contraparte debe estar identificada." }
     val selected = invoices.filter { it.counterpartyId == counterpartyId }
+        .filter { invoice -> asOf == null || LocalDate.parse(invoice.invoiceDate).let { !it.isAfter(asOf) } }
     require(selected.map { it.invoiceId }.toSet().size == selected.size) { "Hay facturas duplicadas en el estado de cuenta." }
     selected.forEach {
         require(it.invoiceId.isNotBlank() && it.invoiceNumber.isNotBlank())
@@ -60,6 +62,7 @@ fun buildCounterpartyStatement(
         require(settlement.settlementId.isNotBlank())
         require(LocalDate.parse(settlement.settlementDate).toString() == settlement.settlementDate) { "La fecha del movimiento debe estar en formato AAAA-MM-DD." }
         require(settlement.amountMinor > 0L) { "El importe del abono debe ser positivo." }
+        if (asOf != null && LocalDate.parse(settlement.settlementDate).isAfter(asOf)) return@forEach
         val settled = Math.addExact(settledByInvoice[settlement.invoiceId] ?: 0L, settlement.amountMinor)
         require(settled <= invoice.totalMinor) { "Los abonos superan el total de la factura." }
         settledByInvoice[settlement.invoiceId] = settled
