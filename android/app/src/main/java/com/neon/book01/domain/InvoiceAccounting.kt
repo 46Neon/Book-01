@@ -1,1 +1,147 @@
-cGFja2FnZSBjb20ubmVvbi5ib29rMDEuZG9tYWluCgppbXBvcnQgamF2YS5tYXRoLkJpZ0RlY2ltYWwKaW1wb3J0IGphdmEubWF0aC5Sb3VuZGluZ01vZGUKCi8qKiBTYWxlL3B1cmNoYXNlIGludm9pY2UgcG9zdGluZyBwcm9wb3NhbC4gUmF0ZXMgYXJlIHN1cHBsaWVkIGJ5IHRoZSBib29rLCBuZXZlciBoYXJkLWNvZGVkLiAqLwplbnVtIGNsYXNzIEludm9pY2VLaW5kIHsgU0FMRSwgUFVSQ0hBU0UgfQplbnVtIGNsYXNzIFBheW1lbnRDb25kaXRpb24geyBDQVNILCBDUkVESVQgfQplbnVtIGNsYXNzIFB1cmNoYXNlVmF0VHJlYXRtZW50IHsgSU5QVVRfVEFYX0FTU0VULCBJTkNMVURFRF9JTl9QVVJDSEFTRV9DT1NUIH0KCmRhdGEgY2xhc3MgSW52b2ljZUFjY291bnRzKAogICAgdmFsIGNhc2hPckJhbms6IFN0cmluZywKICAgIHZhbCByZWNlaXZhYmxlOiBTdHJpbmcsCiAgICB2YWwgcGF5YWJsZTogU3RyaW5nLAogICAgdmFsIHJldmVudWU6IFN0cmluZywKICAgIHZhbCBwdXJjaGFzZUNvc3RPckV4cGVuc2U6IFN0cmluZywKICAgIHZhbCBvdXRwdXRWYXQ6IFN0cmluZywKICAgIHZhbCBpbnB1dFZhdDogU3RyaW5nLAogICAgdmFsIGJhbmtMb2FuTGlhYmlsaXR5OiBTdHJpbmcsCiAgICAvKiogVGhpcyBwb2xpY3kgaXMgZGVsaWJlcmF0ZWx5IHJlcXVpcmVkIGZyb20gY29uZmlndXJhdGlvbjsgaGF2ZSBhIHF1YWxpZmllZCBhY2NvdW50YW50IGFwcHJvdmUgaXQuICovCiAgICB2YWwgcHVyY2hhc2VWYXRUcmVhdG1lbnQ6IFB1cmNoYXNlVmF0VHJlYXRtZW50LAopCgpkYXRhIGNsYXNzIEludm9pY2VJbnB1dCgKICAgIHZhbCBraW5kOiBJbnZvaWNlS2luZCwKICAgIHZhbCBpbnZvaWNlRGF0ZTogU3RyaW5nLAogICAgdmFsIGludm9pY2VOdW1iZXI6IFN0cmluZywKICAgIHZhbCBjb250cm9sTnVtYmVyOiBTdHJpbmc/ID0gbnVsbCwKICAgIHZhbCByZWdpc3RlcmVkUGFydHlJZDogU3RyaW5nLAogICAgdmFsIGRlc2NyaXB0aW9uOiBTdHJpbmcsCiAgICB2YWwgdGF4YWJsZUJhc2VNaW5vcjogTG9uZywKICAgIC8qKiBUYXggcmF0ZSBpbiBiYXNpcyBwb2ludHM6IDE2MDAgbWVhbnMgMTYlLiBJdCBtdXN0IGJlIGV4cGxpY2l0bHkgcHJvdmlkZWQuICovCiAgICB2YWwgdmF0UmF0ZUJhc2lzUG9pbnRzOiBJbnQsCiAgICB2YWwgY29uZGl0aW9uOiBQYXltZW50Q29uZGl0aW9uLAogICAgdmFsIHBhaWRUb2RheU1pbm9yOiBMb25nLAogICAgdmFsIGNhc2hBY2NvdW50Q29kZTogU3RyaW5nLAogICAgdmFsIGR1ZURhdGU6IFN0cmluZz8gPSBudWxsLAopCgpkYXRhIGNsYXNzIFBvc3RpbmdMaW5lUHJvcG9zYWwodmFsIGFjY291bnRDb2RlOiBTdHJpbmcsIHZhbCBkZWJpdE1pbm9yOiBMb25nLCB2YWwgY3JlZGl0TWlub3I6IExvbmcpCmRhdGEgY2xhc3MgSW52b2ljZVBvc3RpbmdQcmV2aWV3KAogICAgdmFsIGJhc2VNaW5vcjogTG9uZywKICAgIHZhbCB2YXRNaW5vcjogTG9uZywKICAgIHZhbCB0b3RhbE1pbm9yOiBMb25nLAogICAgdmFsIHBhaWRUb2RheU1pbm9yOiBMb25nLAogICAgdmFsIG91dHN0YW5kaW5nTWlub3I6IExvbmcsCiAgICB2YWwgbGluZXM6IExpc3Q8UG9zdGluZ0xpbmVQcm9wb3NhbD4sCikKCm9iamVjdCBJbnZvaWNlQWNjb3VudGluZyB7CiAgICAvKiogQ2FsY3VsYXRlIHRoZSBpbnZvaWNlIHRheCBwZXIgZG9jdW1lbnQgdG8gY2VudHMsIHVzaW5nIGRlY2ltYWwgYXJpdGhtZXRpYyBhbmQgSEFMRl9VUC4gKi8KICAgIGZ1biBwcmV2aWV3KGlucHV0OiBJbnZvaWNlSW5wdXQsIGFjY291bnRzOiBJbnZvaWNlQWNjb3VudHMpOiBJbnZvaWNlUG9zdGluZ1ByZXZpZXcgewogICAgICAgIHZhbGlkYXRlKGlucHV0LCBhY2NvdW50cykKICAgICAgICB2YWwgdmF0ID0gQmlnRGVjaW1hbC52YWx1ZU9mKGlucHV0LnRheGFibGVCYXNlTWlub3IpCiAgICAgICAgICAgIC5tdWx0aXBseShCaWdEZWNpbWFsLnZhbHVlT2YoaW5wdXQudmF0UmF0ZUJhc2lzUG9pbnRzLnRvTG9uZygpKSkKICAgICAgICAgICAgLmRpdmlkZShCaWdEZWNpbWFsLnZhbHVlT2YoMTBfMDAwKSwgMCwgUm91bmRpbmdNb2RlLkhBTEZfVVApCiAgICAgICAgICAgIC5sb25nVmFsdWVFeGFjdCgpCiAgICAgICAgdmFsIHRvdGFsID0gTWF0aC5hZGRFeGFjdChpbnB1dC50YXhhYmxlQmFzZU1pbm9yLCB2YXQpCiAgICAgICAgdmFsIG91dHN0YW5kaW5nID0gTWF0aC5zdWJ0cmFjdEV4YWN0KHRvdGFsLCBpbnB1dC5wYWlkVG9kYXlNaW5vcikKICAgICAgICB2YWwgbGluZXMgPSB3aGVuIChpbnB1dC5raW5kKSB7CiAgICAgICAgICAgIEludm9pY2VLaW5kLlNBTEUgLT4gYnVpbGRMaXN0IHsKICAgICAgICAgICAgICAgIGlmIChpbnB1dC5wYWlkVG9kYXlNaW5vciA+IDApIGFkZChQb3N0aW5nTGluZVByb3Bvc2FsKGlucHV0LmNhc2hBY2NvdW50Q29kZSwgaW5wdXQucGFpZFRvZGF5TWlub3IsIDApKQogICAgICAgICAgICAgICAgaWYgKG91dHN0YW5kaW5nID4gMCkgYWRkKFBvc3RpbmdMaW5lUHJvcG9zYWwoYWNjb3VudHMucmVjZWl2YWJsZSwgb3V0c3RhbmRpbmcsIDApKQogICAgICAgICAgICAgICAgYWRkKFBvc3RpbmdMaW5lUHJvcG9zYWwoYWNjb3VudHMucmV2ZW51ZSwgMCwgaW5wdXQudGF4YWJsZUJhc2VNaW5vcikpCiAgICAgICAgICAgICAgICBpZiAodmF0ID4gMCkgYWRkKFBvc3RpbmdMaW5lUHJvcG9zYWwoYWNjb3VudHMub3V0cHV0VmF0LCAwLCB2YXQpKQogICAgICAgICAgICB9CiAgICAgICAgICAgIEludm9pY2VLaW5kLlBVUkNIQVNFIC0+IGJ1aWxkTGlzdCB7CiAgICAgICAgICAgICAgICB2YWwgZXhwZW5zZU9yQ29zdCA9IGlmIChhY2NvdW50cy5wdXJjaGFzZVZhdFRyZWF0bWVudCA9PSBQdXJjaGFzZVZhdFRyZWF0bWVudC5JTlBVVF9UQVhfQVNTRVQpIGlucHV0LnRheGFibGVCYXNlTWlub3IgZWxzZSB0b3RhbAogICAgICAgICAgICAgICAgYWRkKFBvc3RpbmdMaW5lUHJvcG9zYWwoYWNjb3VudHMucHVyY2hhc2VDb3N0T3JFeHBlbnNlLCBleHBlbnNlT3JDb3N0LCAwKSkKICAgICAgICAgICAgICAgIGlmICh2YXQgPiAwICYmIGFjY291bnRzLnB1cmNoYXNlVmF0VHJlYXRtZW50ID09IFB1cmNoYXNlVmF0VHJlYXRtZW50LklOUFVUX1RBWF9BU1NFVCkgYWRkKFBvc3RpbmdMaW5lUHJvcG9zYWwoYWNjb3VudHMuaW5wdXRWYXQsIHZhdCwgMCkpCiAgICAgICAgICAgICAgICBpZiAoaW5wdXQucGFpZFRvZGF5TWlub3IgPiAwKSBhZGQoUG9zdGluZ0xpbmVQcm9wb3NhbChpbnB1dC5jYXNoQWNjb3VudENvZGUsIDAsIGlucHV0LnBhaWRUb2RheU1pbm9yKSkKICAgICAgICAgICAgICAgIGlmIChvdXRzdGFuZGluZyA+IDApIGFkZChQb3N0aW5nTGluZVByb3Bvc2FsKGFjY291bnRzLnBheWFibGUsIDAsIG91dHN0YW5kaW5nKSkKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICByZXF1aXJlQmFsYW5jZWQobGluZXMpCiAgICAgICAgcmV0dXJuIEludm9pY2VQb3N0aW5nUHJldmlldyhpbnB1dC50YXhhYmxlQmFzZU1pbm9yLCB2YXQsIHRvdGFsLCBpbnB1dC5wYWlkVG9kYXlNaW5vciwgb3V0c3RhbmRpbmcsIGxpbmVzKQogICAgfQoKICAgIC8qKiBMYXRlciByZWNlaXB0cy9wYXltZW50cyBhcmUgaW5kZXBlbmRlbnQgYmFsYW5jZWQgZW50cmllcyBsaW5rZWQgYnkgdGhlIGNhbGxlciB0byBhbiBpbnZvaWNlLiAqLwogICAgZnVuIHNldHRsZW1lbnQoa2luZDogSW52b2ljZUtpbmQsIGFtb3VudE1pbm9yOiBMb25nLCBjYXNoQWNjb3VudENvZGU6IFN0cmluZywgYWNjb3VudHM6IEludm9pY2VBY2NvdW50cyk6IExpc3Q8UG9zdGluZ0xpbmVQcm9wb3NhbD4gewogICAgICAgIHJlcXVpcmUoYW1vdW50TWlub3IgPiAwKSB7ICJFbCBjb2JybyBvIHBhZ28gZGViZSBzZXIgbWF5b3IgcXVlIGNlcm8uIiB9CiAgICAgICAgdmFsIGxpbmVzID0gd2hlbiAoa2luZCkgewogICAgICAgICAgICBJbnZvaWNlS2luZC5TQUxFIC0+IGxpc3RPZigKICAgICAgICAgICAgICAgIFBvc3RpbmdMaW5lUHJvcG9zYWwoY2FzaEFjY291bnRDb2RlLCBhbW91bnRNaW5vciwgMCksCiAgICAgICAgICAgICAgICBQb3N0aW5nTGluZVByb3Bvc2FsKGFjY291bnRzLnJlY2VpdmFibGUsIDAsIGFtb3VudE1pbm9yKSwKICAgICAgICAgICAgKQogICAgICAgICAgICBJbnZvaWNlS2luZC5QVVJDSEFTRSAtPiBsaXN0T2YoCiAgICAgICAgICAgICAgICBQb3N0aW5nTGluZVByb3Bvc2FsKGFjY291bnRzLnBheWFibGUsIGFtb3VudE1pbm9yLCAwKSwKICAgICAgICAgICAgICAgIFBvc3RpbmdMaW5lUHJvcG9zYWwoY2FzaEFjY291bnRDb2RlLCAwLCBhbW91bnRNaW5vciksCiAgICAgICAgICAgICkKICAgICAgICB9CiAgICAgICAgcmVxdWlyZUJhbGFuY2VkKGxpbmVzKQogICAgICAgIHJldHVybiBsaW5lcwogICAgfQoKICAgIC8qKiBBIGxvYW4gcmVjZWlwdCBpbmNyZWFzZXMgY2FzaCBhbmQgYSBsaWFiaWxpdHk7IGl0IG5ldmVyIGNyZWRpdHMgc2FsZXMuICovCiAgICBmdW4gbG9hblJlY2VpcHQoYW1vdW50TWlub3I6IExvbmcsIGNhc2hBY2NvdW50Q29kZTogU3RyaW5nLCBsb2FuTGlhYmlsaXR5QWNjb3VudENvZGU6IFN0cmluZyk6IExpc3Q8UG9zdGluZ0xpbmVQcm9wb3NhbD4gewogICAgICAgIHJlcXVpcmUoYW1vdW50TWlub3IgPiAwKSB7ICJFbCBwcsOpc3RhbW8gZGViZSBzZXIgbWF5b3IgcXVlIGNlcm8uIiB9CiAgICAgICAgcmV0dXJuIGxpc3RPZigKICAgICAgICAgICAgUG9zdGluZ0xpbmVQcm9wb3NhbChjYXNoQWNjb3VudENvZGUsIGFtb3VudE1pbm9yLCAwKSwKICAgICAgICAgICAgUG9zdGluZ0xpbmVQcm9wb3NhbChsb2FuTGlhYmlsaXR5QWNjb3VudENvZGUsIDAsIGFtb3VudE1pbm9yKSwKICAgICAgICApCiAgICB9CgogICAgZnVuIHJlcXVpcmVTdWZmaWNpZW50RnVuZHMoY3VycmVudEJhbGFuY2VNaW5vcjogTG9uZywgcGF5bWVudE1pbm9yOiBMb25nKSB7CiAgICAgICAgcmVxdWlyZShjdXJyZW50QmFsYW5jZU1pbm9yID49IDAgJiYgcGF5bWVudE1pbm9yID49IDApIHsgIkVsIHNhbGRvIHkgZWwgcGFnbyBubyBwdWVkZW4gc2VyIG5lZ2F0aXZvcy4iIH0KICAgICAgICByZXF1aXJlKHBheW1lbnRNaW5vciA8PSBjdXJyZW50QmFsYW5jZU1pbm9yKSB7ICJTYWxkbyBpbnN1ZmljaWVudGU6IGVsIHBhZ28gZGVqYXLDrWEgY2FqYSBvIGJhbmNvIGVuIG5lZ2F0aXZvLiIgfQogICAgfQoKICAgIGZ1biByZXF1aXJlVW5pcXVlSW52b2ljZShleGlzdGluZ0tleXM6IFNldDxTdHJpbmc+LCBraW5kOiBJbnZvaWNlS2luZCwgcmVnaXN0ZXJlZFBhcnR5SWQ6IFN0cmluZywgaW52b2ljZU51bWJlcjogU3RyaW5nKSB7CiAgICAgICAgdmFsIGtleSA9IGR1cGxpY2F0ZUtleShraW5kLCByZWdpc3RlcmVkUGFydHlJZCwgaW52b2ljZU51bWJlcikKICAgICAgICByZXF1aXJlKGtleSAhaW4gZXhpc3RpbmdLZXlzKSB7ICJZYSBleGlzdGUgdW5hIGZhY3R1cmEgY29uIGVzZSBuw7ptZXJvIHBhcmEgZXN0ZSBjbGllbnRlIG8gcHJvdmVlZG9yLiIgfQogICAgfQoKICAgIGZ1biBkdXBsaWNhdGVLZXkoa2luZDogSW52b2ljZUtpbmQsIHJlZ2lzdGVyZWRQYXJ0eUlkOiBTdHJpbmcsIGludm9pY2VOdW1iZXI6IFN0cmluZyk6IFN0cmluZyA9CiAgICAgICAgbGlzdE9mKGtpbmQubmFtZSwgcmVnaXN0ZXJlZFBhcnR5SWQudHJpbSgpLnVwcGVyY2FzZSgpLCBpbnZvaWNlTnVtYmVyLnRyaW0oKS51cHBlcmNhc2UoKSkuam9pblRvU3RyaW5nKCJ8IikKCiAgICBwcml2YXRlIGZ1biB2YWxpZGF0ZShpbnB1dDogSW52b2ljZUlucHV0LCBhY2NvdW50czogSW52b2ljZUFjY291bnRzKSB7CiAgICAgICAgcmVxdWlyZShpbnB1dC5pbnZvaWNlRGF0ZS5tYXRjaGVzKFJlZ2V4KCJcXGR7NH0tXFxkezJ9LVxcZHsyfSIpKSAmJiBydW5DYXRjaGluZyB7IGphdmEudGltZS5Mb2NhbERhdGUucGFyc2UoaW5wdXQuaW52b2ljZURhdGUpIH0uaXNTdWNjZXNzKSB7ICJMYSBmZWNoYSBkZSBmYWN0dXJhIG5vIGVzIHbDoWxpZGEuIiB9CiAgICAgICAgcmVxdWlyZShpbnB1dC5pbnZvaWNlTnVtYmVyLmlzTm90QmxhbmsoKSkgeyAiRXNjcmliZSBlbCBuw7ptZXJvIGRlIGZhY3R1cmEuIiB9CiAgICAgICAgcmVxdWlyZShpbnB1dC5raW5kICE9IEludm9pY2VLaW5kLlNBTEUgfHwgIWlucHV0LmNvbnRyb2xOdW1iZXIuaXNOdWxsT3JCbGFuaygpKSB7ICJMYSB2ZW50YSByZXF1aWVyZSBuw7ptZXJvIGRlIGNvbnRyb2wuIiB9CiAgICAgICAgaW5wdXQuZHVlRGF0ZT8ubGV0IHsgcmVxdWlyZShydW5DYXRjaGluZyB7IGphdmEudGltZS5Mb2NhbERhdGUucGFyc2UoaXQpIH0uaXNTdWNjZXNzKSB7ICJMYSBmZWNoYSBkZSB2ZW5jaW1pZW50byBubyBlcyB2w6FsaWRhLiIgfSB9CiAgICAgICAgcmVxdWlyZShpbnB1dC5yZWdpc3RlcmVkUGFydHlJZC5pc05vdEJsYW5rKCkpIHsgIlNlbGVjY2lvbmEgdW4gY2xpZW50ZSBvIHByb3ZlZWRvciByZWdpc3RyYWRvLiIgfQogICAgICAgIHJlcXVpcmUoaW5wdXQuZGVzY3JpcHRpb24uaXNOb3RCbGFuaygpKSB7ICJFc2NyaWJlIHVuYSBkZXNjcmlwY2nDs24uIiB9CiAgICAgICAgcmVxdWlyZShpbnB1dC50YXhhYmxlQmFzZU1pbm9yID4gMCkgeyAiTGEgYmFzZSBpbXBvbmlibGUgZGViZSBzZXIgbWF5b3IgcXVlIGNlcm8uIiB9CiAgICAgICAgcmVxdWlyZShpbnB1dC52YXRSYXRlQmFzaXNQb2ludHMgaW4gMC4uMTAwXzAwMCkgeyAiTGEgdGFzYSBkZSBJVkEgZGViZSBzZXIgdW4gcGFyw6FtZXRybyB2w6FsaWRvLiIgfQogICAgICAgIHJlcXVpcmUoaW5wdXQua2luZCA9PSBJbnZvaWNlS2luZC5TQUxFIHx8IGFjY291bnRzLnB1cmNoYXNlVmF0VHJlYXRtZW50ID09IFB1cmNoYXNlVmF0VHJlYXRtZW50LklOUFVUX1RBWF9BU1NFVCB8fCBhY2NvdW50cy5wdXJjaGFzZVZhdFRyZWF0bWVudCA9PSBQdXJjaGFzZVZhdFRyZWF0bWVudC5JTkNMVURFRF9JTl9QVVJDSEFTRV9DT1NUKSB7ICJFbCB0cmF0YW1pZW50byBkZWwgSVZBIGRlIGNvbXByYSBubyBlc3TDoSBjb25maWd1cmFkby4iIH0KICAgICAgICByZXF1aXJlKGlucHV0LnBhaWRUb2RheU1pbm9yID49IDApIHsgIkVsIHBhZ28gcmVjaWJpZG8gaG95IG5vIHB1ZWRlIHNlciBuZWdhdGl2by4iIH0KICAgICAgICByZXF1aXJlKGlucHV0LnBhaWRUb2RheU1pbm9yIDw9IE1hdGguYWRkRXhhY3QoaW5wdXQudGF4YWJsZUJhc2VNaW5vciwgQmlnRGVjaW1hbC52YWx1ZU9mKGlucHV0LnRheGFibGVCYXNlTWlub3IpLm11bHRpcGx5KEJpZ0RlY2ltYWwudmFsdWVPZihpbnB1dC52YXRSYXRlQmFzaXNQb2ludHMudG9Mb25nKCkpKS5kaXZpZGUoQmlnRGVjaW1hbC52YWx1ZU9mKDEwXzAwMCksIDAsIFJvdW5kaW5nTW9kZS5IQUxGX1VQKS5sb25nVmFsdWVFeGFjdCgpKSkgeyAiRWwgcGFnbyBkZSBob3kgbm8gcHVlZGUgc3VwZXJhciBlbCB0b3RhbCBkZSBsYSBmYWN0dXJhLiIgfQogICAgICAgIHJlcXVpcmUoaW5wdXQuY29uZGl0aW9uICE9IFBheW1lbnRDb25kaXRpb24uQ0FTSCB8fCBpbnB1dC5wYWlkVG9kYXlNaW5vciA9PSBNYXRoLmFkZEV4YWN0KGlucHV0LnRheGFibGVCYXNlTWlub3IsIEJpZ0RlY2ltYWwudmFsdWVPZihpbnB1dC50YXhhYmxlQmFzZU1pbm9yKS5tdWx0aXBseShCaWdEZWNpbWFsLnZhbHVlT2YoaW5wdXQudmF0UmF0ZUJhc2lzUG9pbnRzLnRvTG9uZygpKSkuZGl2aWRlKEJpZ0RlY2ltYWwudmFsdWVPZigxMF8wMDApLCAwLCBSb3VuZGluZ01vZGUuSEFMRl9VUCkubG9uZ1ZhbHVlRXhhY3QoKSkpIHsgIlVuYSBmYWN0dXJhIGRlIGNvbnRhZG8gZGViZSBxdWVkYXIgcGFnYWRhIGVuIHN1IHRvdGFsaWRhZC4iIH0KICAgICAgICByZXF1aXJlKGlucHV0LmNhc2hBY2NvdW50Q29kZS5pc05vdEJsYW5rKCkpIHsgIlNlbGVjY2lvbmEgdW5hIGN1ZW50YSBkZSBjYWphIG8gYmFuY28uIiB9CiAgICB9CgogICAgcHJpdmF0ZSBmdW4gcmVxdWlyZUJhbGFuY2VkKGxpbmVzOiBMaXN0PFBvc3RpbmdMaW5lUHJvcG9zYWw+KSB7CiAgICAgICAgcmVxdWlyZShsaW5lcy5pc05vdEVtcHR5KCkgJiYgbGluZXMuYWxsIHsgaXQuZGViaXRNaW5vciA+PSAwICYmIGl0LmNyZWRpdE1pbm9yID49IDAgJiYgKChpdC5kZWJpdE1pbm9yID09IDBMKSB4b3IgKGl0LmNyZWRpdE1pbm9yID09IDBMKSkgfSkgeyAiTGFzIGzDrW5lYXMgZGVsIGFzaWVudG8gc29uIGludsOhbGlkYXMuIiB9CiAgICAgICAgcmVxdWlyZShVc2RNb25leS5zdW1NaW5vclVuaXRzKGxpbmVzLm1hcCB7IGl0LmRlYml0TWlub3IgfSkgPT0gVXNkTW9uZXkuc3VtTWlub3JVbml0cyhsaW5lcy5tYXAgeyBpdC5jcmVkaXRNaW5vciB9KSkgeyAiRWwgYXNpZW50byBubyBlc3TDoSBiYWxhbmNlYWRvLiIgfQogICAgfQp9Cg==
+package com.neon.book01.domain
+
+import java.math.BigDecimal
+import java.math.RoundingMode
+
+/** Sale/purchase invoice posting proposal. Rates are supplied by the book, never hard-coded. */
+enum class InvoiceKind { SALE, PURCHASE }
+enum class PaymentCondition { CASH, CREDIT }
+enum class PurchaseVatTreatment { INPUT_TAX_ASSET, INCLUDED_IN_PURCHASE_COST }
+
+data class InvoiceAccounts(
+    val cashOrBank: String,
+    val receivable: String,
+    val payable: String,
+    val revenue: String,
+    val purchaseCostOrExpense: String,
+    val outputVat: String,
+    val inputVat: String,
+    val bankLoanLiability: String,
+    /** This policy is deliberately required from configuration; have a qualified accountant approve it. */
+    val purchaseVatTreatment: PurchaseVatTreatment,
+)
+
+data class InvoiceInput(
+    val kind: InvoiceKind,
+    val invoiceDate: String,
+    val invoiceNumber: String,
+    val controlNumber: String? = null,
+    val registeredPartyId: String,
+    val description: String,
+    val taxableBaseMinor: Long,
+    /** Tax rate in basis points: 1600 means 16%. It must be explicitly provided. */
+    val vatRateBasisPoints: Int,
+    val condition: PaymentCondition,
+    val paidTodayMinor: Long,
+    val cashAccountCode: String,
+    val dueDate: String? = null,
+)
+
+data class PostingLineProposal(val accountCode: String, val debitMinor: Long, val creditMinor: Long)
+data class InvoicePostingPreview(
+    val baseMinor: Long,
+    val vatMinor: Long,
+    val totalMinor: Long,
+    val paidTodayMinor: Long,
+    val outstandingMinor: Long,
+    val lines: List<PostingLineProposal>,
+)
+
+object InvoiceAccounting {
+    /** Calculate the invoice tax per document to cents, using decimal arithmetic and HALF_UP. */
+    fun preview(input: InvoiceInput, accounts: InvoiceAccounts): InvoicePostingPreview {
+        validate(input, accounts)
+        val vat = BigDecimal.valueOf(input.taxableBaseMinor)
+            .multiply(BigDecimal.valueOf(input.vatRateBasisPoints.toLong()))
+            .divide(BigDecimal.valueOf(10_000), 0, RoundingMode.HALF_UP)
+            .longValueExact()
+        val total = Math.addExact(input.taxableBaseMinor, vat)
+        val outstanding = Math.subtractExact(total, input.paidTodayMinor)
+        val lines = when (input.kind) {
+            InvoiceKind.SALE -> buildList {
+                if (input.paidTodayMinor > 0) add(PostingLineProposal(input.cashAccountCode, input.paidTodayMinor, 0))
+                if (outstanding > 0) add(PostingLineProposal(accounts.receivable, outstanding, 0))
+                add(PostingLineProposal(accounts.revenue, 0, input.taxableBaseMinor))
+                if (vat > 0) add(PostingLineProposal(accounts.outputVat, 0, vat))
+            }
+            InvoiceKind.PURCHASE -> buildList {
+                val expenseOrCost = if (accounts.purchaseVatTreatment == PurchaseVatTreatment.INPUT_TAX_ASSET) input.taxableBaseMinor else total
+                add(PostingLineProposal(accounts.purchaseCostOrExpense, expenseOrCost, 0))
+                if (vat > 0 && accounts.purchaseVatTreatment == PurchaseVatTreatment.INPUT_TAX_ASSET) add(PostingLineProposal(accounts.inputVat, vat, 0))
+                if (input.paidTodayMinor > 0) add(PostingLineProposal(input.cashAccountCode, 0, input.paidTodayMinor))
+                if (outstanding > 0) add(PostingLineProposal(accounts.payable, 0, outstanding))
+            }
+        }
+        requireBalanced(lines)
+        return InvoicePostingPreview(input.taxableBaseMinor, vat, total, input.paidTodayMinor, outstanding, lines)
+    }
+
+    /** Later receipts/payments are independent balanced entries linked by the caller to an invoice. */
+    fun settlement(kind: InvoiceKind, amountMinor: Long, cashAccountCode: String, accounts: InvoiceAccounts): List<PostingLineProposal> {
+        require(amountMinor > 0) { "El cobro o pago debe ser mayor que cero." }
+        val lines = when (kind) {
+            InvoiceKind.SALE -> listOf(
+                PostingLineProposal(cashAccountCode, amountMinor, 0),
+                PostingLineProposal(accounts.receivable, 0, amountMinor),
+            )
+            InvoiceKind.PURCHASE -> listOf(
+                PostingLineProposal(accounts.payable, amountMinor, 0),
+                PostingLineProposal(cashAccountCode, 0, amountMinor),
+            )
+        }
+        requireBalanced(lines)
+        return lines
+    }
+
+    /** A collection/payment cannot predate the invoice it settles. Both dates must be strict ISO dates. */
+    fun requireSettlementDateNotBeforeInvoice(invoiceDate: String, settlementDate: String) {
+        val invoice = runCatching { java.time.LocalDate.parse(invoiceDate) }.getOrNull()
+            ?: throw IllegalArgumentException("La fecha de factura no es válida.")
+        val settlement = runCatching { java.time.LocalDate.parse(settlementDate) }.getOrNull()
+            ?: throw IllegalArgumentException("La fecha del cobro o pago no es válida.")
+        require(!settlement.isBefore(invoice)) { "El cobro o pago no puede ser anterior a la fecha de la factura." }
+    }
+
+    /** A loan receipt increases cash and a liability; it never credits sales. */
+    fun loanReceipt(amountMinor: Long, cashAccountCode: String, loanLiabilityAccountCode: String): List<PostingLineProposal> {
+        require(amountMinor > 0) { "El préstamo debe ser mayor que cero." }
+        return listOf(
+            PostingLineProposal(cashAccountCode, amountMinor, 0),
+            PostingLineProposal(loanLiabilityAccountCode, 0, amountMinor),
+        )
+    }
+
+    fun requireSufficientFunds(currentBalanceMinor: Long, paymentMinor: Long) {
+        require(currentBalanceMinor >= 0 && paymentMinor >= 0) { "El saldo y el pago no pueden ser negativos." }
+        require(paymentMinor <= currentBalanceMinor) { "Saldo insuficiente: el pago dejaría caja o banco en negativo." }
+    }
+
+    fun requireUniqueInvoice(existingKeys: Set<String>, kind: InvoiceKind, registeredPartyId: String, invoiceNumber: String) {
+        val key = duplicateKey(kind, registeredPartyId, invoiceNumber)
+        require(key !in existingKeys) { "Ya existe una factura con ese número para este cliente o proveedor." }
+    }
+
+    fun duplicateKey(kind: InvoiceKind, registeredPartyId: String, invoiceNumber: String): String =
+        listOf(kind.name, registeredPartyId.trim().uppercase(), invoiceNumber.trim().uppercase()).joinToString("|")
+
+    private fun validate(input: InvoiceInput, accounts: InvoiceAccounts) {
+        require(input.invoiceDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && runCatching { java.time.LocalDate.parse(input.invoiceDate) }.isSuccess) { "La fecha de factura no es válida." }
+        require(input.invoiceNumber.isNotBlank()) { "Escribe el número de factura." }
+        require(input.kind != InvoiceKind.SALE || !input.controlNumber.isNullOrBlank()) { "La venta requiere número de control." }
+        input.dueDate?.let { require(runCatching { java.time.LocalDate.parse(it) }.isSuccess) { "La fecha de vencimiento no es válida." } }
+        require(input.registeredPartyId.isNotBlank()) { "Selecciona un cliente o proveedor registrado." }
+        require(input.description.isNotBlank()) { "Escribe una descripción." }
+        require(input.taxableBaseMinor > 0) { "La base imponible debe ser mayor que cero." }
+        require(input.vatRateBasisPoints in 0..100_000) { "La tasa de IVA debe ser un parámetro válido." }
+        require(input.kind == InvoiceKind.SALE || accounts.purchaseVatTreatment == PurchaseVatTreatment.INPUT_TAX_ASSET || accounts.purchaseVatTreatment == PurchaseVatTreatment.INCLUDED_IN_PURCHASE_COST) { "El tratamiento del IVA de compra no está configurado." }
+        require(input.paidTodayMinor >= 0) { "El pago recibido hoy no puede ser negativo." }
+        require(input.paidTodayMinor <= Math.addExact(input.taxableBaseMinor, BigDecimal.valueOf(input.taxableBaseMinor).multiply(BigDecimal.valueOf(input.vatRateBasisPoints.toLong())).divide(BigDecimal.valueOf(10_000), 0, RoundingMode.HALF_UP).longValueExact())) { "El pago de hoy no puede superar el total de la factura." }
+        require(input.condition != PaymentCondition.CASH || input.paidTodayMinor == Math.addExact(input.taxableBaseMinor, BigDecimal.valueOf(input.taxableBaseMinor).multiply(BigDecimal.valueOf(input.vatRateBasisPoints.toLong())).divide(BigDecimal.valueOf(10_000), 0, RoundingMode.HALF_UP).longValueExact())) { "Una factura de contado debe quedar pagada en su totalidad." }
+        require(input.cashAccountCode.isNotBlank()) { "Selecciona una cuenta de caja o banco." }
+    }
+
+    private fun requireBalanced(lines: List<PostingLineProposal>) {
+        require(lines.isNotEmpty() && lines.all { it.debitMinor >= 0 && it.creditMinor >= 0 && ((it.debitMinor == 0L) xor (it.creditMinor == 0L)) }) { "Las líneas del asiento son inválidas." }
+        require(UsdMoney.sumMinorUnits(lines.map { it.debitMinor }) == UsdMoney.sumMinorUnits(lines.map { it.creditMinor })) { "El asiento no está balanceado." }
+    }
+}
