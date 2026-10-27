@@ -15,7 +15,7 @@ class CounterpartyBalanceSummaryTest {
                 InvoiceBalanceInput("i3", "client-b", 2_000, "2026-10-26"),
                 InvoiceBalanceInput("i4", "client-b", 3_000, null),
             ),
-            settlements = listOf(SettlementBalanceInput("i1", 4_000), SettlementBalanceInput("i3", 2_000)),
+            settlements = listOf(SettlementBalanceInput("i1", 4_000, "2026-10-27"), SettlementBalanceInput("i3", 2_000, "2026-10-27")),
             asOf = today,
         )
         assertEquals(
@@ -38,7 +38,7 @@ class CounterpartyBalanceSummaryTest {
                 InvoiceBalanceInput("day61", "p", 600, "2026-08-27"),
                 InvoiceBalanceInput("invalid", "p", 700, "not-a-date"),
             ),
-            settlements = listOf(SettlementBalanceInput("day1", 50)),
+            settlements = listOf(SettlementBalanceInput("day1", 50, "2026-10-27")),
             asOf = today,
         ).single()
         assertEquals(2_750L, actual.outstandingMinor)
@@ -48,19 +48,40 @@ class CounterpartyBalanceSummaryTest {
         assertEquals(600L, actual.overdueOver60Minor)
     }
 
+    @Test fun futureDatedSettlementsDoNotReduceAsOfBalancesOrOverdueAging() {
+        val actual = summarizeCounterpartyBalances(
+            invoices = listOf(InvoiceBalanceInput("i", "client", 10_000, "2026-10-20")),
+            settlements = listOf(
+                SettlementBalanceInput("i", 2_000, "2026-10-27"),
+                SettlementBalanceInput("i", 8_000, "2026-10-28"),
+            ),
+            asOf = today,
+        ).single()
+        assertEquals(8_000L, actual.outstandingMinor)
+        assertEquals(8_000L, actual.overdueMinor)
+    }
+
+    @Test fun settledMinorAsOfExcludesFutureDatedAmounts() {
+        assertEquals(2_000L, settledMinorAsOf(
+            "i",
+            listOf(SettlementBalanceInput("i", 2_000, "2026-10-27"), SettlementBalanceInput("i", 8_000, "2026-10-28")),
+            today,
+        ))
+    }
+
     @Test fun fullySettledAndUndatedInvoicesDoNotCreateOverdueBalances() {
         assertEquals(
             listOf(CounterpartyBalanceSummary("p", 2, 0, 0)),
             summarizeCounterpartyBalances(
                 listOf(InvoiceBalanceInput("a", "p", 100, "2026-10-01"), InvoiceBalanceInput("b", "p", 50, null)),
-                listOf(SettlementBalanceInput("a", 100), SettlementBalanceInput("b", 50)), today,
+                listOf(SettlementBalanceInput("a", 100, "2026-10-27"), SettlementBalanceInput("b", 50, "2026-10-27")), today,
             ),
         )
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun rejectsSettlementGreaterThanInvoice() {
-        summarizeCounterpartyBalances(listOf(InvoiceBalanceInput("a", "p", 100, null)), listOf(SettlementBalanceInput("a", 101)), today)
+        summarizeCounterpartyBalances(listOf(InvoiceBalanceInput("a", "p", 100, null)), listOf(SettlementBalanceInput("a", 101, "2026-10-27")), today)
     }
 
     @Test(expected = ArithmeticException::class)
