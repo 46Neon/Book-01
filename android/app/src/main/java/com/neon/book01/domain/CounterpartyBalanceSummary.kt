@@ -69,3 +69,14 @@ fun summarizeCounterpartyBalances(
         CounterpartyBalanceSummary(partyId, balance.count, balance.outstanding, balance.overdue, balance.overdue1To30, balance.overdue31To60, balance.overdueOver60)
     }.sortedBy { it.counterpartyId }
 }
+
+/** Prioritizes collection work while keeping ties deterministic for an accountant's review. */
+fun sortCounterpartyBalanceSummaries(
+    summaries: List<CounterpartyBalanceSummary>,
+    displayName: (String) -> String,
+): List<CounterpartyBalanceSummary> = summaries.sortedWith(
+    compareByDescending<CounterpartyBalanceSummary> { it.overdueMinor }
+        .thenByDescending { it.outstandingMinor }
+        .thenBy(String.CASE_INSENSITIVE_ORDER) { displayName(it.counterpartyId) }
+        .thenBy { it.counterpartyId },
+)
