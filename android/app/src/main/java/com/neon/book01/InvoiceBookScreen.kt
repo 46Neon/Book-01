@@ -78,7 +78,7 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     val periodInvoices = bookInvoices.filter { matchesInvoiceBookPeriod(it.invoiceDate, selectedPeriod, asOf) }
     val partyNames = (if (initialKind == InvoiceKind.SALE) clients else suppliers).associate { it.id to it.displayName }
     val balanceSummaries = com.neon.book01.domain.summarizeCounterpartyBalances(
-        invoices = bookInvoices.map { com.neon.book01.domain.InvoiceBalanceInput(it.id, it.registeredPartyId, it.totalMinor, it.dueDate) },
+        invoices = bookInvoices.map { com.neon.book01.domain.InvoiceBalanceInput(it.id, it.registeredPartyId, it.totalMinor, it.invoiceDate, it.dueDate) },
         settlements = settlements.filter { settlement -> bookInvoices.any { it.id == settlement.invoiceId } }
             .map { com.neon.book01.domain.SettlementBalanceInput(it.invoiceId, it.amountMinor, it.settlementDate) },
         asOf = asOf,
