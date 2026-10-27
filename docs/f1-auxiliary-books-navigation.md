@@ -18,3 +18,8 @@ This scoped milestone improves the mobile workflow without changing the ledger s
 5. F5: accountant acceptance, release checks and signed release. Do not claim tax/legal conformity without this review.
 
 The existing GitHub Actions workflow already limits the debug APK artifact to two-day retention and only uploads it for main/manual builds. No workflows, releases, or artifacts were deleted or otherwise changed in this milestone.
+
+
+## Invoice balance status (accounting-facing slice)
+
+Invoice cards now display a derived balance status alongside the settled and outstanding amounts: Paid, Partial, Open, or Overdue. The status is calculated from the invoice total, persisted settlements, and the due date only when one was explicitly entered. A missing or malformed due date does not imply overdue; a fully settled invoice remains Paid, and any remaining balance after a passed due date is Overdue even when partially paid. This is an informational view only: it creates no accounting entries and changes no persisted invoice or settlement data. The current settlement UI and ledger continue to use the existing USD storage model; broader currency support remains future work.

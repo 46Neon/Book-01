@@ -38,6 +38,7 @@ import com.neon.book01.domain.InvoiceAccounts
 import com.neon.book01.domain.InvoiceAccounting
 import com.neon.book01.domain.InvoiceInput
 import com.neon.book01.domain.InvoiceKind
+import com.neon.book01.domain.invoiceSettlementStatus
 import com.neon.book01.domain.PaymentCondition
 import com.neon.book01.domain.PurchaseVatTreatment
 import com.neon.book01.domain.UsdMoney
@@ -99,6 +100,8 @@ private fun InvoiceCard(invoice: InvoiceEntity, repository: LedgerRepository, ac
             Text("${invoice.invoiceDate} · $partyName · ${invoice.description}", color = Color(0xFF6B778C), fontSize = 12.sp)
             Text("Base ${money(invoice.taxableBaseMinor)} · IVA ${money(invoice.vatMinor)} · Total ${money(invoice.totalMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
             Text("Abonado ${money(settled)} · pendiente ${money(pending)}", color = Color(0xFF6B778C), fontSize = 12.sp)
+            val status = invoiceSettlementStatus(invoice.totalMinor, settled, invoice.dueDate, LocalDate.now())
+            Text("Estado: ${status.displayLabel}", color = if (status.displayLabel == "Vencida") Color(0xFFB3261E) else Color(0xFF6B778C), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             if (invoice.dueDate != null) Text("Vence ${invoice.dueDate}", color = Color(0xFF6B778C), fontSize = 11.sp)
             if (pending > 0) TextButton(onClick = { showDialog = true }) { Text(if (invoice.kind == "SALE") "Registrar cobro" else "Registrar pago") }
         }
