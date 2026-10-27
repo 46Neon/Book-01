@@ -1,1 +1,113 @@
-bmFtZTogQW5kcm9pZCBidWlsZAoKb246CiAgcHVzaDoKICAgIGJyYW5jaGVzOiBbbWFpbl0KICBwdWxsX3JlcXVlc3Q6CiAgd29ya2Zsb3dfZGlzcGF0Y2g6CgpwZXJtaXNzaW9uczoKICBjb250ZW50czogcmVhZAoKam9iczoKICBhc3NlbWJsZS1kZWJ1ZzoKICAgIHJ1bnMtb246IHVidW50dS1sYXRlc3QKICAgIHN0ZXBzOgogICAgICAtIG5hbWU6IENoZWNrb3V0CiAgICAgICAgdXNlczogYWN0aW9ucy9jaGVja291dEB2NAoKICAgICAgLSBuYW1lOiBTZXQgdXAgSkRLIDE3CiAgICAgICAgdXNlczogYWN0aW9ucy9zZXR1cC1qYXZhQHY0CiAgICAgICAgd2l0aDoKICAgICAgICAgIGRpc3RyaWJ1dGlvbjogdGVtdXJpbgogICAgICAgICAgamF2YS12ZXJzaW9uOiAnMTcnCgogICAgICAtIG5hbWU6IFNldCB1cCBBbmRyb2lkIFNESwogICAgICAgIHVzZXM6IGFuZHJvaWQtYWN0aW9ucy9zZXR1cC1hbmRyb2lkQHYzCiAgICAgICAgd2l0aDoKICAgICAgICAgIHBhY2thZ2VzOiAncGxhdGZvcm0tdG9vbHMnCgogICAgICAtIG5hbWU6IEluc3RhbGwgQW5kcm9pZCBBUEkgMzYKICAgICAgICBydW46IHNka21hbmFnZXIgJ3BsYXRmb3JtczthbmRyb2lkLTM2JyAnYnVpbGQtdG9vbHM7MzYuMC4wJwoKICAgICAgLSBuYW1lOiBTZXQgdXAgR3JhZGxlIDguMTMKICAgICAgICB1c2VzOiBncmFkbGUvYWN0aW9ucy9zZXR1cC1ncmFkbGVAdjQKICAgICAgICB3aXRoOgogICAgICAgICAgZ3JhZGxlLXZlcnNpb246ICc4LjEzJwoKICAgICAgLSBuYW1lOiBSdW4gYWNjb3VudGluZyB1bml0IHRlc3RzIGFuZCBidWlsZCBkZWJ1ZyBBUEsKICAgICAgICBydW46IGdyYWRsZSA6YXBwOnRlc3REZWJ1Z1VuaXRUZXN0IDphcHA6Y29tcGlsZURlYnVnQW5kcm9pZFRlc3RLb3RsaW4gOmFwcDphc3NlbWJsZURlYnVnCgogICAgICAtIG5hbWU6IFVwbG9hZCBkZWJ1ZyBBUEsgZm9yIG1haW4vbWFudWFsIGJ1aWxkcyBvbmx5CiAgICAgICAgaWY6IGdpdGh1Yi5ldmVudF9uYW1lID09ICd3b3JrZmxvd19kaXNwYXRjaCcgfHwgZ2l0aHViLnJlZiA9PSAncmVmcy9oZWFkcy9tYWluJwogICAgICAgIHVzZXM6IGFjdGlvbnMvdXBsb2FkLWFydGlmYWN0QHY0CiAgICAgICAgd2l0aDoKICAgICAgICAgIG5hbWU6IGFyaW5vLWRlYnVnLWFwawogICAgICAgICAgcGF0aDogYW5kcm9pZC9hcHAvYnVpbGQvb3V0cHV0cy9hcGsvZGVidWcvYXBwLWRlYnVnLmFwawogICAgICAgICAgcmV0ZW50aW9uLWRheXM6IDIKCiAgICAgICMgUm9vbSBzY2hlbWFzIGFyZSB2ZXJzaW9uZWQgaW4gZ2l0OyBkbyBub3QgdXBsb2FkIGEgZHVwbGljYXRlIGFydGlmYWN0IHBlciBydW4uCgogIHJvb20tbWlncmF0aW9uLXRlc3Q6CiAgICBpZjogZ2l0aHViLmV2ZW50X25hbWUgPT0gJ3dvcmtmbG93X2Rpc3BhdGNoJwogICAgcnVucy1vbjogdWJ1bnR1LWxhdGVzdAogICAgdGltZW91dC1taW51dGVzOiAxNQogICAgc3RlcHM6CiAgICAgIC0gbmFtZTogQ2hlY2tvdXQKICAgICAgICB1c2VzOiBhY3Rpb25zL2NoZWNrb3V0QHY0CgogICAgICAtIG5hbWU6IFNldCB1cCBKREsgMTcKICAgICAgICB1c2VzOiBhY3Rpb25zL3NldHVwLWphdmFAdjQKICAgICAgICB3aXRoOgogICAgICAgICAgZGlzdHJpYnV0aW9uOiB0ZW11cmluCiAgICAgICAgICBqYXZhLXZlcnNpb246ICcxNycKCiAgICAgIC0gbmFtZTogU2V0IHVwIEFuZHJvaWQgU0RLCiAgICAgICAgdXNlczogYW5kcm9pZC1hY3Rpb25zL3NldHVwLWFuZHJvaWRAdjMKICAgICAgICB3aXRoOgogICAgICAgICAgcGFja2FnZXM6ICdwbGF0Zm9ybS10b29scycKCiAgICAgIC0gbmFtZTogSW5zdGFsbCBBbmRyb2lkIEFQSSAzNgogICAgICAgIHJ1bjogc2RrbWFuYWdlciAncGxhdGZvcm1zO2FuZHJvaWQtMzYnICdidWlsZC10b29sczszNi4wLjAnCgogICAgICAtIG5hbWU6IFNldCB1cCBHcmFkbGUgOC4xMwogICAgICAgIHVzZXM6IGdyYWRsZS9hY3Rpb25zL3NldHVwLWdyYWRsZUB2NAogICAgICAgIHdpdGg6CiAgICAgICAgICBncmFkbGUtdmVyc2lvbjogJzguMTMnCgogICAgICAtIG5hbWU6IEVuYWJsZSBLVk0gZm9yIEFuZHJvaWQgZW11bGF0b3IKICAgICAgICBydW46IHwKICAgICAgICAgIGVjaG8gJ0tFUk5FTD09Imt2bSIsIEdST1VQPSJrdm0iLCBNT0RFPSIwNjY2IiwgT1BUSU9OUys9InN0YXRpY19ub2RlPWt2bSInIHwgc3VkbyB0ZWUgL2V0Yy91ZGV2L3J1bGVzLmQvOTkta3ZtNGFsbC5ydWxlcwogICAgICAgICAgc3VkbyB1ZGV2YWRtIGNvbnRyb2wgLS1yZWxvYWQtcnVsZXMKICAgICAgICAgIHN1ZG8gdWRldmFkbSB0cmlnZ2VyIC0tbmFtZS1tYXRjaD1rdm0KCiAgICAgIC0gbmFtZTogUmVjbGFpbSBydW5uZXIgc3BhY2UgZm9yIGVtdWxhdG9yIHVzZXJkYXRhCiAgICAgICAgcnVuOiB8CiAgICAgICAgICBzdWRvIHJtIC1yZiAvdXNyL3NoYXJlL2RvdG5ldCAvb3B0L2hvc3RlZHRvb2xjYWNoZS9Db2RlUUwgL3Vzci9sb2NhbC9zaGFyZS9ib29zdAogICAgICAgICAgZGYgLWggL2hvbWUvcnVubmVyCgogICAgICAtIG5hbWU6IFJ1biBvbi1kZXZpY2UgUm9vbSBtaWdyYXRpb24gdGVzdHMKICAgICAgICB1c2VzOiByZWFjdGl2ZWNpcmN1cy9hbmRyb2lkLWVtdWxhdG9yLXJ1bm5lckB2MgogICAgICAgIHdpdGg6CiAgICAgICAgICBhcGktbGV2ZWw6IDM2CiAgICAgICAgICB0YXJnZXQ6IGdvb2dsZV9hcGlzCiAgICAgICAgICBhcmNoOiB4ODZfNjQKICAgICAgICAgIGRpc2stc2l6ZTogNEcKICAgICAgICAgIGRpc2FibGUtYW5pbWF0aW9uczogdHJ1ZQogICAgICAgICAgc2NyaXB0OiBncmFkbGUgOmFwcDpjb25uZWN0ZWREZWJ1Z0FuZHJvaWRUZXN0CgogICAgICAtIG5hbWU6IFVwbG9hZCBvbi1kZXZpY2UgdGVzdCByZXN1bHRzCiAgICAgICAgaWY6IGFsd2F5cygpCiAgICAgICAgdXNlczogYWN0aW9ucy91cGxvYWQtYXJ0aWZhY3RAdjQKICAgICAgICB3aXRoOgogICAgICAgICAgbmFtZTogcm9vbS1taWdyYXRpb24tdGVzdC1yZXN1bHRzCiAgICAgICAgICBwYXRoOiB8CiAgICAgICAgICAgIGFuZHJvaWQvYXBwL2J1aWxkL3JlcG9ydHMvYW5kcm9pZFRlc3RzL2Nvbm5lY3RlZC9kZWJ1Zy8KICAgICAgICAgICAgYW5kcm9pZC9hcHAvYnVpbGQvb3V0cHV0cy9hbmRyb2lkVGVzdC1yZXN1bHRzL2Nvbm5lY3RlZC9kZWJ1Zy8KICAgICAgICAgIGlmLW5vLWZpbGVzLWZvdW5kOiB3YXJuCg==
+name: Android build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assemble-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Install Android API 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Run accounting unit tests and build debug APK
+        run: gradle :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-01-debug-apk
+          retention-days: 2
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload generated Room schema
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-01-room-schemas
+          retention-days: 2
+          path: android/app/schemas/
+          if-no-files-found: warn
+
+  room-migration-test:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Install Android API 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Reclaim runner space for emulator userdata
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /home/runner
+
+      - name: Run on-device Room migration tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disk-size: 4G
+          disable-animations: true
+          script: gradle :app:connectedDebugAndroidTest
+
+      - name: Upload on-device test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-migration-test-results
+          retention-days: 2
+          path: |
+            android/app/build/reports/androidTests/connected/debug/
+            android/app/build/outputs/androidTest-results/connected/debug/
+          if-no-files-found: warn
