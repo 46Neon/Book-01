@@ -44,6 +44,10 @@ import com.neon.book01.domain.invoiceSettlementStatus
 import com.neon.book01.domain.InvoiceBookFilter
 import com.neon.book01.domain.matchesInvoiceBookFilter
 import com.neon.book01.domain.InvoiceBookPeriod
+import com.neon.book01.domain.StatementInvoiceInput
+import com.neon.book01.domain.StatementSettlementInput
+import com.neon.book01.domain.StatementMovementKind
+import com.neon.book01.domain.buildCounterpartyStatement
 import com.neon.book01.domain.matchesInvoiceBookPeriod
 import com.neon.book01.domain.PaymentCondition
 import com.neon.book01.domain.PurchaseVatTreatment
@@ -65,6 +69,8 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     var settlements by remember { mutableStateOf<List<com.neon.book01.data.InvoiceSettlementEntity>>(emptyList()) }
     var showPartyDialog by remember { mutableStateOf(false) }
     var partyKind by remember { mutableStateOf("CLIENT") }
+    var statementPartyId by remember(initialKind) { mutableStateOf("") }
+    var statementPartyExpanded by remember { mutableStateOf(false) }
     LaunchedEffect(repository) {
         launch { repository.observeInvoices().collect { invoices = it } }
         launch { repository.observeCounterparties("CLIENT").collect { clients = it } }
@@ -130,6 +136,43 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                         "Antigüedad del vencido: 1–30 días ${money(balance.overdue1To30Minor)} · 31–60 días ${money(balance.overdue31To60Minor)} · más de 60 días ${money(balance.overdueOver60Minor)}",
                         color = Color(0xFF6B778C), fontSize = 11.sp,
                     )
+                }
+            }
+        }
+        val statementParties = if (initialKind == InvoiceKind.SALE) clients else suppliers
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Estado de cuenta", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
+                Text("Movimientos de facturas guardadas y cobros/pagos vinculados · solo lectura", color = Color(0xFF6B778C), fontSize = 11.sp)
+                OutlinedButton(onClick = { statementPartyExpanded = true }) {
+                    Text(statementParties.firstOrNull { it.id == statementPartyId }?.displayName ?: if (initialKind == InvoiceKind.SALE) "Seleccionar cliente" else "Seleccionar proveedor")
+                }
+                DropdownMenu(expanded = statementPartyExpanded, onDismissRequest = { statementPartyExpanded = false }) {
+                    statementParties.filter { it.active }.forEach { party ->
+                        DropdownMenuItem(text = { Text(party.displayName) }, onClick = { statementPartyId = party.id; statementPartyExpanded = false })
+                    }
+                }
+                if (statementPartyId.isBlank()) {
+                    Text(if (initialKind == InvoiceKind.SALE) "Selecciona un cliente para consultar su estado de cuenta." else "Selecciona un proveedor para consultar su estado de cuenta.", color = Color(0xFF6B778C), fontSize = 12.sp)
+                } else {
+                    val statement = runCatching {
+                        buildCounterpartyStatement(
+                            counterpartyId = statementPartyId,
+                            invoices = bookInvoices.map { StatementInvoiceInput(it.id, it.registeredPartyId, it.invoiceNumber, it.invoiceDate, it.totalMinor) },
+                            settlements = settlements.filter { settlement -> bookInvoices.any { it.id == settlement.invoiceId } }
+                                .map { StatementSettlementInput(it.id, it.invoiceId, it.settlementDate, it.amountMinor) },
+                        )
+                    }
+                    if (statement.isFailure) {
+                        Text("No se pudo calcular el estado de cuenta: ${statement.exceptionOrNull()?.message ?: "revisa los datos guardados"}", color = Color(0xFFB3261E), fontSize = 12.sp)
+                    } else {
+                        val rows = statement.getOrThrow()
+                        if (rows.isEmpty()) Text("Sin facturas ni movimientos para esta contraparte.", color = Color(0xFF6B778C), fontSize = 12.sp)
+                        rows.forEach { row ->
+                            val movement = if (row.kind == StatementMovementKind.INVOICE) "Factura" else if (initialKind == InvoiceKind.SALE) "Cobro" else "Pago"
+                            Text("${row.date} · $movement ${row.reference} · ${money(row.changeMinor)} · saldo ${money(row.balanceAfterMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         }
