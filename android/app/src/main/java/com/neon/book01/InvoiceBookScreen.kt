@@ -62,18 +62,27 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
     var invoices by remember { mutableStateOf<List<InvoiceEntity>>(emptyList()) }
     var clients by remember { mutableStateOf<List<CounterpartyEntity>>(emptyList()) }
     var suppliers by remember { mutableStateOf<List<CounterpartyEntity>>(emptyList()) }
+    var settlements by remember { mutableStateOf<List<com.neon.book01.data.InvoiceSettlementEntity>>(emptyList()) }
     var showPartyDialog by remember { mutableStateOf(false) }
     var partyKind by remember { mutableStateOf("CLIENT") }
     LaunchedEffect(repository) {
         launch { repository.observeInvoices().collect { invoices = it } }
         launch { repository.observeCounterparties("CLIENT").collect { clients = it } }
         launch { repository.observeCounterparties("SUPPLIER").collect { suppliers = it } }
+        launch { repository.observeAllInvoiceSettlements().collect { settlements = it } }
     }
     val selectedKind = if (initialKind == InvoiceKind.SALE) "SALE" else "PURCHASE"
     val bookInvoices = invoices.filter { it.kind == selectedKind }
     var selectedPeriod by remember(initialKind) { mutableStateOf(InvoiceBookPeriod.ALL) }
     val asOf = LocalDate.now()
     val periodInvoices = bookInvoices.filter { matchesInvoiceBookPeriod(it.invoiceDate, selectedPeriod, asOf) }
+    val partyNames = (if (initialKind == InvoiceKind.SALE) clients else suppliers).associate { it.id to it.displayName }
+    val balanceSummaries = com.neon.book01.domain.summarizeCounterpartyBalances(
+        invoices = bookInvoices.map { com.neon.book01.domain.InvoiceBalanceInput(it.id, it.registeredPartyId, it.totalMinor, it.dueDate) },
+        settlements = settlements.filter { settlement -> bookInvoices.any { it.id == settlement.invoiceId } }
+            .map { com.neon.book01.domain.SettlementBalanceInput(it.invoiceId, it.amountMinor) },
+        asOf = asOf,
+    )
     val bookTitle = if (initialKind == InvoiceKind.SALE) "Libro auxiliar · Ventas" else "Libro auxiliar · Compras"
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(bookTitle, color = Color(0xFF172B4D), fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -104,6 +113,19 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Resumen del período · ${periodSummary.invoiceCount} ${if (periodSummary.invoiceCount == 1) "factura" else "facturas"}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
                 Text("Total facturado ${money(periodSummary.grossTotalMinor)} · no descuenta cobros ni pagos", color = Color(0xFF6B778C), fontSize = 12.sp)
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(if (initialKind == InvoiceKind.SALE) "Saldos por cliente" else "Saldos por proveedor", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
+                Text("Saldo pendiente y vencido calculados desde facturas y abonos guardados · al $asOf", color = Color(0xFF6B778C), fontSize = 11.sp)
+                val openBalances = balanceSummaries.filter { it.outstandingMinor > 0L }
+                if (openBalances.isEmpty()) {
+                    Text("Sin saldos pendientes.", color = Color(0xFF6B778C), fontSize = 12.sp)
+                } else openBalances.forEach { balance ->
+                    val label = partyNames[balance.counterpartyId] ?: balance.counterpartyId
+                    Text("$label · pendiente ${money(balance.outstandingMinor)} · vencido ${money(balance.overdueMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
+                }
             }
         }
         if (bookInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
