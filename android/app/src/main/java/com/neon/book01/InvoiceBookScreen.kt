@@ -21,6 +21,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,6 +81,7 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
         launch { repository.observeCounterparties("SUPPLIER").collect { suppliers = it } }
         launch { repository.observeAllInvoiceSettlements().collect { settlements = it } }
     }
+    val context = LocalContext.current
     val selectedKind = if (initialKind == InvoiceKind.SALE) "SALE" else "PURCHASE"
     val bookInvoices = invoices.filter { it.kind == selectedKind }
     var selectedPeriod by remember(initialKind) { mutableStateOf(InvoiceBookPeriod.ALL) }
@@ -182,6 +185,16 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                         } else {
                             val statementPeriod = period.getOrThrow()
                             Text("Saldo inicial ${money(statementPeriod.openingBalanceMinor)} · saldo final ${money(statementPeriod.closingBalanceMinor)}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            OutlinedButton(onClick = {
+                                val partyLabel = statementParties.firstOrNull { it.id == statementPartyId }?.displayName ?: statementPartyId
+                                val csv = com.neon.book01.domain.counterpartyStatementCsv(partyLabel, currencyCode, statementPeriod)
+                                val share = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/csv"
+                                    putExtra(Intent.EXTRA_SUBJECT, "Estado de cuenta · $partyLabel")
+                                    putExtra(Intent.EXTRA_TEXT, csv)
+                                }
+                                context.startActivity(Intent.createChooser(share, "Compartir estado de cuenta CSV"))
+                            }) { Text("Compartir estado de cuenta CSV") }
                             if (statementPeriod.movements.isEmpty()) Text("Sin movimientos en el período.", color = Color(0xFF6B778C), fontSize = 12.sp)
                             statementPeriod.movements.forEach { row ->
                                 val movement = if (row.kind == StatementMovementKind.INVOICE) "Factura" else if (initialKind == InvoiceKind.SALE) "Cobro" else "Pago"
