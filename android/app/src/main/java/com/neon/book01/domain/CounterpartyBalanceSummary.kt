@@ -12,7 +12,27 @@ data class InvoiceBalanceInput(
 data class SettlementBalanceInput(
     val invoiceId: String,
     val amountMinor: Long,
+    val settlementDate: String,
 )
+
+/** Amount settled by an invoice through an inclusive as-of date; future settlements do not reduce today's balance. */
+fun settledMinorAsOf(
+    invoiceId: String,
+    settlements: Iterable<SettlementBalanceInput>,
+    asOf: LocalDate,
+): Long {
+    var total = 0L
+    settlements.forEach { settlement ->
+        require(settlement.amountMinor > 0L) { "El importe del abono debe ser positivo." }
+        val date = runCatching { LocalDate.parse(settlement.settlementDate) }.getOrElse {
+            throw IllegalArgumentException("La fecha del abono no es válida.")
+        }
+        if (settlement.invoiceId == invoiceId && !date.isAfter(asOf)) {
+            total = Math.addExact(total, settlement.amountMinor)
+        }
+    }
+    return total
+}
 
 data class CounterpartyBalanceSummary(
     val counterpartyId: String,
@@ -30,11 +50,16 @@ fun summarizeCounterpartyBalances(
     settlements: List<SettlementBalanceInput>,
     asOf: LocalDate,
 ): List<CounterpartyBalanceSummary> {
-    val settledByInvoice = mutableMapOf<String, Long>()
-    settlements.forEach { settlement ->
+    val settlementRows = settlements.toList()
+    // Validate even rows that do not match a known invoice or are future-dated; bad imported data must not be silently ignored.
+    settlementRows.forEach { settlement ->
         require(settlement.amountMinor > 0L) { "El importe del abono debe ser positivo." }
-        settledByInvoice[settlement.invoiceId] = Math.addExact(settledByInvoice[settlement.invoiceId] ?: 0L, settlement.amountMinor)
+        require(runCatching { LocalDate.parse(settlement.settlementDate) }.isSuccess) { "La fecha del abono no es válida." }
     }
+    val settledByInvoice = settlementRows.asSequence()
+        .filter { !LocalDate.parse(it.settlementDate).isAfter(asOf) }
+        .groupBy { it.invoiceId }
+        .mapValues { (_, rows) -> rows.fold(0L) { sum, settlement -> Math.addExact(sum, settlement.amountMinor) } }
     data class MutableBalance(
         var count: Int = 0,
         var outstanding: Long = 0L,
