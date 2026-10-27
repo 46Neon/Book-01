@@ -38,20 +38,15 @@ jobs:
       - name: Run accounting unit tests and build debug APK
         run: gradle :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug
 
-      - name: Upload debug APK
+      - name: Upload debug APK for main/manual builds only
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: book-01-debug-apk
-          retention-days: 2
+          name: arino-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload generated Room schema
-        uses: actions/upload-artifact@v4
-        with:
-          name: book-01-room-schemas
           retention-days: 2
-          path: android/app/schemas/
-          if-no-files-found: warn
+
+      # Room schemas are versioned in git; do not upload a duplicate artifact per run.
 
   room-migration-test:
     if: github.event_name == 'workflow_dispatch'
