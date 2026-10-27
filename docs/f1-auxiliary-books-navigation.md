@@ -35,3 +35,8 @@ Each auxiliary book now provides a per-customer or per-supplier balance summary 
 ## Antigüedad de saldos vencidos
 
 El resumen por cliente/proveedor también desglosa los saldos vencidos pendientes en 1–30, 31–60 y más de 60 días, calculados por días transcurridos desde la fecha de vencimiento hasta la fecha local de consulta. El día de vencimiento todavía no se considera vencido; la suma de los tres tramos coincide con el saldo vencido. Cada tramo parte del saldo restante tras los abonos guardados, usa centavos enteros y trata una fecha ausente o inválida como antigüedad desconocida (no vencida). Es una vista informativa, no una modificación de facturas ni asientos.
+
+
+## Prioridad de gestión de cobros y pagos
+
+En el resumen auxiliar, las contrapartes con mayor saldo vencido aparecen primero; después se ordena por saldo pendiente, nombre y un identificador estable para resolver empates. Esto solo organiza la vista derivada para priorizar revisión y seguimiento: no altera facturas, vencimientos, abonos ni asientos.
