@@ -21,4 +21,13 @@ class InvoiceBookPeriodTest {
         assertTrue(matchesInvoiceBookPeriod("invalid", InvoiceBookPeriod.ALL, today))
         assertFalse(matchesInvoiceBookPeriod("invalid", InvoiceBookPeriod.THIS_MONTH, today))
     }
+    @Test fun futureDatedInvoicesStayVisibleOnlyInAllAndAreNotIssuedAsOf() {
+        assertTrue(matchesInvoiceBookPeriod("2026-10-28", InvoiceBookPeriod.ALL, today))
+        assertFalse(matchesInvoiceBookPeriod("2026-10-28", InvoiceBookPeriod.THIS_MONTH, today))
+        assertFalse(matchesInvoiceBookPeriod("2026-10-28", InvoiceBookPeriod.THIS_YEAR, today))
+        assertFalse(isInvoiceIssuedAsOf("2026-10-28", today))
+        assertTrue(isInvoiceIssuedAsOf("2026-10-27", today))
+        assertFalse(isInvoiceIssuedAsOf("invalid", today))
+    }
+
 }
