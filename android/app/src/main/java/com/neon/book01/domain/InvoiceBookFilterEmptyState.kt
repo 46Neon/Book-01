@@ -1,8 +1,15 @@
 package com.neon.book01.domain
 
-/** True only when the period has invoices but the selected status has no matches. */
+/** True only when issued invoices exist in the period but none match the selected status. */
 fun shouldShowInvoiceBookFilterEmptyState(
     filter: InvoiceBookFilter,
-    periodInvoiceCount: Int,
+    issuedPeriodInvoiceCount: Int,
     matchingStatusCount: Int,
-): Boolean = filter != InvoiceBookFilter.ALL && periodInvoiceCount > 0 && matchingStatusCount == 0
+): Boolean = filter != InvoiceBookFilter.ALL && issuedPeriodInvoiceCount > 0 && matchingStatusCount == 0
+
+/** Future-dated invoices are visible only under ALL until their issue date. */
+fun shouldExplainFutureInvoicesExcludedFromStatusFilter(
+    filter: InvoiceBookFilter,
+    periodInvoiceCount: Int,
+    issuedPeriodInvoiceCount: Int,
+): Boolean = filter != InvoiceBookFilter.ALL && periodInvoiceCount > 0 && issuedPeriodInvoiceCount == 0
