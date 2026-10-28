@@ -1,1 +1,198 @@
-cGFja2FnZSBjb20ubmVvbi5ib29rMDEuZGF0YQoKaW1wb3J0IGFuZHJvaWR4LnJvb20uRGFvCmltcG9ydCBhbmRyb2lkeC5yb29tLkluc2VydAppbXBvcnQgYW5kcm9pZHgucm9vbS5PbkNvbmZsaWN0U3RyYXRlZ3kKaW1wb3J0IGFuZHJvaWR4LnJvb20uUXVlcnkKaW1wb3J0IGFuZHJvaWR4LnJvb20uVHJhbnNhY3Rpb24KaW1wb3J0IGFuZHJvaWR4LnJvb20uVXBkYXRlCmltcG9ydCBrb3RsaW54LmNvcm91dGluZXMuZmxvdy5GbG93CgpARGFvCmludGVyZmFjZSBMZWRnZXJEYW8gewogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGpvdXJuYWxfZW50cmllcyBPUkRFUiBCWSBlbnRyeURhdGUgREVTQywgY3JlYXRlZEF0IERFU0MiKQogICAgQFRyYW5zYWN0aW9uCiAgICBmdW4gb2JzZXJ2ZUVudHJpZXMoKTogRmxvdzxMaXN0PEVudHJ5V2l0aExpbmVzPj4KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gam91cm5hbF9lbnRyaWVzIFdIRVJFIHN0YXR1cyA9ICdEUkFGVCcgT1JERVIgQlkgZW50cnlEYXRlIERFU0MsIGNyZWF0ZWRBdCBERVNDIikKICAgIEBUcmFuc2FjdGlvbgogICAgZnVuIG9ic2VydmVEcmFmdEVudHJpZXMoKTogRmxvdzxMaXN0PEVudHJ5V2l0aExpbmVzPj4KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gam91cm5hbF9lbnRyaWVzIE9SREVSIEJZIGVudHJ5RGF0ZSBERVNDLCBjcmVhdGVkQXQgREVTQyIpCiAgICBAVHJhbnNhY3Rpb24KICAgIHN1c3BlbmQgZnVuIGdldEFsbEVudHJpZXMoKTogTGlzdDxFbnRyeVdpdGhMaW5lcz4KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gYXVkaXRfZXZlbnRzIE9SREVSIEJZIGlkIikKICAgIHN1c3BlbmQgZnVuIGdldEFsbEF1ZGl0RXZlbnRzKCk6IExpc3Q8QXVkaXRFdmVudEVudGl0eT4KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gYWNjb3VudF9hdWRpdF9ldmVudHMgT1JERVIgQlkgaWQiKQogICAgc3VzcGVuZCBmdW4gZ2V0QWxsQWNjb3VudEF1ZGl0RXZlbnRzKCk6IExpc3Q8QWNjb3VudEF1ZGl0RXZlbnRFbnRpdHk+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIHBlcmlvZF9jbG9zZXMgT1JERVIgQlkgaWQiKQogICAgc3VzcGVuZCBmdW4gZ2V0QWxsUGVyaW9kQ2xvc2VzKCk6IExpc3Q8UGVyaW9kQ2xvc2VFbnRpdHk+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGF1ZGl0X2V2ZW50cyBPUkRFUiBCWSBvY2N1cnJlZEF0IERFU0MiKQogICAgZnVuIG9ic2VydmVBdWRpdEV2ZW50cygpOiBGbG93PExpc3Q8QXVkaXRFdmVudEVudGl0eT4+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGFjY291bnRfYXVkaXRfZXZlbnRzIE9SREVSIEJZIG9jY3VycmVkQXQgREVTQyIpCiAgICBmdW4gb2JzZXJ2ZUFjY291bnRBdWRpdEV2ZW50cygpOiBGbG93PExpc3Q8QWNjb3VudEF1ZGl0RXZlbnRFbnRpdHk+PgoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBwZXJpb2RfY2xvc2VzIE9SREVSIEJZIHN0YXJ0RGF0ZSIpCiAgICBmdW4gb2JzZXJ2ZVBlcmlvZENsb3NlcygpOiBGbG93PExpc3Q8UGVyaW9kQ2xvc2VFbnRpdHk+PgoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBwZXJpb2RfY2xvc2VzIE9SREVSIEJZIHN0YXJ0RGF0ZSIpCiAgICBzdXNwZW5kIGZ1biBnZXRQZXJpb2RDbG9zZXMoKTogTGlzdDxQZXJpb2RDbG9zZUVudGl0eT4KCiAgICBAUXVlcnkoIlNFTEVDVCBFWElTVFMoU0VMRUNUIDEgRlJPTSBwZXJpb2RfY2xvc2VzIFdIRVJFIDpkYXRlSXNvIEJFVFdFRU4gc3RhcnREYXRlIEFORCBlbmREYXRlKSIpCiAgICBzdXNwZW5kIGZ1biBpc0RhdGVDbG9zZWQoZGF0ZUlzbzogU3RyaW5nKTogQm9vbGVhbgoKICAgIEBRdWVyeSgiU0VMRUNUIEVYSVNUUyhTRUxFQ1QgMSBGUk9NIHBlcmlvZF9jbG9zZXMgV0hFUkUgc3RhcnREYXRlIDw9IDplbmREYXRlIEFORCBlbmREYXRlID49IDpzdGFydERhdGUpIikKICAgIHN1c3BlbmQgZnVuIGhhc092ZXJsYXBwaW5nQ2xvc2Uoc3RhcnREYXRlOiBTdHJpbmcsIGVuZERhdGU6IFN0cmluZyk6IEJvb2xlYW4KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gam91cm5hbF9lbnRyaWVzIFdIRVJFIGlkID0gOmVudHJ5SWQgTElNSVQgMSIpCiAgICBzdXNwZW5kIGZ1biBnZXRFbnRyeShlbnRyeUlkOiBTdHJpbmcpOiBKb3VybmFsRW50cnlFbnRpdHk/CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGpvdXJuYWxfbGluZXMgV0hFUkUgZW50cnlJZCA9IDplbnRyeUlkIE9SREVSIEJZIGlkIikKICAgIHN1c3BlbmQgZnVuIGdldExpbmVzKGVudHJ5SWQ6IFN0cmluZyk6IExpc3Q8Sm91cm5hbExpbmVFbnRpdHk+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgRVhJU1RTKFNFTEVDVCAxIEZST00gam91cm5hbF9lbnRyaWVzIFdIRVJFIHJldmVyc2FsT2ZFbnRyeUlkID0gOmVudHJ5SWQpIikKICAgIHN1c3BlbmQgZnVuIGhhc1JldmVyc2FsKGVudHJ5SWQ6IFN0cmluZyk6IEJvb2xlYW4KCiAgICBAUXVlcnkoIlNFTEVDVCBFWElTVFMoU0VMRUNUIDEgRlJPTSBqb3VybmFsX2VudHJpZXMgV0hFUkUgcmV2ZXJzYWxPZkVudHJ5SWQgPSA6ZW50cnlJZCkiKQogICAgZnVuIG9ic2VydmVIYXNSZXZlcnNhbChlbnRyeUlkOiBTdHJpbmcpOiBGbG93PEJvb2xlYW4+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGFjY291bnRzIE9SREVSIEJZIGNvZGUiKQogICAgZnVuIG9ic2VydmVBY2NvdW50cygpOiBGbG93PExpc3Q8QWNjb3VudEVudGl0eT4+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGFjY291bnRzIE9SREVSIEJZIGNvZGUiKQogICAgc3VzcGVuZCBmdW4gZ2V0QWxsQWNjb3VudHMoKTogTGlzdDxBY2NvdW50RW50aXR5PgoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBqb3VybmFsX2xpbmVzIE9SREVSIEJZIGlkIikKICAgIHN1c3BlbmQgZnVuIGdldEFsbEpvdXJuYWxMaW5lcygpOiBMaXN0PEpvdXJuYWxMaW5lRW50aXR5PgoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBib29rX3NldHRpbmdzIE9SREVSIEJZIGlkIikKICAgIHN1c3BlbmQgZnVuIGdldEFsbEJvb2tTZXR0aW5ncygpOiBMaXN0PEJvb2tTZXR0aW5nc0VudGl0eT4KCiAgICBAUXVlcnkoIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGpvdXJuYWxfbGluZXMiKQogICAgc3VzcGVuZCBmdW4gY291bnRKb3VybmFsTGluZXMoKTogSW50CgogICAgQFF1ZXJ5KCJTRUxFQ1QgQ09VTlQoKikgRlJPTSBqb3VybmFsX2VudHJpZXMiKQogICAgc3VzcGVuZCBmdW4gY291bnRKb3VybmFsRW50cmllc1JhdygpOiBJbnQKCiAgICBAUXVlcnkoIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGF1ZGl0X2V2ZW50cyIpCiAgICBzdXNwZW5kIGZ1biBjb3VudEF1ZGl0RXZlbnRzKCk6IEludAoKICAgIEBRdWVyeSgiU0VMRUNUIENPVU5UKCopIEZST00gYWNjb3VudF9hdWRpdF9ldmVudHMiKQogICAgc3VzcGVuZCBmdW4gY291bnRBY2NvdW50QXVkaXRFdmVudHMoKTogSW50CgogICAgQFF1ZXJ5KCJTRUxFQ1QgQ09VTlQoKikgRlJPTSBwZXJpb2RfY2xvc2VzIikKICAgIHN1c3BlbmQgZnVuIGNvdW50UGVyaW9kQ2xvc2VzKCk6IEludAoKICAgIEBRdWVyeSgiU0VMRUNUIENPVU5UKCopIEZST00gaW52b2ljZXMiKQogICAgc3VzcGVuZCBmdW4gY291bnRJbnZvaWNlcygpOiBJbnQKCiAgICBAUXVlcnkoIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGludm9pY2Vfc2V0dGxlbWVudHMiKQogICAgc3VzcGVuZCBmdW4gY291bnRJbnZvaWNlU2V0dGxlbWVudHMoKTogSW50CgogICAgQFF1ZXJ5KCJTRUxFQ1QgQ09VTlQoKikgRlJPTSBjb3VudGVycGFydGllcyIpCiAgICBzdXNwZW5kIGZ1biBjb3VudENvdW50ZXJwYXJ0aWVzKCk6IEludAoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBjb3VudGVycGFydGllcyBPUkRFUiBCWSBraW5kLCBkaXNwbGF5TmFtZSIpCiAgICBzdXNwZW5kIGZ1biBnZXRBbGxDb3VudGVycGFydGllcygpOiBMaXN0PENvdW50ZXJwYXJ0eUVudGl0eT4KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gaW52b2ljZXMgT1JERVIgQlkgaW52b2ljZURhdGUsIGludm9pY2VOdW1iZXIiKQogICAgc3VzcGVuZCBmdW4gZ2V0QWxsSW52b2ljZXMoKTogTGlzdDxJbnZvaWNlRW50aXR5PgoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBpbnZvaWNlX3NldHRsZW1lbnRzIE9SREVSIEJZIHNldHRsZW1lbnREYXRlLCBjcmVhdGVkQXQiKQogICAgc3VzcGVuZCBmdW4gZ2V0QWxsSW52b2ljZVNldHRsZW1lbnRzKCk6IExpc3Q8SW52b2ljZVNldHRsZW1lbnRFbnRpdHk+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGFjY291bnRzIFdIRVJFIGNvZGUgPSA6Y29kZSBMSU1JVCAxIikKICAgIHN1c3BlbmQgZnVuIGdldEFjY291bnQoY29kZTogU3RyaW5nKTogQWNjb3VudEVudGl0eT8KCiAgICBAUXVlcnkoIlNFTEVDVCBFWElTVFMoU0VMRUNUIDEgRlJPTSBhY2NvdW50cyBXSEVSRSBwYXJlbnRDb2RlID0gOmNvZGUpIikKICAgIHN1c3BlbmQgZnVuIGhhc0NoaWxkQWNjb3VudHMoY29kZTogU3RyaW5nKTogQm9vbGVhbgoKICAgIEBJbnNlcnQob25Db25mbGljdCA9IE9uQ29uZmxpY3RTdHJhdGVneS5JR05PUkUpCiAgICBzdXNwZW5kIGZ1biBpbnNlcnRBY2NvdW50cyhhY2NvdW50czogTGlzdDxBY2NvdW50RW50aXR5PikKCiAgICBASW5zZXJ0KG9uQ29uZmxpY3QgPSBPbkNvbmZsaWN0U3RyYXRlZ3kuQUJPUlQpCiAgICBzdXNwZW5kIGZ1biBpbnNlcnRBY2NvdW50KGFjY291bnQ6IEFjY291bnRFbnRpdHkpCgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGJvb2tfc2V0dGluZ3MgV0hFUkUgaWQgPSAxIExJTUlUIDEiKQogICAgZnVuIG9ic2VydmVCb29rU2V0dGluZ3MoKTogRmxvdzxCb29rU2V0dGluZ3NFbnRpdHk/PgoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBib29rX3NldHRpbmdzIFdIRVJFIGlkID0gMSBMSU1JVCAxIikKICAgIHN1c3BlbmQgZnVuIGdldEJvb2tTZXR0aW5ncygpOiBCb29rU2V0dGluZ3NFbnRpdHk/CgogICAgQEluc2VydChvbkNvbmZsaWN0ID0gT25Db25mbGljdFN0cmF0ZWd5LklHTk9SRSkKICAgIHN1c3BlbmQgZnVuIGluc2VydEJvb2tTZXR0aW5ncyhzZXR0aW5nczogQm9va1NldHRpbmdzRW50aXR5KQoKICAgIEBVcGRhdGUKICAgIHN1c3BlbmQgZnVuIHVwZGF0ZUJvb2tTZXR0aW5ncyhzZXR0aW5nczogQm9va1NldHRpbmdzRW50aXR5KQoKICAgIEBVcGRhdGUKICAgIHN1c3BlbmQgZnVuIHVwZGF0ZUFjY291bnQoYWNjb3VudDogQWNjb3VudEVudGl0eSkKCiAgICBAUXVlcnkoIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGpvdXJuYWxfZW50cmllcyIpCiAgICBzdXNwZW5kIGZ1biBjb3VudEVudHJpZXMoKTogSW50CgogICAgQEluc2VydAogICAgc3VzcGVuZCBmdW4gaW5zZXJ0RW50cnkoZW50cnk6IEpvdXJuYWxFbnRyeUVudGl0eSkKCiAgICBAVXBkYXRlCiAgICBzdXNwZW5kIGZ1biB1cGRhdGVFbnRyeShlbnRyeTogSm91cm5hbEVudHJ5RW50aXR5KQoKICAgIEBRdWVyeSgiREVMRVRFIEZST00gam91cm5hbF9saW5lcyBXSEVSRSBlbnRyeUlkID0gOmVudHJ5SWQiKQogICAgc3VzcGVuZCBmdW4gZGVsZXRlTGluZXNGb3JEcmFmdChlbnRyeUlkOiBTdHJpbmcpCgogICAgQEluc2VydAogICAgc3VzcGVuZCBmdW4gaW5zZXJ0TGluZXMobGluZXM6IExpc3Q8Sm91cm5hbExpbmVFbnRpdHk+KQoKICAgIEBJbnNlcnQKICAgIHN1c3BlbmQgZnVuIGluc2VydFBvc3RlZEVudHJ5TG9jayhsb2NrOiBQb3N0ZWRFbnRyeUxvY2tFbnRpdHkpCgogICAgQEluc2VydAogICAgc3VzcGVuZCBmdW4gaW5zZXJ0QXVkaXRFdmVudChldmVudDogQXVkaXRFdmVudEVudGl0eSkKCiAgICBASW5zZXJ0CiAgICBzdXNwZW5kIGZ1biBpbnNlcnRBY2NvdW50QXVkaXRFdmVudChldmVudDogQWNjb3VudEF1ZGl0RXZlbnRFbnRpdHkpCgogICAgQEluc2VydAogICAgc3VzcGVuZCBmdW4gaW5zZXJ0UGVyaW9kQ2xvc2UocGVyaW9kQ2xvc2U6IFBlcmlvZENsb3NlRW50aXR5KQoKICAgIEBJbnNlcnQKICAgIHN1c3BlbmQgZnVuIGluc2VydENvdW50ZXJwYXJ0eShjb3VudGVycGFydHk6IENvdW50ZXJwYXJ0eUVudGl0eSkKCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gY291bnRlcnBhcnRpZXMgV0hFUkUgaWQgPSA6aWQgTElNSVQgMSIpCiAgICBzdXNwZW5kIGZ1biBnZXRDb3VudGVycGFydHkoaWQ6IFN0cmluZyk6IENvdW50ZXJwYXJ0eUVudGl0eT8KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gY291bnRlcnBhcnRpZXMgV0hFUkUga2luZCA9IDpraW5kIE9SREVSIEJZIGRpc3BsYXlOYW1lIikKICAgIGZ1biBvYnNlcnZlQ291bnRlcnBhcnRpZXMoa2luZDogU3RyaW5nKTogRmxvdzxMaXN0PENvdW50ZXJwYXJ0eUVudGl0eT4+CgogICAgQEluc2VydAogICAgc3VzcGVuZCBmdW4gaW5zZXJ0SW52b2ljZShpbnZvaWNlOiBJbnZvaWNlRW50aXR5KQoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBpbnZvaWNlcyBXSEVSRSBpZCA9IDppbnZvaWNlSWQgTElNSVQgMSIpCiAgICBzdXNwZW5kIGZ1biBnZXRJbnZvaWNlKGludm9pY2VJZDogU3RyaW5nKTogSW52b2ljZUVudGl0eT8KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gaW52b2ljZXMgV0hFUkUga2luZCA9IDpraW5kIEFORCByZWdpc3RlcmVkUGFydHlJZCA9IDpwYXJ0eUlkIEFORCBpbnZvaWNlTnVtYmVyID0gOmludm9pY2VOdW1iZXIgTElNSVQgMSIpCiAgICBzdXNwZW5kIGZ1biBmaW5kSW52b2ljZShraW5kOiBTdHJpbmcsIHBhcnR5SWQ6IFN0cmluZywgaW52b2ljZU51bWJlcjogU3RyaW5nKTogSW52b2ljZUVudGl0eT8KCiAgICBAUXVlcnkoIlNFTEVDVCAqIEZST00gaW52b2ljZXMgT1JERVIgQlkgaW52b2ljZURhdGUgREVTQywgY3JlYXRlZEF0IERFU0MiKQogICAgZnVuIG9ic2VydmVJbnZvaWNlcygpOiBGbG93PExpc3Q8SW52b2ljZUVudGl0eT4+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgKiBGUk9NIGludm9pY2VzIFdIRVJFIGlkID0gOmludm9pY2VJZCBMSU1JVCAxIikKICAgIGZ1biBvYnNlcnZlSW52b2ljZShpbnZvaWNlSWQ6IFN0cmluZyk6IEZsb3c8SW52b2ljZUVudGl0eT8+CgogICAgQEluc2VydAogICAgc3VzcGVuZCBmdW4gaW5zZXJ0SW52b2ljZVNldHRsZW1lbnQoc2V0dGxlbWVudDogSW52b2ljZVNldHRsZW1lbnRFbnRpdHkpCgogICAgQFF1ZXJ5KCJTRUxFQ1QgQ09BTEVTQ0UoU1VNKGFtb3VudE1pbm9yKSwgMCkgRlJPTSBpbnZvaWNlX3NldHRsZW1lbnRzIFdIRVJFIGludm9pY2VJZCA9IDppbnZvaWNlSWQiKQogICAgc3VzcGVuZCBmdW4gdG90YWxTZXR0bGVkKGludm9pY2VJZDogU3RyaW5nKTogTG9uZwoKICAgIEBRdWVyeSgiU0VMRUNUICogRlJPTSBpbnZvaWNlX3NldHRsZW1lbnRzIFdIRVJFIGludm9pY2VJZCA9IDppbnZvaWNlSWQgT1JERVIgQlkgc2V0dGxlbWVudERhdGUsIGNyZWF0ZWRBdCIpCiAgICBmdW4gb2JzZXJ2ZUludm9pY2VTZXR0bGVtZW50cyhpbnZvaWNlSWQ6IFN0cmluZyk6IEZsb3c8TGlzdDxJbnZvaWNlU2V0dGxlbWVudEVudGl0eT4+CgogICAgQFF1ZXJ5KCJTRUxFQ1QgQ09BTEVTQ0UoU1VNKGRlYml0TWlub3IgLSBjcmVkaXRNaW5vciksIDApIEZST00gam91cm5hbF9saW5lcyBJTk5FUiBKT0lOIGpvdXJuYWxfZW50cmllcyBPTiBqb3VybmFsX2VudHJpZXMuaWQgPSBqb3VybmFsX2xpbmVzLmVudHJ5SWQgV0hFUkUgam91cm5hbF9lbnRyaWVzLnN0YXR1cyA9ICdQT1NURUQnIEFORCBqb3VybmFsX2xpbmVzLmFjY291bnRDb2RlID0gOmFjY291bnRDb2RlIikKICAgIHN1c3BlbmQgZnVuIGFjY291bnRCYWxhbmNlTWlub3IoYWNjb3VudENvZGU6IFN0cmluZyk6IExvbmcKfQo=
+package com.neon.book01.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface LedgerDao {
+    @Query("SELECT * FROM journal_entries ORDER BY entryDate DESC, createdAt DESC")
+    @Transaction
+    fun observeEntries(): Flow<List<EntryWithLines>>
+
+    @Query("SELECT * FROM journal_entries WHERE status = 'DRAFT' ORDER BY entryDate DESC, createdAt DESC")
+    @Transaction
+    fun observeDraftEntries(): Flow<List<EntryWithLines>>
+
+    @Query("SELECT * FROM journal_entries ORDER BY entryDate DESC, createdAt DESC")
+    @Transaction
+    suspend fun getAllEntries(): List<EntryWithLines>
+
+    @Query("SELECT * FROM audit_events ORDER BY id")
+    suspend fun getAllAuditEvents(): List<AuditEventEntity>
+
+    @Query("SELECT * FROM account_audit_events ORDER BY id")
+    suspend fun getAllAccountAuditEvents(): List<AccountAuditEventEntity>
+
+    @Query("SELECT * FROM period_closes ORDER BY id")
+    suspend fun getAllPeriodCloses(): List<PeriodCloseEntity>
+
+    @Query("SELECT * FROM audit_events ORDER BY occurredAt DESC")
+    fun observeAuditEvents(): Flow<List<AuditEventEntity>>
+
+    @Query("SELECT * FROM account_audit_events ORDER BY occurredAt DESC")
+    fun observeAccountAuditEvents(): Flow<List<AccountAuditEventEntity>>
+
+    @Query("SELECT * FROM period_closes ORDER BY startDate")
+    fun observePeriodCloses(): Flow<List<PeriodCloseEntity>>
+
+    @Query("SELECT * FROM period_closes ORDER BY startDate")
+    suspend fun getPeriodCloses(): List<PeriodCloseEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM period_closes WHERE :dateIso BETWEEN startDate AND endDate)")
+    suspend fun isDateClosed(dateIso: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM period_closes WHERE startDate <= :endDate AND endDate >= :startDate)")
+    suspend fun hasOverlappingClose(startDate: String, endDate: String): Boolean
+
+    @Query("SELECT * FROM journal_entries WHERE id = :entryId LIMIT 1")
+    suspend fun getEntry(entryId: String): JournalEntryEntity?
+
+    @Query("SELECT * FROM journal_lines WHERE entryId = :entryId ORDER BY id")
+    suspend fun getLines(entryId: String): List<JournalLineEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM journal_entries WHERE reversalOfEntryId = :entryId)")
+    suspend fun hasReversal(entryId: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM journal_entries WHERE reversalOfEntryId = :entryId)")
+    fun observeHasReversal(entryId: String): Flow<Boolean>
+
+    @Query("SELECT * FROM accounts ORDER BY code")
+    fun observeAccounts(): Flow<List<AccountEntity>>
+
+    @Query("SELECT * FROM accounts ORDER BY code")
+    suspend fun getAllAccounts(): List<AccountEntity>
+
+    @Query("SELECT * FROM journal_lines ORDER BY id")
+    suspend fun getAllJournalLines(): List<JournalLineEntity>
+
+    @Query("SELECT * FROM book_settings ORDER BY id")
+    suspend fun getAllBookSettings(): List<BookSettingsEntity>
+
+    @Query("SELECT COUNT(*) FROM journal_lines")
+    suspend fun countJournalLines(): Int
+
+    @Query("SELECT COUNT(*) FROM journal_entries")
+    suspend fun countJournalEntriesRaw(): Int
+
+    @Query("SELECT COUNT(*) FROM audit_events")
+    suspend fun countAuditEvents(): Int
+
+    @Query("SELECT COUNT(*) FROM account_audit_events")
+    suspend fun countAccountAuditEvents(): Int
+
+    @Query("SELECT COUNT(*) FROM period_closes")
+    suspend fun countPeriodCloses(): Int
+
+    @Query("SELECT COUNT(*) FROM invoices")
+    suspend fun countInvoices(): Int
+
+    @Query("SELECT COUNT(*) FROM invoice_settlements")
+    suspend fun countInvoiceSettlements(): Int
+
+    @Query("SELECT COUNT(*) FROM counterparties")
+    suspend fun countCounterparties(): Int
+
+    @Query("SELECT * FROM counterparties ORDER BY kind, displayName")
+    suspend fun getAllCounterparties(): List<CounterpartyEntity>
+
+    @Query("SELECT * FROM invoices ORDER BY invoiceDate, invoiceNumber")
+    suspend fun getAllInvoices(): List<InvoiceEntity>
+
+    @Query("SELECT * FROM invoice_settlements ORDER BY settlementDate, createdAt")
+    suspend fun getAllInvoiceSettlements(): List<InvoiceSettlementEntity>
+
+    @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
+    suspend fun getAccount(code: String): AccountEntity?
+
+    @Query("SELECT EXISTS(SELECT 1 FROM accounts WHERE parentCode = :code)")
+    suspend fun hasChildAccounts(code: String): Boolean
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAccounts(accounts: List<AccountEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAccount(account: AccountEntity)
+
+    @Query("SELECT * FROM book_settings WHERE id = 1 LIMIT 1")
+    fun observeBookSettings(): Flow<BookSettingsEntity?>
+
+    @Query("SELECT * FROM book_settings WHERE id = 1 LIMIT 1")
+    suspend fun getBookSettings(): BookSettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertBookSettings(settings: BookSettingsEntity)
+
+    @Update
+    suspend fun updateBookSettings(settings: BookSettingsEntity)
+
+    @Update
+    suspend fun updateAccount(account: AccountEntity)
+
+    @Query("SELECT COUNT(*) FROM journal_entries")
+    suspend fun countEntries(): Int
+
+    @Insert
+    suspend fun insertEntry(entry: JournalEntryEntity)
+
+    @Update
+    suspend fun updateEntry(entry: JournalEntryEntity)
+
+    @Query("DELETE FROM journal_lines WHERE entryId = :entryId")
+    suspend fun deleteLinesForDraft(entryId: String)
+
+    @Insert
+    suspend fun insertLines(lines: List<JournalLineEntity>)
+
+    @Insert
+    suspend fun insertPostedEntryLock(lock: PostedEntryLockEntity)
+
+    @Insert
+    suspend fun insertAuditEvent(event: AuditEventEntity)
+
+    @Insert
+    suspend fun insertAccountAuditEvent(event: AccountAuditEventEntity)
+
+    @Insert
+    suspend fun insertPeriodClose(periodClose: PeriodCloseEntity)
+
+    @Insert
+    suspend fun insertCounterparty(counterparty: CounterpartyEntity)
+
+    @Query("SELECT * FROM counterparties WHERE id = :id LIMIT 1")
+    suspend fun getCounterparty(id: String): CounterpartyEntity?
+
+    @Query("SELECT * FROM counterparties WHERE kind = :kind ORDER BY displayName")
+    fun observeCounterparties(kind: String): Flow<List<CounterpartyEntity>>
+
+    @Insert
+    suspend fun insertInvoice(invoice: InvoiceEntity)
+
+    @Query("SELECT * FROM invoices WHERE id = :invoiceId LIMIT 1")
+    suspend fun getInvoice(invoiceId: String): InvoiceEntity?
+
+    @Query("SELECT * FROM invoices WHERE kind = :kind AND registeredPartyId = :partyId AND invoiceNumber = :invoiceNumber LIMIT 1")
+    suspend fun findInvoice(kind: String, partyId: String, invoiceNumber: String): InvoiceEntity?
+
+    @Query("SELECT * FROM invoices ORDER BY invoiceDate DESC, createdAt DESC")
+    fun observeInvoices(): Flow<List<InvoiceEntity>>
+
+    @Query("SELECT * FROM invoices WHERE id = :invoiceId LIMIT 1")
+    fun observeInvoice(invoiceId: String): Flow<InvoiceEntity?>
+
+    @Insert
+    suspend fun insertInvoiceSettlement(settlement: InvoiceSettlementEntity)
+
+    @Query("SELECT COALESCE(SUM(amountMinor), 0) FROM invoice_settlements WHERE invoiceId = :invoiceId")
+    suspend fun totalSettled(invoiceId: String): Long
+
+    @Query("SELECT * FROM invoice_settlements WHERE invoiceId = :invoiceId ORDER BY settlementDate, createdAt")
+    fun observeInvoiceSettlements(invoiceId: String): Flow<List<InvoiceSettlementEntity>>
+
+    @Query("SELECT COALESCE(SUM(debitMinor - creditMinor), 0) FROM journal_lines INNER JOIN journal_entries ON journal_entries.id = journal_lines.entryId WHERE journal_entries.status = 'POSTED' AND journal_lines.accountCode = :accountCode")
+    suspend fun accountBalanceMinor(accountCode: String): Long
+}
