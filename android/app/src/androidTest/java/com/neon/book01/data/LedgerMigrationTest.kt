@@ -21,11 +21,15 @@ class LedgerMigrationTest {
         createVersionOneDatabase(context, databaseName)
 
         val upgraded = Room.databaseBuilder(context, LedgerDatabase::class.java, databaseName)
-            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6, LedgerDatabase.MIGRATION_6_7, LedgerDatabase.MIGRATION_7_8, LedgerDatabase.MIGRATION_8_9, LedgerDatabase.MIGRATION_9_10, LedgerDatabase.MIGRATION_10_11)
+            .addMigrations(LedgerDatabase.MIGRATION_1_2, LedgerDatabase.MIGRATION_2_3, LedgerDatabase.MIGRATION_3_4, LedgerDatabase.MIGRATION_4_5, LedgerDatabase.MIGRATION_5_6, LedgerDatabase.MIGRATION_6_7, LedgerDatabase.MIGRATION_7_8, LedgerDatabase.MIGRATION_8_9, LedgerDatabase.MIGRATION_9_10, LedgerDatabase.MIGRATION_10_11, LedgerDatabase.MIGRATION_11_12)
             .build()
         try {
             val db = upgraded.openHelper.writableDatabase
-            assertEquals(11L, db.longValue("PRAGMA user_version"))
+            assertEquals(12L, db.longValue("PRAGMA user_version"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='counterparties'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='invoices'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='invoice_settlements'"))
+            assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name='invoices_no_update'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM book_settings WHERE id = 1"))
             assertEquals("USD", db.stringValue("SELECT baseCurrency FROM book_settings WHERE id = 1"))
             assertEquals("Libro de prueba", db.stringValue("SELECT bookName FROM book_settings WHERE id = 1"))

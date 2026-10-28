@@ -161,9 +161,73 @@ data class PostedEntryLockEntity(
     @PrimaryKey val entryId: String,
 )
 
+@Entity(
+    tableName = "counterparties",
+    foreignKeys = [ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["defaultAccountCode"], onDelete = ForeignKey.RESTRICT)],
+    indices = [Index(value = ["kind", "displayName"], unique = true), Index("defaultAccountCode")],
+)
+data class CounterpartyEntity(
+    @PrimaryKey val id: String,
+    val kind: String,
+    val displayName: String,
+    val taxId: String? = null,
+    val active: Boolean = true,
+    val defaultAccountCode: String? = null,
+)
+
+@Entity(
+    tableName = "invoices",
+    foreignKeys = [
+        ForeignKey(entity = CounterpartyEntity::class, parentColumns = ["id"], childColumns = ["registeredPartyId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = JournalEntryEntity::class, parentColumns = ["id"], childColumns = ["entryId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["cashAccountCode"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["counterAccountCode"], onDelete = ForeignKey.RESTRICT),
+    ],
+    indices = [Index(value = ["kind", "registeredPartyId", "invoiceNumber"], unique = true), Index("entryId"), Index("cashAccountCode"), Index("counterAccountCode")],
+)
+data class InvoiceEntity(
+    @PrimaryKey val id: String,
+    val kind: String,
+    val invoiceDate: String,
+    val invoiceNumber: String,
+    val controlNumber: String?,
+    val registeredPartyId: String,
+    val description: String,
+    val taxableBaseMinor: Long,
+    val vatRateBasisPoints: Int,
+    val vatMinor: Long,
+    val totalMinor: Long,
+    val paidMinor: Long,
+    val paymentCondition: String,
+    val dueDate: String?,
+    val cashAccountCode: String,
+    val counterAccountCode: String,
+    val entryId: String,
+    val createdAt: String,
+)
+
+@Entity(
+    tableName = "invoice_settlements",
+    foreignKeys = [
+        ForeignKey(entity = InvoiceEntity::class, parentColumns = ["id"], childColumns = ["invoiceId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = JournalEntryEntity::class, parentColumns = ["id"], childColumns = ["entryId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = AccountEntity::class, parentColumns = ["code"], childColumns = ["cashAccountCode"], onDelete = ForeignKey.RESTRICT),
+    ],
+    indices = [Index("invoiceId"), Index("entryId"), Index("cashAccountCode")],
+)
+data class InvoiceSettlementEntity(
+    @PrimaryKey val id: String,
+    val invoiceId: String,
+    val amountMinor: Long,
+    val settlementDate: String,
+    val cashAccountCode: String,
+    val entryId: String,
+    val createdAt: String,
+)
+
 @Database(
-    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class, PostedEntryLockEntity::class],
-    version = 11,
+    entities = [AccountEntity::class, JournalEntryEntity::class, JournalLineEntity::class, BookSettingsEntity::class, AuditEventEntity::class, AccountAuditEventEntity::class, PeriodCloseEntity::class, PostedEntryLockEntity::class, CounterpartyEntity::class, InvoiceEntity::class, InvoiceSettlementEntity::class],
+    version = 12,
     exportSchema = true,
 )
 abstract class LedgerDatabase : RoomDatabase() {
@@ -356,6 +420,36 @@ abstract class LedgerDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("INSERT OR IGNORE INTO `accounts` (`code`,`name`,`type`,`active`,`cashOrBank`,`parentCode`) VALUES ('1100','Cuentas por cobrar','ASSET',1,0,NULL),('1105','IVA crédito fiscal (provisional)','ASSET',1,0,NULL),('2102','Préstamos bancarios por pagar','LIABILITY',1,0,NULL),('2103','IVA débito fiscal (provisional)','LIABILITY',1,0,NULL)")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `counterparties` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, `displayName` TEXT NOT NULL, `taxId` TEXT, `active` INTEGER NOT NULL, `defaultAccountCode` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`defaultAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_counterparties_defaultAccountCode` ON `counterparties` (`defaultAccountCode`)")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_counterparties_kind_displayName` ON `counterparties` (`kind`, `displayName`)")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `invoices` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, `invoiceDate` TEXT NOT NULL, `invoiceNumber` TEXT NOT NULL, `controlNumber` TEXT, `registeredPartyId` TEXT NOT NULL, `description` TEXT NOT NULL, `taxableBaseMinor` INTEGER NOT NULL, `vatRateBasisPoints` INTEGER NOT NULL, `vatMinor` INTEGER NOT NULL, `totalMinor` INTEGER NOT NULL, `paidMinor` INTEGER NOT NULL, `paymentCondition` TEXT NOT NULL, `dueDate` TEXT, `cashAccountCode` TEXT NOT NULL, `counterAccountCode` TEXT NOT NULL, `entryId` TEXT NOT NULL, `createdAt` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`registeredPartyId`) REFERENCES `counterparties`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`entryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`cashAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`counterAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_invoices_kind_registeredPartyId_invoiceNumber` ON `invoices` (`kind`, `registeredPartyId`, `invoiceNumber`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_invoices_entryId` ON `invoices` (`entryId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_invoices_cashAccountCode` ON `invoices` (`cashAccountCode`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_invoices_counterAccountCode` ON `invoices` (`counterAccountCode`)")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `invoice_settlements` (`id` TEXT NOT NULL, `invoiceId` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `settlementDate` TEXT NOT NULL, `cashAccountCode` TEXT NOT NULL, `entryId` TEXT NOT NULL, `createdAt` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`invoiceId`) REFERENCES `invoices`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`entryId`) REFERENCES `journal_entries`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT, FOREIGN KEY(`cashAccountCode`) REFERENCES `accounts`(`code`) ON UPDATE NO ACTION ON DELETE RESTRICT)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_invoice_settlements_invoiceId` ON `invoice_settlements` (`invoiceId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_invoice_settlements_entryId` ON `invoice_settlements` (`entryId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_invoice_settlements_cashAccountCode` ON `invoice_settlements` (`cashAccountCode`)")
+                createInvoiceGuards(database)
+            }
+        }
+
+        private fun createInvoiceGuards(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `invoices_insert_guard` BEFORE INSERT ON `invoices` WHEN NEW.`kind` NOT IN ('SALE','PURCHASE') OR NEW.`invoiceDate` != date(NEW.`invoiceDate`) OR NEW.`invoiceNumber` != trim(NEW.`invoiceNumber`) OR length(NEW.`invoiceNumber`) = 0 OR NEW.`registeredPartyId` != trim(NEW.`registeredPartyId`) OR NEW.`taxableBaseMinor` <= 0 OR NEW.`vatRateBasisPoints` < 0 OR NEW.`vatRateBasisPoints` > 100000 OR NEW.`vatMinor` < 0 OR NEW.`totalMinor` != NEW.`taxableBaseMinor` + NEW.`vatMinor` OR NEW.`paidMinor` < 0 OR NEW.`paidMinor` > NEW.`totalMinor` OR NEW.`paymentCondition` NOT IN ('CASH','CREDIT') OR (NEW.`kind` = 'SALE' AND (NEW.`controlNumber` IS NULL OR length(trim(NEW.`controlNumber`)) = 0)) OR NOT EXISTS (SELECT 1 FROM `counterparties` WHERE `id`=NEW.`registeredPartyId` AND `active`=1 AND `kind`=CASE NEW.`kind` WHEN 'SALE' THEN 'CLIENT' ELSE 'SUPPLIER' END) OR NOT EXISTS (SELECT 1 FROM `journal_entries` WHERE `id`=NEW.`entryId` AND `status`='POSTED' AND `entryDate`=NEW.`invoiceDate`) BEGIN SELECT RAISE(ABORT, 'invoice validation failed'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `invoice_settlement_insert_guard` BEFORE INSERT ON `invoice_settlements` WHEN NEW.`amountMinor` <= 0 OR NEW.`settlementDate` != date(NEW.`settlementDate`) OR NOT EXISTS (SELECT 1 FROM `invoices` WHERE `id`=NEW.`invoiceId`) OR NOT EXISTS (SELECT 1 FROM `journal_entries` WHERE `id`=NEW.`entryId` AND `status`='POSTED' AND `entryDate`=NEW.`settlementDate`) OR COALESCE((SELECT SUM(`amountMinor`) FROM `invoice_settlements` WHERE `invoiceId`=NEW.`invoiceId`),0) + NEW.`amountMinor` > (SELECT `totalMinor` FROM `invoices` WHERE `id`=NEW.`invoiceId`) BEGIN SELECT RAISE(ABORT, 'invoice settlement validation failed'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `counterparties_no_update` BEFORE UPDATE ON `counterparties` BEGIN SELECT RAISE(ABORT, 'counterparties are immutable; correction history required'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `counterparties_no_delete` BEFORE DELETE ON `counterparties` BEGIN SELECT RAISE(ABORT, 'counterparties cannot be deleted'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `invoices_no_update` BEFORE UPDATE ON `invoices` BEGIN SELECT RAISE(ABORT, 'invoices are immutable; use correction history'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `invoices_no_delete` BEFORE DELETE ON `invoices` BEGIN SELECT RAISE(ABORT, 'invoices cannot be deleted'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `invoice_settlements_no_update` BEFORE UPDATE ON `invoice_settlements` BEGIN SELECT RAISE(ABORT, 'settlements are immutable'); END")
+            database.execSQL("CREATE TRIGGER IF NOT EXISTS `invoice_settlements_no_delete` BEFORE DELETE ON `invoice_settlements` BEGIN SELECT RAISE(ABORT, 'settlements are immutable'); END")
+        }
+
         internal fun integrityGuardsCallback(): RoomDatabase.Callback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 createAuditGuards(db)
@@ -366,6 +460,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                 createDraftEntryGuards(db)
                 createAccountHierarchyGuards(db)
                 createSupportReferenceGuards(db)
+                createInvoiceGuards(db)
             }
         }
 
@@ -378,7 +473,7 @@ abstract class LedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LedgerDatabase::class.java,
                     "book-01-ledger.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                     .addCallback(integrityGuardsCallback())
                     .build().also { instance = it }
             }

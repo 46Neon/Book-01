@@ -21,7 +21,16 @@ import kotlinx.coroutines.flow.Flow
 class LedgerRepository(private val database: LedgerDatabase) {
     private val dao = database.ledgerDao()
 
+    private val invoiceControlAccounts = listOf(
+        AccountEntity("1100", "Cuentas por cobrar", "ASSET"),
+        AccountEntity("1105", "IVA crédito fiscal (provisional)", "ASSET"),
+        AccountEntity("2102", "Préstamos bancarios por pagar", "LIABILITY"),
+        AccountEntity("2103", "IVA débito fiscal (provisional)", "LIABILITY"),
+    )
+
     fun observeEntries(): Flow<List<EntryWithLines>> = dao.observeEntries()
+
+    fun observeHasReversal(entryId: String): Flow<Boolean> = dao.observeHasReversal(entryId)
 
     fun observeDraftEntries(): Flow<List<EntryWithLines>> = dao.observeDraftEntries()
 
@@ -46,21 +55,22 @@ class LedgerRepository(private val database: LedgerDatabase) {
         requirePristineRestoreTarget()
 
         val orderedAccounts = parentFirstAccounts(snapshot.accounts)
-        val importedByCode = snapshot.accounts.associateBy { it.code }
-        val seededCodes = LedgerBookDefaults.accounts.map { it.code }.toSet()
+        val seededCodes = (LedgerBookDefaults.accounts + invoiceControlAccounts).map { it.code }.toSet()
         val currentAccounts = dao.getAllAccounts().associateBy { it.code }
         if (currentAccounts.isNotEmpty()) {
-            // Code and type are immutable; validation above has already enforced each default type.
             LedgerBookDefaults.accounts.forEach { default ->
-                val imported = importedByCode.getValue(default.code)
-                val current = currentAccounts.getValue(default.code)
+                val imported = snapshot.accounts.firstOrNull { it.code == default.code } ?: return@forEach
+                val current = currentAccounts[default.code] ?: return@forEach
                 if (current != imported) dao.updateAccount(imported)
             }
-            orderedAccounts.filter { it.code !in seededCodes }.forEach { dao.insertAccount(it) }
+            orderedAccounts.filter { it.code !in seededCodes }.forEach { imported ->
+                val current = currentAccounts[imported.code]
+                if (current == null) dao.insertAccount(imported) else if (current != imported) dao.updateAccount(imported)
+            }
         } else {
-            // An uninitialized database has no seed rows, so restore the complete chart parent-first.
             orderedAccounts.forEach { dao.insertAccount(it) }
         }
+        (LedgerBookDefaults.accounts + invoiceControlAccounts).filter { dao.getAccount(it.code) == null }.forEach { dao.insertAccount(it) }
 
         val importedSettings = snapshot.bookSettings!!
         val currentSettings = dao.getBookSettings()
@@ -75,6 +85,9 @@ class LedgerRepository(private val database: LedgerDatabase) {
         snapshot.auditEvents.forEach { dao.insertAuditEvent(it) }
         snapshot.accountAuditEvents.forEach { dao.insertAccountAuditEvent(it) }
         snapshot.periodCloses.forEach { dao.insertPeriodClose(it) }
+        snapshot.counterparties.forEach { dao.insertCounterparty(it) }
+        snapshot.invoices.forEach { dao.insertInvoice(it) }
+        snapshot.invoiceSettlements.forEach { dao.insertInvoiceSettlement(it) }
         preview
     }
 
@@ -82,12 +95,13 @@ class LedgerRepository(private val database: LedgerDatabase) {
         val accounts = dao.getAllAccounts()
         val settings = dao.getAllBookSettings()
         val ledgerIsEmpty = dao.countJournalEntriesRaw() == 0 && dao.countJournalLines() == 0 &&
-            dao.countAuditEvents() == 0 && dao.countAccountAuditEvents() == 0 && dao.countPeriodCloses() == 0
+            dao.countAuditEvents() == 0 && dao.countAccountAuditEvents() == 0 && dao.countPeriodCloses() == 0 &&
+            dao.countInvoices() == 0 && dao.countInvoiceSettlements() == 0 && dao.countCounterparties() == 0
         require(ledgerIsEmpty) {
-            "Por seguridad, restaura solo en un libro nuevo y sin movimientos, auditoría ni cierres."
+            "Por seguridad, restaura solo en un libro nuevo y sin movimientos, auditoría, facturas, terceros ni cierres."
         }
         val neverInitialized = accounts.isEmpty() && settings.isEmpty()
-        val exactStarterBook = accounts == LedgerBookDefaults.accounts.sortedBy { it.code } &&
+        val exactStarterBook = accounts == (LedgerBookDefaults.accounts + invoiceControlAccounts).distinctBy { it.code }.sortedBy { it.code } &&
             settings == listOf(LedgerBookDefaults.settings)
         require(neverInitialized || exactStarterBook) {
             "El libro ya fue personalizado; no se puede reemplazar mediante una restauración."
@@ -101,6 +115,9 @@ class LedgerRepository(private val database: LedgerDatabase) {
             bookSettings = dao.getBookSettings(),
             accounts = dao.getAllAccounts(),
             journalEntries = entriesWithLines.map { it.entry },
+            counterparties = dao.getAllCounterparties(),
+            invoices = dao.getAllInvoices(),
+            invoiceSettlements = dao.getAllInvoiceSettlements(),
             journalLines = entriesWithLines.flatMap { it.lines },
             auditEvents = dao.getAllAuditEvents(),
             accountAuditEvents = dao.getAllAccountAuditEvents(),
@@ -114,6 +131,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     suspend fun initializeBook() {
         dao.insertAccounts(LedgerBookDefaults.accounts)
+        dao.insertAccounts(invoiceControlAccounts)
         dao.insertBookSettings(LedgerBookDefaults.settings)
     }
 
@@ -174,6 +192,182 @@ class LedgerRepository(private val database: LedgerDatabase) {
             )
         }
     }
+
+    fun observeInvoices(): Flow<List<InvoiceEntity>> = dao.observeInvoices()
+
+    fun observeCounterparties(kind: String): Flow<List<CounterpartyEntity>> = dao.observeCounterparties(kind)
+
+    fun observeInvoice(invoiceId: String): Flow<InvoiceEntity?> = dao.observeInvoice(invoiceId)
+
+    fun observeInvoiceSettlements(invoiceId: String): Flow<List<InvoiceSettlementEntity>> = dao.observeInvoiceSettlements(invoiceId)
+
+    suspend fun hasAvailableCash(accountCode: String, amountMinor: Long): Boolean =
+        dao.accountBalanceMinor(accountCode) >= amountMinor
+
+    /** Preview with the same calculation rules used by the atomic posting operation. */
+    fun previewInvoice(input: com.neon.book01.domain.InvoiceInput, accounts: com.neon.book01.domain.InvoiceAccounts): com.neon.book01.domain.InvoicePostingPreview =
+        com.neon.book01.domain.InvoiceAccounting.preview(input, accounts)
+
+    /** Save invoice + automatic journal + initial settlement atomically. Account codes are supplied by the chart configuration. */
+    suspend fun createCounterparty(id: String, kind: String, displayName: String, taxId: String? = null, defaultAccountCode: String? = null) {
+        val name = displayName.trim()
+        require(kind in setOf("CLIENT", "SUPPLIER")) { "El tercero debe ser cliente o proveedor." }
+        require(id.isNotBlank() && name.length in 2..120) { "Registra un identificador y nombre válidos." }
+        require(taxId == null || taxId.trim().length <= 32) { "La identificación fiscal es demasiado larga." }
+        val defaultAccount = defaultAccountCode?.let { dao.getAccount(it) ?: throw IllegalArgumentException("La cuenta predeterminada no existe.") }
+        require(defaultAccount == null || (defaultAccount.active && if (kind == "SUPPLIER") defaultAccount.type in setOf("EXPENSE", "ASSET") else defaultAccount.type == "ASSET")) { "La cuenta predeterminada no corresponde al tipo de tercero." }
+        database.withTransaction {
+            require(dao.getCounterparty(id.trim()) == null) { "Ese identificador de tercero ya está registrado." }
+            dao.insertCounterparty(CounterpartyEntity(id.trim(), kind, name, taxId?.trim()?.takeIf { it.isNotEmpty() }, true, defaultAccount?.code))
+        }
+    }
+
+    suspend fun createInvoice(input: com.neon.book01.domain.InvoiceInput, accounts: com.neon.book01.domain.InvoiceAccounts): String {
+        val preview = com.neon.book01.domain.InvoiceAccounting.preview(input, accounts)
+        val postingDate = PostingDateRange.parse(input.invoiceDate, input.invoiceDate).startInclusive!!.toString()
+        require(postingDate == input.invoiceDate) { "La fecha debe tener el formato AAAA-MM-DD." }
+        val normalizedPartyId = input.registeredPartyId.trim()
+        val normalizedInvoiceNumber = input.invoiceNumber.trim().uppercase()
+        val normalizedControlNumber = input.controlNumber?.trim()?.takeIf { it.isNotEmpty() }
+        require(input.kind != com.neon.book01.domain.InvoiceKind.SALE || normalizedControlNumber != null) { "La venta requiere número de control." }
+        require(normalizedPartyId.isNotEmpty() && normalizedInvoiceNumber.isNotEmpty()) { "La factura requiere un tercero registrado y un número." }
+        val invoiceId = UUID.randomUUID().toString()
+        val entryId = UUID.randomUUID().toString()
+        val now = Instant.now().toString()
+        val kind = input.kind.name
+        return database.withTransaction {
+            require(!dao.isDateClosed(postingDate)) { "La fecha pertenece a un periodo cerrado; elige una fecha abierta." }
+            require(dao.findInvoice(kind, normalizedPartyId, normalizedInvoiceNumber) == null) { "Ya existe una factura con ese número para este cliente o proveedor." }
+            val registeredParty = dao.getCounterparty(normalizedPartyId)
+                ?: throw IllegalArgumentException("El cliente o proveedor debe estar registrado.")
+            require(registeredParty.active && registeredParty.kind == if (input.kind == com.neon.book01.domain.InvoiceKind.SALE) "CLIENT" else "SUPPLIER") {
+                "El tercero registrado no corresponde al tipo de factura o está inactivo."
+            }
+            require(input.condition != com.neon.book01.domain.PaymentCondition.CREDIT || input.dueDate == null || input.dueDate >= input.invoiceDate) {
+                "El vencimiento no puede ser anterior a la fecha de la factura."
+            }
+            val effectiveAccounts = if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && registeredParty.defaultAccountCode != null) {
+                val default = dao.getAccount(registeredParty.defaultAccountCode)
+                    ?: throw IllegalArgumentException("La cuenta predeterminada del proveedor ya no existe.")
+                require(default.active) { "La cuenta predeterminada del proveedor está inactiva." }
+                accounts.copy(purchaseCostOrExpense = default.code)
+            } else accounts
+            val effectivePreview = com.neon.book01.domain.InvoiceAccounting.preview(input, effectiveAccounts)
+            val cash = dao.getAccount(input.cashAccountCode) ?: throw IllegalArgumentException("No se encontró la cuenta de caja o banco.")
+            require(cash.active && cash.cashOrBank && cash.type == "ASSET") { "Selecciona una cuenta activa de Caja o Banco." }
+            suspend fun requireAccount(code: String, type: String) {
+                // Validation stays inside the transaction so an inactive/missing account cannot race the posting.
+                val account = runBlockingAccountLookup(code)
+                require(account.active && account.type == type) { "La cuenta $code debe estar activa y ser de tipo $type." }
+            }
+            when (input.kind) {
+                com.neon.book01.domain.InvoiceKind.SALE -> {
+                    requireAccount(effectiveAccounts.receivable, "ASSET")
+                    requireAccount(effectiveAccounts.revenue, "INCOME")
+                    if (effectivePreview.vatMinor > 0) requireAccount(effectiveAccounts.outputVat, "LIABILITY")
+                }
+                com.neon.book01.domain.InvoiceKind.PURCHASE -> {
+                    requireAccount(effectiveAccounts.payable, "LIABILITY")
+                    val purchaseDestination = runBlockingAccountLookup(effectiveAccounts.purchaseCostOrExpense)
+                    require(purchaseDestination.active && purchaseDestination.type in setOf("EXPENSE", "ASSET")) {
+                        "La cuenta de destino de compra debe ser costo/gasto o activo según la clasificación del proveedor."
+                    }
+                    if (effectivePreview.vatMinor > 0 && effectiveAccounts.purchaseVatTreatment == com.neon.book01.domain.PurchaseVatTreatment.INPUT_TAX_ASSET) {
+                        requireAccount(effectiveAccounts.inputVat, "ASSET")
+                    }
+                }
+            }
+            if (input.kind == com.neon.book01.domain.InvoiceKind.PURCHASE && input.paidTodayMinor > 0) {
+                com.neon.book01.domain.InvoiceAccounting.requireSufficientFunds(dao.accountBalanceMinor(cash.code), input.paidTodayMinor)
+            }
+            val lines = effectivePreview.lines.map { line ->
+                val account = dao.getAccount(line.accountCode) ?: throw IllegalArgumentException("No se encontró la cuenta ${line.accountCode}.")
+                JournalLineEntity(UUID.randomUUID().toString(), entryId, account.code, line.debitMinor, line.creditMinor, UsdMoney.CURRENCY_CODE, account.name)
+            }
+            val counterpartCode = if (input.kind == com.neon.book01.domain.InvoiceKind.SALE) effectiveAccounts.revenue else effectiveAccounts.purchaseCostOrExpense
+            dao.insertEntry(JournalEntryEntity(
+                id = entryId, entryDate = input.invoiceDate,
+                description = "${if (input.kind == com.neon.book01.domain.InvoiceKind.SALE) "Venta" else "Compra"} $normalizedInvoiceNumber: ${input.description.trim()}",
+                kind = if (input.kind == com.neon.book01.domain.InvoiceKind.SALE) "SALE_INVOICE" else "PURCHASE_INVOICE",
+                categoryAccountCode = counterpartCode, paymentAccountCode = cash.code, currencyCode = UsdMoney.CURRENCY_CODE,
+                amountMinor = effectivePreview.totalMinor, status = "POSTED", createdAt = now, counterparty = normalizedPartyId,
+                supportReference = normalizedInvoiceNumber,
+            ))
+            dao.insertLines(lines)
+            dao.insertPostedEntryLock(PostedEntryLockEntity(entryId))
+            dao.insertAuditEvent(AuditEventEntity(UUID.randomUUID().toString(), entryId, "INVOICE_POSTED", now, input.invoiceDate, "Factura $normalizedInvoiceNumber guardada con asiento automático."))
+            dao.insertInvoice(InvoiceEntity(
+                id = invoiceId, kind = kind, invoiceDate = input.invoiceDate, invoiceNumber = normalizedInvoiceNumber,
+                controlNumber = normalizedControlNumber, registeredPartyId = normalizedPartyId,
+                description = input.description.trim(), taxableBaseMinor = effectivePreview.baseMinor,
+                vatRateBasisPoints = input.vatRateBasisPoints, vatMinor = effectivePreview.vatMinor, totalMinor = effectivePreview.totalMinor,
+                paidMinor = input.paidTodayMinor, paymentCondition = input.condition.name, dueDate = input.dueDate, cashAccountCode = cash.code,
+                counterAccountCode = if (input.kind == com.neon.book01.domain.InvoiceKind.SALE) effectiveAccounts.receivable else effectiveAccounts.payable,
+                entryId = entryId, createdAt = now,
+            ))
+            if (input.paidTodayMinor > 0) {
+                val initialSettlementId = UUID.randomUUID().toString()
+                dao.insertInvoiceSettlement(InvoiceSettlementEntity(initialSettlementId, invoiceId, input.paidTodayMinor, input.invoiceDate, cash.code, entryId, now))
+            }
+            invoiceId
+        }
+    }
+
+    /** Record a later partial/full collection or payment as a new balanced journal entry linked to the invoice. */
+    suspend fun settleInvoice(invoiceId: String, amountMinor: Long, dateIso: String, cashAccountCode: String, accounts: com.neon.book01.domain.InvoiceAccounts): String {
+        val postingDate = PostingDateRange.parse(dateIso, dateIso).startInclusive!!.toString()
+        require(postingDate == dateIso) { "La fecha del cobro o pago no es válida." }
+        require(amountMinor > 0) { "El cobro o pago debe ser mayor que cero." }
+        val entryId = UUID.randomUUID().toString()
+        val settlementId = UUID.randomUUID().toString()
+        val now = Instant.now().toString()
+        return database.withTransaction {
+            require(!dao.isDateClosed(postingDate)) { "La fecha pertenece a un periodo cerrado; elige una fecha abierta." }
+            val invoice = dao.getInvoice(invoiceId) ?: throw IllegalArgumentException("No se encontró la factura.")
+            com.neon.book01.domain.InvoiceAccounting.requireSettlementDateNotBeforeInvoice(invoice.invoiceDate, postingDate)
+            val cash = dao.getAccount(cashAccountCode) ?: throw IllegalArgumentException("No se encontró la cuenta de caja o banco.")
+            require(cash.active && cash.cashOrBank && cash.type == "ASSET") { "Selecciona una cuenta activa de Caja o Banco." }
+            val remaining = Math.subtractExact(invoice.totalMinor, dao.totalSettled(invoiceId))
+            require(amountMinor <= remaining) { "El importe supera el saldo pendiente de la factura." }
+            val invoiceParty = dao.getCounterparty(invoice.registeredPartyId)
+                ?: throw IllegalArgumentException("El tercero de la factura ya no existe.")
+            require(invoiceParty.active) { "El tercero asociado a la factura está inactivo." }
+            val kind = com.neon.book01.domain.InvoiceKind.valueOf(invoice.kind)
+            val counterAccount = dao.getAccount(invoice.counterAccountCode)
+                ?: throw IllegalArgumentException("No se encontró la cuenta por cobrar/pagar de la factura.")
+            val expectedCounterType = if (kind == com.neon.book01.domain.InvoiceKind.SALE) "ASSET" else "LIABILITY"
+            require(counterAccount.type == expectedCounterType) { "La cuenta asociada a la factura ya no tiene la clasificación contable esperada." }
+            val effectiveAccounts = when (kind) {
+                com.neon.book01.domain.InvoiceKind.SALE -> accounts.copy(receivable = counterAccount.code)
+                com.neon.book01.domain.InvoiceKind.PURCHASE -> accounts.copy(payable = counterAccount.code)
+            }
+            if (kind == com.neon.book01.domain.InvoiceKind.PURCHASE) com.neon.book01.domain.InvoiceAccounting.requireSufficientFunds(dao.accountBalanceMinor(cash.code), amountMinor)
+            val postings = com.neon.book01.domain.InvoiceAccounting.settlement(kind, amountMinor, cash.code, effectiveAccounts)
+            val lines = postings.map { line ->
+                val account = dao.getAccount(line.accountCode) ?: throw IllegalArgumentException("No se encontró la cuenta ${line.accountCode}.")
+                require(account.active || account.code == counterAccount.code) { "La cuenta ${line.accountCode} está inactiva." }
+                JournalLineEntity(UUID.randomUUID().toString(), entryId, account.code, line.debitMinor, line.creditMinor, UsdMoney.CURRENCY_CODE, account.name)
+            }
+            dao.insertEntry(JournalEntryEntity(
+                id = entryId, entryDate = dateIso, description = "${if (kind == com.neon.book01.domain.InvoiceKind.SALE) "Cobro" else "Pago"} de factura ${invoice.invoiceNumber}",
+                kind = if (kind == com.neon.book01.domain.InvoiceKind.SALE) "INVOICE_COLLECTION" else "INVOICE_PAYMENT",
+                categoryAccountCode = invoice.counterAccountCode,
+                paymentAccountCode = cash.code, currencyCode = UsdMoney.CURRENCY_CODE, amountMinor = amountMinor,
+                status = "POSTED", createdAt = now, counterparty = invoice.registeredPartyId, supportReference = invoice.invoiceNumber,
+            ))
+            dao.insertLines(lines)
+            dao.insertPostedEntryLock(PostedEntryLockEntity(entryId))
+            dao.insertAuditEvent(AuditEventEntity(UUID.randomUUID().toString(), entryId, "INVOICE_SETTLEMENT_POSTED", now, dateIso, "Movimiento vinculado a factura ${invoice.invoiceNumber}."))
+            dao.insertInvoiceSettlement(InvoiceSettlementEntity(settlementId, invoiceId, amountMinor, dateIso, cash.code, entryId, now))
+            val initialMinor = dao.initialSettlementTotal(invoiceId, invoice.entryId)
+            // The invoice record is immutable. Its initial payment is stored once; future receipts/payments are separate append-only settlements.
+            require(initialMinor == invoice.paidMinor) { "El abono inicial no coincide con la factura." }
+            entryId
+        }
+    }
+
+    private suspend fun runBlockingAccountLookup(code: String): AccountEntity =
+        dao.getAccount(code) ?: throw IllegalArgumentException("No se encontró la cuenta $code en el plan de cuentas.")
 
     suspend fun recordSimpleEntry(
         dateIso: String,

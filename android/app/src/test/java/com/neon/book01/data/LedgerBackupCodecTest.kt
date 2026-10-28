@@ -50,10 +50,15 @@ class LedgerBackupCodecTest {
             ),
         )
 
-        val encrypted = LedgerBackupCodec.encrypt(original, password)
+        val withInvoices = original.copy(
+            counterparties = listOf(CounterpartyEntity("client-1", "CLIENT", "Cliente Demo", "J-123", true)),
+            invoices = listOf(InvoiceEntity("inv-1", "SALE", "2026-10-12", "F-1", "C-1", "client-1", "Venta demo", 10_000, 1_600, 1_600, 11_600, 5_000, "CREDIT", "2026-11-12", "1000", "1100", "entry-1", "2026-10-12T13:14:15Z")),
+            invoiceSettlements = listOf(InvoiceSettlementEntity("settle-1", "inv-1", 5_000, "2026-10-12", "1000", "entry-1", "2026-10-12T13:14:15Z")),
+        )
+        val encrypted = LedgerBackupCodec.encrypt(withInvoices, password)
         val decoded = LedgerBackupCodec.decrypt(encrypted, password)
 
-        assertEquals(original, decoded)
+        assertEquals(withInvoices, decoded)
         assertArrayEquals("B01E".toByteArray(Charsets.US_ASCII), encrypted.copyOfRange(0, 4))
         assertFalseContains(encrypted, "Venta exacta".toByteArray(Charsets.UTF_8))
     }

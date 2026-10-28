@@ -19,6 +19,9 @@ data class LedgerBackupPreview(
     val auditEventCount: Int,
     val accountAuditEventCount: Int,
     val periodCloseCount: Int,
+    val invoiceCount: Int = 0,
+    val counterpartyCount: Int = 0,
+    val settlementCount: Int = 0,
 )
 
 /** Parent-first deterministic ordering used by restore even when serialized rows are shuffled. */
@@ -62,6 +65,9 @@ object LedgerBackupValidator {
         requireUnique(snapshot.auditEvents.map { it.id }, "eventos de auditoría")
         requireUnique(snapshot.accountAuditEvents.map { it.id }, "eventos de cuenta")
         requireUnique(snapshot.periodCloses.map { it.id }, "cierres de periodo")
+        requireUnique(snapshot.counterparties.map { it.id }, "clientes y proveedores")
+        requireUnique(snapshot.invoices.map { it.id }, "facturas")
+        requireUnique(snapshot.invoiceSettlements.map { it.id }, "cobros y pagos")
 
         val accounts = snapshot.accounts.associateBy { it.code }
         require(accounts.size == snapshot.accounts.size) { "Hay códigos de cuenta duplicados." }
@@ -69,7 +75,11 @@ object LedgerBackupValidator {
             "Una cuenta de la copia tiene datos incompletos."
         }
         val accountTypes = accounts.mapValues { it.value.type }
-        LedgerBookDefaults.accounts.forEach { seeded ->
+        val legacyDefaults = LedgerBookDefaults.accounts.filter { it.code !in setOf("1100", "1105", "2102", "2103") }
+        listOf("1100" to "ASSET", "1105" to "ASSET", "2102" to "LIABILITY", "2103" to "LIABILITY").forEach { (code, type) ->
+            require(accountTypes[code] == null || accountTypes[code] == type) { "La copia contiene clasificación incorrecta para $code." }
+        }
+        legacyDefaults.forEach { seeded ->
             require(accountTypes[seeded.code] == seeded.type) {
                 "La copia no conserva la clasificación inmutable de las cuentas predeterminadas."
             }
@@ -223,6 +233,16 @@ object LedgerBackupValidator {
             require(entry.id in closeEntryIds) { "Un asiento de cierre no tiene metadatos de periodo asociados." }
         }
 
+        val partyIds = snapshot.counterparties.map { it.id }.toSet()
+        val invoiceIds = snapshot.invoices.map { it.id }.toSet()
+        require(snapshot.counterparties.all { it.id.isNotBlank() && it.displayName.isNotBlank() && it.kind in setOf("CLIENT", "SUPPLIER") && (it.defaultAccountCode == null || it.defaultAccountCode in accounts) }) { "La copia contiene un tercero inválido." }
+        requireUnique(snapshot.invoices.map { "${it.kind}|${it.registeredPartyId.trim().uppercase()}|${it.invoiceNumber.trim().uppercase()}" }, "número de factura por tercero")
+        require(snapshot.invoices.all { it.kind in setOf("SALE", "PURCHASE") && it.registeredPartyId in partyIds && it.entryId in entries && it.taxableBaseMinor > 0 && it.vatMinor >= 0 && it.totalMinor == Math.addExact(it.taxableBaseMinor, it.vatMinor) && it.paidMinor in 0..it.totalMinor && it.cashAccountCode in accounts && it.counterAccountCode in accounts }) { "La copia contiene una factura inconsistente." }
+        require(snapshot.invoiceSettlements.all { it.invoiceId in invoiceIds && it.entryId in entries && it.amountMinor > 0 && it.cashAccountCode in accounts }) { "La copia contiene un cobro/pago sin vínculo válido." }
+        snapshot.invoices.forEach { invoice ->
+            val initial = snapshot.invoiceSettlements.filter { it.invoiceId == invoice.id && it.entryId == invoice.entryId }.sumOf { it.amountMinor }
+            require(initial == invoice.paidMinor && snapshot.invoiceSettlements.filter { it.invoiceId == invoice.id }.sumOf { it.amountMinor } <= invoice.totalMinor) { "El historial de abonos no coincide con el documento." }
+        }
         return LedgerBackupPreview(
             bookName = settings.bookName,
             accountCount = snapshot.accounts.size,
@@ -231,6 +251,9 @@ object LedgerBackupValidator {
             auditEventCount = snapshot.auditEvents.size,
             accountAuditEventCount = snapshot.accountAuditEvents.size,
             periodCloseCount = snapshot.periodCloses.size,
+            invoiceCount = snapshot.invoices.size,
+            counterpartyCount = snapshot.counterparties.size,
+            settlementCount = snapshot.invoiceSettlements.size,
         )
     }
 

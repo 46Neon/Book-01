@@ -58,6 +58,9 @@ interface LedgerDao {
     @Query("SELECT EXISTS(SELECT 1 FROM journal_entries WHERE reversalOfEntryId = :entryId)")
     suspend fun hasReversal(entryId: String): Boolean
 
+    @Query("SELECT EXISTS(SELECT 1 FROM journal_entries WHERE reversalOfEntryId = :entryId)")
+    fun observeHasReversal(entryId: String): Flow<Boolean>
+
     @Query("SELECT * FROM accounts ORDER BY code")
     fun observeAccounts(): Flow<List<AccountEntity>>
 
@@ -84,6 +87,24 @@ interface LedgerDao {
 
     @Query("SELECT COUNT(*) FROM period_closes")
     suspend fun countPeriodCloses(): Int
+
+    @Query("SELECT COUNT(*) FROM invoices")
+    suspend fun countInvoices(): Int
+
+    @Query("SELECT COUNT(*) FROM invoice_settlements")
+    suspend fun countInvoiceSettlements(): Int
+
+    @Query("SELECT COUNT(*) FROM counterparties")
+    suspend fun countCounterparties(): Int
+
+    @Query("SELECT * FROM counterparties ORDER BY kind, displayName")
+    suspend fun getAllCounterparties(): List<CounterpartyEntity>
+
+    @Query("SELECT * FROM invoices ORDER BY invoiceDate, invoiceNumber")
+    suspend fun getAllInvoices(): List<InvoiceEntity>
+
+    @Query("SELECT * FROM invoice_settlements ORDER BY settlementDate, createdAt")
+    suspend fun getAllInvoiceSettlements(): List<InvoiceSettlementEntity>
 
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
     suspend fun getAccount(code: String): AccountEntity?
@@ -138,4 +159,40 @@ interface LedgerDao {
 
     @Insert
     suspend fun insertPeriodClose(periodClose: PeriodCloseEntity)
+
+    @Insert
+    suspend fun insertCounterparty(counterparty: CounterpartyEntity)
+
+    @Query("SELECT * FROM counterparties WHERE id = :id LIMIT 1")
+    suspend fun getCounterparty(id: String): CounterpartyEntity?
+
+    @Query("SELECT * FROM counterparties WHERE kind = :kind ORDER BY displayName")
+    fun observeCounterparties(kind: String): Flow<List<CounterpartyEntity>>
+
+    @Insert
+    suspend fun insertInvoice(invoice: InvoiceEntity)
+
+    @Query("SELECT * FROM invoices WHERE id = :invoiceId LIMIT 1")
+    suspend fun getInvoice(invoiceId: String): InvoiceEntity?
+
+    @Query("SELECT * FROM invoices WHERE kind = :kind AND registeredPartyId = :partyId AND invoiceNumber = :invoiceNumber LIMIT 1")
+    suspend fun findInvoice(kind: String, partyId: String, invoiceNumber: String): InvoiceEntity?
+
+    @Query("SELECT * FROM invoices ORDER BY invoiceDate DESC, createdAt DESC")
+    fun observeInvoices(): Flow<List<InvoiceEntity>>
+
+    @Query("SELECT * FROM invoices WHERE id = :invoiceId LIMIT 1")
+    fun observeInvoice(invoiceId: String): Flow<InvoiceEntity?>
+
+    @Insert
+    suspend fun insertInvoiceSettlement(settlement: InvoiceSettlementEntity)
+
+    @Query("SELECT COALESCE(SUM(amountMinor), 0) FROM invoice_settlements WHERE invoiceId = :invoiceId")
+    suspend fun totalSettled(invoiceId: String): Long
+
+    @Query("SELECT * FROM invoice_settlements WHERE invoiceId = :invoiceId ORDER BY settlementDate, createdAt")
+    fun observeInvoiceSettlements(invoiceId: String): Flow<List<InvoiceSettlementEntity>>
+
+    @Query("SELECT COALESCE(SUM(debitMinor - creditMinor), 0) FROM journal_lines INNER JOIN journal_entries ON journal_entries.id = journal_lines.entryId WHERE journal_entries.status = 'POSTED' AND journal_lines.accountCode = :accountCode")
+    suspend fun accountBalanceMinor(accountCode: String): Long
 }

@@ -24,6 +24,9 @@ data class LedgerBackupSnapshot(
     val auditEvents: List<AuditEventEntity>,
     val accountAuditEvents: List<AccountAuditEventEntity>,
     val periodCloses: List<PeriodCloseEntity>,
+    val counterparties: List<CounterpartyEntity> = emptyList(),
+    val invoices: List<InvoiceEntity> = emptyList(),
+    val invoiceSettlements: List<InvoiceSettlementEntity> = emptyList(),
 )
 
 /** Versioned encrypted export format. This deliberately has no import/restore implementation. */
@@ -33,6 +36,7 @@ object LedgerBackupCodec {
     private const val COUNTERPARTY_EXTENSION_MAGIC = 0x43505459 // CPTY
     private const val ACCOUNT_PARENT_EXTENSION_MAGIC = 0x5041524E // PARN
     private const val SUPPORT_REFERENCE_EXTENSION_MAGIC = 0x53524546 // SREF
+    private const val INVOICE_EXTENSION_MAGIC = 0x494E5643 // INVC
     private const val PBKDF2_ITERATIONS = 210_000
     private const val SALT_BYTES = 16
     private const val NONCE_BYTES = 12
@@ -258,6 +262,27 @@ object LedgerBackupCodec {
                 require(normalized == entry.supportReference) { "La referencia de soporte de la copia no es válida." }
                 out.writeNullableString(entry.supportReference)
             }
+            // Optional v1 extension. Older encrypted backups ending at the support-reference section remain valid.
+            out.writeInt(INVOICE_EXTENSION_MAGIC)
+            out.writeCount(book.counterparties.size)
+            book.counterparties.forEach { party ->
+                out.writeString(party.id); out.writeString(party.kind); out.writeString(party.displayName)
+                out.writeNullableString(party.taxId); out.writeBoolean(party.active); out.writeNullableString(party.defaultAccountCode)
+            }
+            out.writeCount(book.invoices.size)
+            book.invoices.forEach { invoice ->
+                out.writeString(invoice.id); out.writeString(invoice.kind); out.writeString(invoice.invoiceDate); out.writeString(invoice.invoiceNumber)
+                out.writeNullableString(invoice.controlNumber); out.writeString(invoice.registeredPartyId); out.writeString(invoice.description)
+                out.writeLong(invoice.taxableBaseMinor); out.writeInt(invoice.vatRateBasisPoints); out.writeLong(invoice.vatMinor)
+                out.writeLong(invoice.totalMinor); out.writeLong(invoice.paidMinor); out.writeString(invoice.paymentCondition)
+                out.writeNullableString(invoice.dueDate); out.writeString(invoice.cashAccountCode); out.writeString(invoice.counterAccountCode)
+                out.writeString(invoice.entryId); out.writeString(invoice.createdAt)
+            }
+            out.writeCount(book.invoiceSettlements.size)
+            book.invoiceSettlements.forEach { settlement ->
+                out.writeString(settlement.id); out.writeString(settlement.invoiceId); out.writeLong(settlement.amountMinor)
+                out.writeString(settlement.settlementDate); out.writeString(settlement.cashAccountCode); out.writeString(settlement.entryId); out.writeString(settlement.createdAt)
+            }
         out.flush()
         bytes.toByteArray()
     }
@@ -376,8 +401,27 @@ object LedgerBackupCodec {
             }
             restoredEntries = restoredEntries.map { entry -> entry.copy(supportReference = references[entry.id]) }
         }
+        var counterparties = emptyList<CounterpartyEntity>()
+        var invoices = emptyList<InvoiceEntity>()
+        var invoiceSettlements = emptyList<InvoiceSettlementEntity>()
+        if (input.available() > 0) {
+            require(input.readInt() == INVOICE_EXTENSION_MAGIC) { "La extensión de facturas de la copia no es válida." }
+            counterparties = List(input.readCount(minimumRecordBytes = 9)) {
+                CounterpartyEntity(input.readString(), input.readString(), input.readString(), input.readNullableString(), input.readBoolean(), input.readNullableString())
+            }
+            invoices = List(input.readCount(minimumRecordBytes = 32)) {
+                val id=input.readString(); val kind=input.readString(); val date=input.readString(); val number=input.readString()
+                val control=input.readNullableString(); val party=input.readString(); val description=input.readString()
+                val base=input.readLong(); val rate=input.readInt(); val vat=input.readLong(); val total=input.readLong(); val paid=input.readLong()
+                val condition=input.readString(); val due=input.readNullableString(); val cash=input.readString(); val counter=input.readString(); val entry=input.readString(); val created=input.readString()
+                InvoiceEntity(id,kind,date,number,control,party,description,base,rate,vat,total,paid,condition,due,cash,counter,entry,created)
+            }
+            invoiceSettlements = List(input.readCount(minimumRecordBytes = 32)) {
+                InvoiceSettlementEntity(input.readString(),input.readString(),input.readLong(),input.readString(),input.readString(),input.readString(),input.readString())
+            }
+        }
         require(input.available() == 0) { "El contenido de la copia tiene datos sobrantes." }
-        return LedgerBackupSnapshot(settings, restoredAccounts, restoredEntries, lines, audits, accountAudits, closes)
+        return LedgerBackupSnapshot(settings, restoredAccounts, restoredEntries, lines, audits, accountAudits, closes, counterparties, invoices, invoiceSettlements)
     }
 
     private fun DataOutputStream.writeCount(count: Int) {
