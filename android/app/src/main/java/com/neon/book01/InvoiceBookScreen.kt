@@ -215,7 +215,10 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                             Text("Saldo inicial ${money(statementPeriod.openingBalanceMinor)} · saldo final ${money(statementPeriod.closingBalanceMinor)}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                             OutlinedButton(onClick = {
                                 val partyLabel = statementParties.firstOrNull { it.id == statementPartyId }?.displayName ?: statementPartyId
-                                val csv = com.neon.book01.domain.counterpartyStatementCsv(partyLabel, currencyCode, statementPeriod)
+                                val csv = com.neon.book01.domain.counterpartyStatementCsv(
+                                    partyLabel, currencyCode, statementPeriod,
+                                    settlementLabel = if (initialKind == InvoiceKind.SALE) "Cobro" else "Pago",
+                                )
                                 val share = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/csv"
                                     putExtra(Intent.EXTRA_SUBJECT, "Estado de cuenta · $partyLabel")

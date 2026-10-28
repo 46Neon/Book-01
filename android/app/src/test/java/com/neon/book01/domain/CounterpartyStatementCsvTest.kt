@@ -36,6 +36,17 @@ class CounterpartyStatementCsvTest {
         assertEquals(true, csv.contains("\"'=1+1, \"\"x\"\"\""))
     }
 
+    @Test fun usesBookSpecificSettlementLabelWhenRequested() {
+        val period = CounterpartyStatementPeriod(
+            0,
+            listOf(CounterpartyStatementMovement("2026-10-02", StatementMovementKind.SETTLEMENT, "PAY-1", -200, 0)),
+            0,
+        )
+        val csv = counterpartyStatementCsv("Proveedor", "USD", period, settlementLabel = "Pago")
+        assertEquals(true, csv.contains("\"Pago\""))
+        assertEquals(false, csv.contains("Cobro/pago"))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsUnsafeCurrencyCode() {
         counterpartyStatementCsv("Cliente", "USD,EUR", CounterpartyStatementPeriod(0, emptyList(), 0))

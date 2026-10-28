@@ -9,8 +9,10 @@ fun counterpartyStatementCsv(
     counterpartyLabel: String,
     currencyCode: String,
     period: CounterpartyStatementPeriod,
+    settlementLabel: String = "Cobro/pago",
 ): String {
     require(counterpartyLabel.isNotBlank()) { "La contraparte debe estar identificada." }
+    require(settlementLabel.isNotBlank()) { "El tipo de abono debe estar identificado." }
     require(currencyCode.isNotBlank() && currencyCode.all { it.isLetterOrDigit() || it == '-' || it == '_' }) {
         "El código de moneda no es válido."
     }
@@ -23,7 +25,7 @@ fun counterpartyStatementCsv(
         lines += listOf(
             csvText(counterpartyLabel),
             csvText(movement.date),
-            csvText(if (movement.kind == StatementMovementKind.INVOICE) "Factura" else "Cobro/pago"),
+            csvText(if (movement.kind == StatementMovementKind.INVOICE) "Factura" else settlementLabel),
             csvText(movement.reference),
             movement.changeMinor.toString(),
             movement.balanceAfterMinor.toString(),
