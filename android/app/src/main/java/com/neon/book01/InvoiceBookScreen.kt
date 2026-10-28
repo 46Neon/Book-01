@@ -137,6 +137,9 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Resumen del período · ${periodSummary.invoiceCount} ${if (periodSummary.invoiceCount == 1) "factura" else "facturas"}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
+                if (com.neon.book01.domain.shouldExplainFutureInvoicesInPeriodSummary(periodInvoices.size, issuedPeriodInvoices.size)) {
+                    Text("El resumen y los filtros de estado consideran solo facturas emitidas al día de hoy. Las facturas con fecha futura se muestran únicamente en «Todas».", color = Color(0xFF6B778C), fontSize = 11.sp)
+                }
                 Text("Total facturado ${money(periodSummary.grossTotalMinor)} · no descuenta cobros ni pagos", color = Color(0xFF6B778C), fontSize = 12.sp)
                 Text("Exportación informativa: valores guardados, importes en unidades menores; no es un formato fiscal.", color = Color(0xFF6B778C), fontSize = 11.sp)
                 OutlinedButton(onClick = {
