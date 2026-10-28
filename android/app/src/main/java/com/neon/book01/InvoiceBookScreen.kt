@@ -121,11 +121,37 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
                 }
             }
         }
-        val periodSummary = com.neon.book01.domain.summarizeInvoiceBookTotals(periodInvoices.map { it.totalMinor })
+        val issuedPeriodInvoices = periodInvoices.filter { com.neon.book01.domain.isInvoiceIssuedAsOf(it.invoiceDate, asOf) }
+        val periodSummary = com.neon.book01.domain.summarizeInvoiceBookTotals(issuedPeriodInvoices.map { it.totalMinor })
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Resumen del período · ${periodSummary.invoiceCount} ${if (periodSummary.invoiceCount == 1) "factura" else "facturas"}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
                 Text("Total facturado ${money(periodSummary.grossTotalMinor)} · no descuenta cobros ni pagos", color = Color(0xFF6B778C), fontSize = 12.sp)
+                Text("Exportación informativa: valores guardados, importes en unidades menores; no es un formato fiscal.", color = Color(0xFF6B778C), fontSize = 11.sp)
+                OutlinedButton(onClick = {
+                    val bookLabel = if (initialKind == InvoiceKind.SALE) "Ventas" else "Compras"
+                    val csv = com.neon.book01.domain.invoiceBookCsv(
+                        currencyCode,
+                        issuedPeriodInvoices.map { invoice ->
+                            com.neon.book01.domain.InvoiceBookCsvRow(
+                                invoiceDate = invoice.invoiceDate,
+                                invoiceNumber = invoice.invoiceNumber,
+                                counterparty = partyNames[invoice.registeredPartyId] ?: invoice.registeredPartyId,
+                                description = invoice.description,
+                                taxableBaseMinor = invoice.taxableBaseMinor,
+                                vatMinor = invoice.vatMinor,
+                                totalMinor = invoice.totalMinor,
+                                dueDate = invoice.dueDate,
+                            )
+                        },
+                    )
+                    val share = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_SUBJECT, "Libro auxiliar · $bookLabel · ${selectedPeriod.displayLabel}")
+                        putExtra(Intent.EXTRA_TEXT, csv)
+                    }
+                    context.startActivity(Intent.createChooser(share, "Compartir libro auxiliar CSV"))
+                }) { Text("Compartir libro del período CSV") }
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -231,19 +257,24 @@ private fun InvoiceCard(invoice: InvoiceEntity, repository: LedgerRepository, ac
         asOf,
     )
     val pending = (invoice.totalMinor - settled).coerceAtLeast(0L)
+    val issuedAsOf = com.neon.book01.domain.isInvoiceIssuedAsOf(invoice.invoiceDate, asOf)
     val status = invoiceSettlementStatus(invoice.totalMinor, settled, invoice.dueDate, asOf)
     val partyFlow = remember(invoice.registeredPartyId) { repository.observeCounterparties(if (invoice.kind == "SALE") "CLIENT" else "SUPPLIER") }
     var partyName by remember(invoice.registeredPartyId) { mutableStateOf(invoice.registeredPartyId) }
     LaunchedEffect(partyFlow) { partyFlow.collect { rows -> partyName = rows.firstOrNull { it.id == invoice.registeredPartyId }?.displayName ?: invoice.registeredPartyId } }
-    if (matchesInvoiceBookFilter(statusFilter, status)) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    if ((issuedAsOf && matchesInvoiceBookFilter(statusFilter, status)) || (!issuedAsOf && statusFilter == InvoiceBookFilter.ALL)) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("${if (invoice.kind == "SALE") "Venta" else "Compra"} · ${invoice.invoiceNumber}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
             Text("${invoice.invoiceDate} · $partyName · ${invoice.description}", color = Color(0xFF6B778C), fontSize = 12.sp)
             Text("Base ${money(invoice.taxableBaseMinor)} · IVA ${money(invoice.vatMinor)} · Total ${money(invoice.totalMinor)}", color = Color(0xFF172B4D), fontSize = 12.sp)
             Text("Abonado ${money(settled)} · pendiente ${money(pending)}", color = Color(0xFF6B778C), fontSize = 12.sp)
-            Text("Estado: ${status.displayLabel}", color = if (status.displayLabel == "Vencida") Color(0xFFB3261E) else Color(0xFF6B778C), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (issuedAsOf) "Estado: ${status.displayLabel}" else "Fecha de emisión futura · no incluida en saldos al día de hoy",
+                color = if (issuedAsOf && status.displayLabel == "Vencida") Color(0xFFB3261E) else Color(0xFF6B778C),
+                fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            )
             if (invoice.dueDate != null) Text("Vence ${invoice.dueDate}", color = Color(0xFF6B778C), fontSize = 11.sp)
-            if (pending > 0) TextButton(onClick = { showDialog = true }) { Text(if (invoice.kind == "SALE") "Registrar cobro" else "Registrar pago") }
+            if (issuedAsOf && pending > 0) TextButton(onClick = { showDialog = true }) { Text(if (invoice.kind == "SALE") "Registrar cobro" else "Registrar pago") }
         }
     }
     if (showDialog) SettlementDialog(invoice, pending, accounts, repository, { showDialog = false })
