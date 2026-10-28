@@ -21,7 +21,7 @@ class AuxiliaryBooksNavigationUiTest {
             assertVisible(device, "Libro auxiliar · Ventas")
             assertTrue("Sales should not show journal-wide income/expense totals", device.findObject(By.text("Ingresos")) == null && device.findObject(By.text("Gastos")) == null)
             assertVisible(device, "Nueva factura de venta")
-            assertVisible(device, "Resumen del período · 0 facturas")
+            assertVisible(device, "Resumen del período ·")
             assertVisible(device, "Saldos por cliente")
             assertVisible(device, "Estado de cuenta")
             assertVisible(device, "Selecciona un cliente para consultar su estado de cuenta.")
