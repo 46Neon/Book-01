@@ -1,1 +1,106 @@
-cGFja2FnZSBjb20ubmVvbi5ib29rMDEuZG9tYWluCgppbXBvcnQgamF2YS5tYXRoLkJpZ0RlY2ltYWwKaW1wb3J0IGphdmEubWF0aC5Sb3VuZGluZ01vZGUKaW1wb3J0IGphdmEudGV4dC5EZWNpbWFsRm9ybWF0CmltcG9ydCBqYXZhLnRleHQuRGVjaW1hbEZvcm1hdFN5bWJvbHMKaW1wb3J0IGphdmEudXRpbC5Mb2NhbGUKCi8qKiBFeGFjdCBVU0QgbW9uZXkgY29udmVyc2lvbiBmb3IgdGhlIE1WUDogb25lIGNlbnQgaXMgb25lIHN0b3JlZCBtaW5vciB1bml0LiAqLwpvYmplY3QgVXNkTW9uZXkgewogICAgY29uc3QgdmFsIENVUlJFTkNZX0NPREUgPSAiVVNEIgogICAgY29uc3QgdmFsIE1JTk9SX1VOSVRTX1BFUl9VTklUID0gMTAwTAoKICAgIC8qKgogICAgICogUGFyc2VzIFVTRCB3aXRob3V0IHBhc3NpbmcgdGhyb3VnaCBiaW5hcnkgZmxvYXRpbmcgcG9pbnQuIFN1cHBvcnRlZCBmb3JtcyBpbmNsdWRlCiAgICAgKiAxMjM0LjU2LCAxLDIzNC41NiwgMTIzNCw1NiwgMS4yMzQsNTYsIGFuZCBhbiBvcHRpb25hbCBsZWFkaW5nIFVTRC9VUyQvJC4gQQogICAgICogc2luZ2xlIHNlcGFyYXRvciBmb2xsb3dlZCBieSB0aHJlZSBkaWdpdHMgaXMgcmVqZWN0ZWQgYmVjYXVzZSBpdCBpcyBhbWJpZ3VvdXMuCiAgICAgKi8KICAgIGZ1biBwYXJzZU1pbm9yVW5pdHMocmF3OiBTdHJpbmcpOiBMb25nIHsKICAgICAgICB2YXIgaW5wdXQgPSByYXcudHJpbSgpCiAgICAgICAgcmVxdWlyZShpbnB1dC5pc05vdEVtcHR5KCkpIHsgIkVzY3JpYmUgdW4gaW1wb3J0ZSBlbiBVU0QuIiB9CgogICAgICAgIGlucHV0ID0gd2hlbiB7CiAgICAgICAgICAgIGlucHV0LnN0YXJ0c1dpdGgoIlVTRCIsIGlnbm9yZUNhc2UgPSB0cnVlKSAtPiBpbnB1dC5zdWJzdHJpbmcoMykudHJpbSgpCiAgICAgICAgICAgIGlucHV0LnN0YXJ0c1dpdGgoIlVTJCIsIGlnbm9yZUNhc2UgPSB0cnVlKSAtPiBpbnB1dC5zdWJzdHJpbmcoMykudHJpbSgpCiAgICAgICAgICAgIGlucHV0LnN0YXJ0c1dpdGgoIiQiKSAtPiBpbnB1dC5zdWJzdHJpbmcoMSkudHJpbSgpCiAgICAgICAgICAgIGVsc2UgLT4gaW5wdXQKICAgICAgICB9CiAgICAgICAgaWYgKGlucHV0LnN0YXJ0c1dpdGgoJy4nKSB8fCBpbnB1dC5zdGFydHNXaXRoKCcsJykpIGlucHV0ID0gIjAkaW5wdXQiCiAgICAgICAgcmVxdWlyZShpbnB1dC5pc05vdEVtcHR5KCkpIHsgIkVzY3JpYmUgdW4gaW1wb3J0ZSBlbiBVU0QuIiB9CiAgICAgICAgcmVxdWlyZSghaW5wdXQuc3RhcnRzV2l0aCgnLScpICYmICFpbnB1dC5zdGFydHNXaXRoKCcrJykpIHsgIkVsIGltcG9ydGUgZGViZSBzZXIgcG9zaXRpdm8uIiB9CiAgICAgICAgcmVxdWlyZShpbnB1dC5ub25lIHsgaXQuaXNXaGl0ZXNwYWNlKCkgfSkgeyAiTm8gdXNlcyBlc3BhY2lvcyBkZW50cm8gZGVsIGltcG9ydGUuIiB9CiAgICAgICAgcmVxdWlyZShpbnB1dC5hbGwgeyBpdCBpbiAnMCcuLic5JyB8fCBpdCA9PSAnLicgfHwgaXQgPT0gJywnIH0pIHsKICAgICAgICAgICAgIlVzYSBzb2xvIGNpZnJhcyB5IHNlcGFyYWRvcmVzIGRlY2ltYWxlcy4iCiAgICAgICAgfQoKICAgICAgICB2YWwgZG90Q291bnQgPSBpbnB1dC5jb3VudCB7IGl0ID09ICcuJyB9CiAgICAgICAgdmFsIGNvbW1hQ291bnQgPSBpbnB1dC5jb3VudCB7IGl0ID09ICcsJyB9CiAgICAgICAgdmFsIG5vcm1hbGl6ZWQgPSB3aGVuIHsKICAgICAgICAgICAgZG90Q291bnQgPiAwICYmIGNvbW1hQ291bnQgPiAwIC0+IHsKICAgICAgICAgICAgICAgIHZhbCBkZWNpbWFsU2VwYXJhdG9yID0gaWYgKGlucHV0Lmxhc3RJbmRleE9mKCcsJykgPiBpbnB1dC5sYXN0SW5kZXhPZignLicpKSAnLCcgZWxzZSAnLicKICAgICAgICAgICAgICAgIHZhbCBncm91cGluZ1NlcGFyYXRvciA9IGlmIChkZWNpbWFsU2VwYXJhdG9yID09ICcsJykgJy4nIGVsc2UgJywnCiAgICAgICAgICAgICAgICByZXF1aXJlKGlucHV0LmNvdW50IHsgaXQgPT0gZGVjaW1hbFNlcGFyYXRvciB9ID09IDEpIHsgIlJldmlzYSBsb3Mgc2VwYXJhZG9yZXMgZGVsIGltcG9ydGUuIiB9CiAgICAgICAgICAgICAgICB2YWwgcGFydHMgPSBpbnB1dC5zcGxpdChkZWNpbWFsU2VwYXJhdG9yKQogICAgICAgICAgICAgICAgcmVxdWlyZShwYXJ0cy5zaXplID09IDIgJiYgcGFydHNbMV0ubGVuZ3RoIGluIDEuLjIpIHsgIlVTRCBhZG1pdGUgY29tbyBtw6F4aW1vIGRvcyBkZWNpbWFsZXMuIiB9CiAgICAgICAgICAgICAgICByZXF1aXJlKHZhbGlkR3JvdXBlZEludGVnZXIocGFydHNbMF0sIGdyb3VwaW5nU2VwYXJhdG9yKSkgeyAiUmV2aXNhIGxvcyBzZXBhcmFkb3JlcyBkZSBtaWxlcy4iIH0KICAgICAgICAgICAgICAgIHBhcnRzWzBdLnJlcGxhY2UoZ3JvdXBpbmdTZXBhcmF0b3IudG9TdHJpbmcoKSwgIiIpICsgIi4iICsgcGFydHNbMV0KICAgICAgICAgICAgfQogICAgICAgICAgICBkb3RDb3VudCArIGNvbW1hQ291bnQgPT0gMCAtPiBpbnB1dAogICAgICAgICAgICBkb3RDb3VudCArIGNvbW1hQ291bnQgPiAxIC0+IHsKICAgICAgICAgICAgICAgIHZhbCBzZXBhcmF0b3IgPSBpZiAoZG90Q291bnQgPiAwKSAnLicgZWxzZSAnLCcKICAgICAgICAgICAgICAgIHJlcXVpcmUodmFsaWRHcm91cGVkSW50ZWdlcihpbnB1dCwgc2VwYXJhdG9yKSkgeyAiUmV2aXNhIGxvcyBzZXBhcmFkb3JlcyBkZSBtaWxlcy4iIH0KICAgICAgICAgICAgICAgIGlucHV0LnJlcGxhY2Uoc2VwYXJhdG9yLnRvU3RyaW5nKCksICIiKQogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsc2UgLT4gewogICAgICAgICAgICAgICAgdmFsIHNlcGFyYXRvciA9IGlmIChkb3RDb3VudCA9PSAxKSAnLicgZWxzZSAnLCcKICAgICAgICAgICAgICAgIHZhbCBwYXJ0cyA9IGlucHV0LnNwbGl0KHNlcGFyYXRvcikKICAgICAgICAgICAgICAgIHJlcXVpcmUocGFydHMuc2l6ZSA9PSAyICYmIHBhcnRzWzBdLmlzTm90RW1wdHkoKSAmJiBwYXJ0c1sxXS5pc05vdEVtcHR5KCkpIHsKICAgICAgICAgICAgICAgICAgICAiUmV2aXNhIGVsIGltcG9ydGUuIEVqZW1wbG86IDEyNTAuNzUgbyAxLjI1MCw3NS4iCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICB3aGVuIHsKICAgICAgICAgICAgICAgICAgICBwYXJ0c1sxXS5sZW5ndGggPD0gMiAtPiBwYXJ0c1swXSArICIuIiArIHBhcnRzWzFdCiAgICAgICAgICAgICAgICAgICAgcGFydHNbMV0ubGVuZ3RoID09IDMgLT4gdGhyb3cgSWxsZWdhbEFyZ3VtZW50RXhjZXB0aW9uKAogICAgICAgICAgICAgICAgICAgICAgICAiRWwgaW1wb3J0ZSBlcyBhbWJpZ3VvLiBFc2NyaWJlLCBwb3IgZWplbXBsbywgMTIzNC4wMCBvIDEsMjM0LjAwLiIsCiAgICAgICAgICAgICAgICAgICAgKQogICAgICAgICAgICAgICAgICAgIGVsc2UgLT4gdGhyb3cgSWxsZWdhbEFyZ3VtZW50RXhjZXB0aW9uKCJVU0QgYWRtaXRlIGNvbW8gbcOheGltbyBkb3MgZGVjaW1hbGVzLiIpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICB9CgogICAgICAgIHZhbCBtaW5vciA9IEJpZ0RlY2ltYWwobm9ybWFsaXplZCkKICAgICAgICAgICAgLnNldFNjYWxlKDIsIFJvdW5kaW5nTW9kZS5VTk5FQ0VTU0FSWSkKICAgICAgICAgICAgLm1vdmVQb2ludFJpZ2h0KDIpCiAgICAgICAgICAgIC5sb25nVmFsdWVFeGFjdCgpCiAgICAgICAgcmVxdWlyZShtaW5vciA+IDApIHsgIkVsIGltcG9ydGUgZGViZSBzZXIgbWF5b3IgcXVlIGNlcm8uIiB9CiAgICAgICAgcmV0dXJuIG1pbm9yCiAgICB9CgogICAgZnVuIHN1bU1pbm9yVW5pdHModmFsdWVzOiBJdGVyYWJsZTxMb25nPik6IExvbmcgPQogICAgICAgIHZhbHVlcy5mb2xkKDBMKSB7IHRvdGFsLCB2YWx1ZSAtPiBNYXRoLmFkZEV4YWN0KHRvdGFsLCB2YWx1ZSkgfQoKICAgIGZ1biBzdWJ0cmFjdE1pbm9yVW5pdHMobGVmdDogTG9uZywgcmlnaHQ6IExvbmcpOiBMb25nID0gTWF0aC5zdWJ0cmFjdEV4YWN0KGxlZnQsIHJpZ2h0KQoKICAgIC8qKiBGb3JtYXRzIGludGVnZXIgY2VudHMgYXMgYW4gZXhhY3QgU3BhbmlzaC1yZWFkYWJsZSBVU0QgYW1vdW50LCBlLmcuIFVTJCAxLjIzNCw1Ni4gKi8KICAgIGZ1biBmb3JtYXQobWlub3JVbml0czogTG9uZyk6IFN0cmluZyB7CiAgICAgICAgdmFsIHN5bWJvbHMgPSBEZWNpbWFsRm9ybWF0U3ltYm9scyhMb2NhbGUuZm9yTGFuZ3VhZ2VUYWcoImVzLVZFIikpLmFwcGx5IHsKICAgICAgICAgICAgZGVjaW1hbFNlcGFyYXRvciA9ICcsJwogICAgICAgICAgICBncm91cGluZ1NlcGFyYXRvciA9ICcuJwogICAgICAgIH0KICAgICAgICB2YWwgZm9ybWF0dGVyID0gRGVjaW1hbEZvcm1hdCgiIywjIzAuMDAiLCBzeW1ib2xzKS5hcHBseSB7CiAgICAgICAgICAgIG1pbmltdW1GcmFjdGlvbkRpZ2l0cyA9IDIKICAgICAgICAgICAgbWF4aW11bUZyYWN0aW9uRGlnaXRzID0gMgogICAgICAgICAgICBpc0dyb3VwaW5nVXNlZCA9IHRydWUKICAgICAgICAgICAgcm91bmRpbmdNb2RlID0gUm91bmRpbmdNb2RlLlVOTkVDRVNTQVJZCiAgICAgICAgfQogICAgICAgIHJldHVybiAiVVMkICR7Zm9ybWF0dGVyLmZvcm1hdChCaWdEZWNpbWFsLnZhbHVlT2YobWlub3JVbml0cywgMikpfSIKICAgIH0KCiAgICBwcml2YXRlIGZ1biB2YWxpZEdyb3VwZWRJbnRlZ2VyKHZhbHVlOiBTdHJpbmcsIHNlcGFyYXRvcjogQ2hhcik6IEJvb2xlYW4gewogICAgICAgIHZhbCBncm91cHMgPSB2YWx1ZS5zcGxpdChzZXBhcmF0b3IpCiAgICAgICAgaWYgKGdyb3Vwcy5zaXplIDwgMikgcmV0dXJuIGZhbHNlCiAgICAgICAgcmV0dXJuIGdyb3Vwcy5maXJzdCgpLmxlbmd0aCBpbiAxLi4zICYmCiAgICAgICAgICAgIGdyb3Vwcy5maXJzdCgpLmFsbCB7IGl0IGluICcwJy4uJzknIH0gJiYKICAgICAgICAgICAgZ3JvdXBzLmRyb3AoMSkuYWxsIHsgZ3JvdXAgLT4gZ3JvdXAubGVuZ3RoID09IDMgJiYgZ3JvdXAuYWxsIHsgaXQgaW4gJzAnLi4nOScgfSB9CiAgICB9Cn0K
+package com.neon.book01.domain
+
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
+
+/** Exact USD money conversion for the MVP: one cent is one stored minor unit. */
+object UsdMoney {
+    const val CURRENCY_CODE = "USD"
+    const val MINOR_UNITS_PER_UNIT = 100L
+
+    /**
+     * Parses USD without passing through binary floating point. Supported forms include
+     * 1234.56, 1,234.56, 1234,56, 1.234,56, and an optional leading USD/US$/$. A
+     * single separator followed by three digits is rejected because it is ambiguous.
+     */
+    fun parseMinorUnits(raw: String): Long {
+        var input = raw.trim()
+        require(input.isNotEmpty()) { "Escribe un importe en USD." }
+
+        input = when {
+            input.startsWith("USD", ignoreCase = true) -> input.substring(3).trim()
+            input.startsWith("US$", ignoreCase = true) -> input.substring(3).trim()
+            input.startsWith("$") -> input.substring(1).trim()
+            else -> input
+        }
+        if (input.startsWith('.') || input.startsWith(',')) input = "0$input"
+        require(input.isNotEmpty()) { "Escribe un importe en USD." }
+        require(!input.startsWith('-') && !input.startsWith('+')) { "El importe debe ser positivo." }
+        require(input.none { it.isWhitespace() }) { "No uses espacios dentro del importe." }
+        require(input.all { it in '0'..'9' || it == '.' || it == ',' }) {
+            "Usa solo cifras y separadores decimales."
+        }
+
+        val dotCount = input.count { it == '.' }
+        val commaCount = input.count { it == ',' }
+        val normalized = when {
+            dotCount > 0 && commaCount > 0 -> {
+                val decimalSeparator = if (input.lastIndexOf(',') > input.lastIndexOf('.')) ',' else '.'
+                val groupingSeparator = if (decimalSeparator == ',') '.' else ','
+                require(input.count { it == decimalSeparator } == 1) { "Revisa los separadores del importe." }
+                val parts = input.split(decimalSeparator)
+                require(parts.size == 2 && parts[1].length in 1..2) { "USD admite como máximo dos decimales." }
+                require(validGroupedInteger(parts[0], groupingSeparator)) { "Revisa los separadores de miles." }
+                parts[0].replace(groupingSeparator.toString(), "") + "." + parts[1]
+            }
+            dotCount + commaCount == 0 -> input
+            dotCount + commaCount > 1 -> {
+                val separator = if (dotCount > 0) '.' else ','
+                require(validGroupedInteger(input, separator)) { "Revisa los separadores de miles." }
+                input.replace(separator.toString(), "")
+            }
+            else -> {
+                val separator = if (dotCount == 1) '.' else ','
+                val parts = input.split(separator)
+                require(parts.size == 2 && parts[0].isNotEmpty() && parts[1].isNotEmpty()) {
+                    "Revisa el importe. Ejemplo: 1250.75 o 1.250,75."
+                }
+                when {
+                    parts[1].length <= 2 -> parts[0] + "." + parts[1]
+                    parts[1].length == 3 -> throw IllegalArgumentException(
+                        "El importe es ambiguo. Escribe, por ejemplo, 1234.00 o 1,234.00.",
+                    )
+                    else -> throw IllegalArgumentException("USD admite como máximo dos decimales.")
+                }
+            }
+        }
+
+        val minor = BigDecimal(normalized)
+            .setScale(2, RoundingMode.UNNECESSARY)
+            .movePointRight(2)
+            .longValueExact()
+        require(minor > 0) { "El importe debe ser mayor que cero." }
+        return minor
+    }
+
+    fun sumMinorUnits(values: Iterable<Long>): Long =
+        values.fold(0L) { total, value -> Math.addExact(total, value) }
+
+    fun subtractMinorUnits(left: Long, right: Long): Long = Math.subtractExact(left, right)
+
+    /** Formats integer cents as an exact Spanish-readable USD amount, e.g. US$ 1.234,56. */
+    fun format(minorUnits: Long): String {
+        val symbols = DecimalFormatSymbols(Locale.forLanguageTag("es-VE")).apply {
+            decimalSeparator = ','
+            groupingSeparator = '.'
+        }
+        val formatter = DecimalFormat("#,##0.00", symbols).apply {
+            minimumFractionDigits = 2
+            maximumFractionDigits = 2
+            isGroupingUsed = true
+            roundingMode = RoundingMode.UNNECESSARY
+        }
+        return "US$ ${formatter.format(BigDecimal.valueOf(minorUnits, 2))}"
+    }
+
+    private fun validGroupedInteger(value: String, separator: Char): Boolean {
+        val groups = value.split(separator)
+        if (groups.size < 2) return false
+        return groups.first().length in 1..3 &&
+            groups.first().all { it in '0'..'9' } &&
+            groups.drop(1).all { group -> group.length == 3 && group.all { it in '0'..'9' } }
+    }
+}

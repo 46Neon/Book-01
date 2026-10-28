@@ -1,1 +1,294 @@
-cGFja2FnZSBjb20ubmVvbi5ib29rMDEuZGF0YQoKaW1wb3J0IGNvbS5uZW9uLmJvb2swMS5kb21haW4uQ291bnRlcnBhcnR5UnVsZXMKaW1wb3J0IGNvbS5uZW9uLmJvb2swMS5kb21haW4uU3VwcG9ydFJlZmVyZW5jZVJ1bGVzCmltcG9ydCBjb20ubmVvbi5ib29rMDEuZG9tYWluLlBlcmlvZENsb3NlQWNjb3VudAppbXBvcnQgY29tLm5lb24uYm9vazAxLmRvbWFpbi5QZXJpb2RDbG9zZUNhbGN1bGF0b3IKaW1wb3J0IGNvbS5uZW9uLmJvb2swMS5kb21haW4uUGVyaW9kQ2xvc2VMaW5lUGxhbgppbXBvcnQgY29tLm5lb24uYm9vazAxLmRvbWFpbi5QZXJpb2RDbG9zZVBvc3RpbmcKaW1wb3J0IGNvbS5uZW9uLmJvb2swMS5kb21haW4uUGVyaW9kQ2xvc2VQb3N0aW5nTGluZQppbXBvcnQgamF2YS5tYXRoLkJpZ0ludGVnZXIKaW1wb3J0IGphdmEudGltZS5Mb2NhbERhdGUKCi8qKiBDb3VudHMgc2hvd24gdG8gdGhlIHVzZXIgYWZ0ZXIgZGVjcnlwdGlvbiBhbmQgYmVmb3JlIHRoZSBzZXBhcmF0ZSBjb25maXJtYXRpb24gc3RlcC4gKi8KZGF0YSBjbGFzcyBMZWRnZXJCYWNrdXBQcmV2aWV3KAogICAgdmFsIGJvb2tOYW1lOiBTdHJpbmcsCiAgICB2YWwgYWNjb3VudENvdW50OiBJbnQsCiAgICB2YWwgam91cm5hbEVudHJ5Q291bnQ6IEludCwKICAgIHZhbCBqb3VybmFsTGluZUNvdW50OiBJbnQsCiAgICB2YWwgYXVkaXRFdmVudENvdW50OiBJbnQsCiAgICB2YWwgYWNjb3VudEF1ZGl0RXZlbnRDb3VudDogSW50LAogICAgdmFsIHBlcmlvZENsb3NlQ291bnQ6IEludCwKICAgIHZhbCBpbnZvaWNlQ291bnQ6IEludCA9IDAsCiAgICB2YWwgY291bnRlcnBhcnR5Q291bnQ6IEludCA9IDAsCiAgICB2YWwgc2V0dGxlbWVudENvdW50OiBJbnQgPSAwLAopCgovKiogUGFyZW50LWZpcnN0IGRldGVybWluaXN0aWMgb3JkZXJpbmcgdXNlZCBieSByZXN0b3JlIGV2ZW4gd2hlbiBzZXJpYWxpemVkIHJvd3MgYXJlIHNodWZmbGVkLiAqLwppbnRlcm5hbCBmdW4gcGFyZW50Rmlyc3RBY2NvdW50cyhhY2NvdW50czogTGlzdDxBY2NvdW50RW50aXR5Pik6IExpc3Q8QWNjb3VudEVudGl0eT4gewogICAgdmFsIGJ5Q29kZSA9IGFjY291bnRzLmFzc29jaWF0ZUJ5IHsgaXQuY29kZSB9CiAgICByZXF1aXJlKGJ5Q29kZS5zaXplID09IGFjY291bnRzLnNpemUpIHsgIkhheSBjw7NkaWdvcyBkZSBjdWVudGEgZHVwbGljYWRvcy4iIH0KICAgIGFjY291bnRzLmZvckVhY2ggeyBhY2NvdW50IC0+CiAgICAgICAgYWNjb3VudC5wYXJlbnRDb2RlPy5sZXQgeyBwYXJlbnRDb2RlIC0+CiAgICAgICAgICAgIHZhbCBwYXJlbnQgPSBieUNvZGVbcGFyZW50Q29kZV0KICAgICAgICAgICAgICAgID86IHRocm93IElsbGVnYWxBcmd1bWVudEV4Y2VwdGlvbigiTGEgY3VlbnRhICR7YWNjb3VudC5jb2RlfSBoYWNlIHJlZmVyZW5jaWEgYSB1biBwYWRyZSBxdWUgbm8gZXhpc3RlLiIpCiAgICAgICAgICAgIHJlcXVpcmUocGFyZW50Q29kZSAhPSBhY2NvdW50LmNvZGUpIHsgIlVuYSBjdWVudGEgbm8gcHVlZGUgc2VyIHN1IHByb3BpbyBwYWRyZS4iIH0KICAgICAgICAgICAgcmVxdWlyZShwYXJlbnQuYWN0aXZlKSB7ICJMYSBjdWVudGEgcGFkcmUgJHtwYXJlbnQuY29kZX0gZGViZSBlc3RhciBhY3RpdmEuIiB9CiAgICAgICAgICAgIHJlcXVpcmUocGFyZW50LnR5cGUgPT0gYWNjb3VudC50eXBlKSB7ICJMYSBjdWVudGEgcGFkcmUgZGViZSB0ZW5lciBsYSBtaXNtYSBjbGFzaWZpY2FjacOzbi4iIH0KICAgICAgICB9CiAgICB9CiAgICB2YWwgY2hpbGRyZW5CeVBhcmVudCA9IGFjY291bnRzLmZpbHRlciB7IGl0LnBhcmVudENvZGUgIT0gbnVsbCB9Lmdyb3VwQnkgeyBpdC5wYXJlbnRDb2RlISEgfQogICAgdmFsIHJlYWR5ID0gamF2YS51dGlsLlByaW9yaXR5UXVldWU8U3RyaW5nPigpCiAgICBhY2NvdW50cy5maWx0ZXIgeyBpdC5wYXJlbnRDb2RlID09IG51bGwgfS5mb3JFYWNoIHsgcmVhZHkuYWRkKGl0LmNvZGUpIH0KICAgIHZhbCBvcmRlcmVkID0gbXV0YWJsZUxpc3RPZjxBY2NvdW50RW50aXR5PigpCiAgICB3aGlsZSAocmVhZHkuaXNOb3RFbXB0eSgpKSB7CiAgICAgICAgdmFsIGNvZGUgPSByZWFkeS5yZW1vdmUoKQogICAgICAgIG9yZGVyZWQgKz0gYnlDb2RlLmdldFZhbHVlKGNvZGUpCiAgICAgICAgY2hpbGRyZW5CeVBhcmVudFtjb2RlXS5vckVtcHR5KCkuZm9yRWFjaCB7IGNoaWxkIC0+IHJlYWR5LmFkZChjaGlsZC5jb2RlKSB9CiAgICB9CiAgICByZXF1aXJlKG9yZGVyZWQuc2l6ZSA9PSBhY2NvdW50cy5zaXplKSB7ICJMYSBqZXJhcnF1w61hIGRlIGN1ZW50YXMgY29udGllbmUgdW4gY2ljbG8uIiB9CiAgICByZXR1cm4gb3JkZXJlZAp9CgovKiogU3RydWN0dXJhbCBhbmQgYWNjb3VudGluZyBjb25zaXN0ZW5jeSBjaGVja3MgZm9yIGF1dGhlbnRpY2F0ZWQgdjEgc25hcHNob3RzLiAqLwpvYmplY3QgTGVkZ2VyQmFja3VwVmFsaWRhdG9yIHsKICAgIGZ1biB2YWxpZGF0ZShzbmFwc2hvdDogTGVkZ2VyQmFja3VwU25hcHNob3QpOiBMZWRnZXJCYWNrdXBQcmV2aWV3IHsKICAgICAgICB2YWwgc2V0dGluZ3MgPSBzbmFwc2hvdC5ib29rU2V0dGluZ3MKICAgICAgICAgICAgPzogdGhyb3cgSWxsZWdhbEFyZ3VtZW50RXhjZXB0aW9uKCJMYSBjb3BpYSBubyBjb250aWVuZSBsYSBjb25maWd1cmFjacOzbiBkZWwgbGlicm8uIikKICAgICAgICByZXF1aXJlKHNldHRpbmdzLmlkID09IDEgJiYgc2V0dGluZ3MuYm9va05hbWUudHJpbSgpLmxlbmd0aCBpbiAyLi42MCAmJiBzZXR0aW5ncy5iYXNlQ3VycmVuY3kuaXNOb3RCbGFuaygpKSB7CiAgICAgICAgICAgICJMYSBjb25maWd1cmFjacOzbiBkZWwgbGlicm8gbm8gZXMgdsOhbGlkYS4iCiAgICAgICAgfQoKICAgICAgICByZXF1aXJlVW5pcXVlKHNuYXBzaG90LmFjY291bnRzLm1hcCB7IGl0LmNvZGUgfSwgImPDs2RpZ29zIGRlIGN1ZW50YSIpCiAgICAgICAgcmVxdWlyZVVuaXF1ZShzbmFwc2hvdC5qb3VybmFsRW50cmllcy5tYXAgeyBpdC5pZCB9LCAiYXNpZW50b3MiKQogICAgICAgIHJlcXVpcmVVbmlxdWUoc25hcHNob3Quam91cm5hbExpbmVzLm1hcCB7IGl0LmlkIH0sICJsw61uZWFzIGNvbnRhYmxlcyIpCiAgICAgICAgcmVxdWlyZVVuaXF1ZShzbmFwc2hvdC5hdWRpdEV2ZW50cy5tYXAgeyBpdC5pZCB9LCAiZXZlbnRvcyBkZSBhdWRpdG9yw61hIikKICAgICAgICByZXF1aXJlVW5pcXVlKHNuYXBzaG90LmFjY291bnRBdWRpdEV2ZW50cy5tYXAgeyBpdC5pZCB9LCAiZXZlbnRvcyBkZSBjdWVudGEiKQogICAgICAgIHJlcXVpcmVVbmlxdWUoc25hcHNob3QucGVyaW9kQ2xvc2VzLm1hcCB7IGl0LmlkIH0sICJjaWVycmVzIGRlIHBlcmlvZG8iKQogICAgICAgIHJlcXVpcmVVbmlxdWUoc25hcHNob3QuY291bnRlcnBhcnRpZXMubWFwIHsgaXQuaWQgfSwgImNsaWVudGVzIHkgcHJvdmVlZG9yZXMiKQogICAgICAgIHJlcXVpcmVVbmlxdWUoc25hcHNob3QuaW52b2ljZXMubWFwIHsgaXQuaWQgfSwgImZhY3R1cmFzIikKICAgICAgICByZXF1aXJlVW5pcXVlKHNuYXBzaG90Lmludm9pY2VTZXR0bGVtZW50cy5tYXAgeyBpdC5pZCB9LCAiY29icm9zIHkgcGFnb3MiKQoKICAgICAgICB2YWwgYWNjb3VudHMgPSBzbmFwc2hvdC5hY2NvdW50cy5hc3NvY2lhdGVCeSB7IGl0LmNvZGUgfQogICAgICAgIHJlcXVpcmUoYWNjb3VudHMuc2l6ZSA9PSBzbmFwc2hvdC5hY2NvdW50cy5zaXplKSB7ICJIYXkgY8OzZGlnb3MgZGUgY3VlbnRhIGR1cGxpY2Fkb3MuIiB9CiAgICAgICAgcmVxdWlyZShzbmFwc2hvdC5hY2NvdW50cy5hbGwgeyBpdC5jb2RlLmlzTm90QmxhbmsoKSAmJiBpdC5uYW1lLmlzTm90QmxhbmsoKSAmJiBpdC50eXBlLmlzTm90QmxhbmsoKSB9KSB7CiAgICAgICAgICAgICJVbmEgY3VlbnRhIGRlIGxhIGNvcGlhIHRpZW5lIGRhdG9zIGluY29tcGxldG9zLiIKICAgICAgICB9CiAgICAgICAgdmFsIGFjY291bnRUeXBlcyA9IGFjY291bnRzLm1hcFZhbHVlcyB7IGl0LnZhbHVlLnR5cGUgfQogICAgICAgIHZhbCBsZWdhY3lEZWZhdWx0cyA9IExlZGdlckJvb2tEZWZhdWx0cy5hY2NvdW50cy5maWx0ZXIgeyBpdC5jb2RlICFpbiBzZXRPZigiMTEwMCIsICIxMTA1IiwgIjIxMDIiLCAiMjEwMyIpIH0KICAgICAgICBsaXN0T2YoIjExMDAiIHRvICJBU1NFVCIsICIxMTA1IiB0byAiQVNTRVQiLCAiMjEwMiIgdG8gIkxJQUJJTElUWSIsICIyMTAzIiB0byAiTElBQklMSVRZIikuZm9yRWFjaCB7IChjb2RlLCB0eXBlKSAtPgogICAgICAgICAgICByZXF1aXJlKGFjY291bnRUeXBlc1tjb2RlXSA9PSBudWxsIHx8IGFjY291bnRUeXBlc1tjb2RlXSA9PSB0eXBlKSB7ICJMYSBjb3BpYSBjb250aWVuZSBjbGFzaWZpY2FjacOzbiBpbmNvcnJlY3RhIHBhcmEgJGNvZGUuIiB9CiAgICAgICAgfQogICAgICAgIGxlZ2FjeURlZmF1bHRzLmZvckVhY2ggeyBzZWVkZWQgLT4KICAgICAgICAgICAgcmVxdWlyZShhY2NvdW50VHlwZXNbc2VlZGVkLmNvZGVdID09IHNlZWRlZC50eXBlKSB7CiAgICAgICAgICAgICAgICAiTGEgY29waWEgbm8gY29uc2VydmEgbGEgY2xhc2lmaWNhY2nDs24gaW5tdXRhYmxlIGRlIGxhcyBjdWVudGFzIHByZWRldGVybWluYWRhcy4iCiAgICAgICAgICAgIH0KICAgICAgICAgICAgcmVxdWlyZShhY2NvdW50cy5nZXRWYWx1ZShzZWVkZWQuY29kZSkucGFyZW50Q29kZSA9PSBudWxsKSB7CiAgICAgICAgICAgICAgICAiTGFzIGN1ZW50YXMgcHJlZGV0ZXJtaW5hZGFzIGRlYmVuIGNvbnNlcnZhciBzdSBqZXJhcnF1w61hIG9yaWdpbmFsLiIKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICBwYXJlbnRGaXJzdEFjY291bnRzKHNuYXBzaG90LmFjY291bnRzKQoKICAgICAgICB2YWwgZW50cmllcyA9IHNuYXBzaG90LmpvdXJuYWxFbnRyaWVzLmFzc29jaWF0ZUJ5IHsgaXQuaWQgfQogICAgICAgIHZhbCByZXZlcnNlZElkcyA9IHNuYXBzaG90LmpvdXJuYWxFbnRyaWVzLm1hcE5vdE51bGwgeyBpdC5yZXZlcnNhbE9mRW50cnlJZCB9CiAgICAgICAgcmVxdWlyZVVuaXF1ZShyZXZlcnNlZElkcywgInbDrW5jdWxvcyBkZSByZXZlcnNhIikKICAgICAgICBzbmFwc2hvdC5qb3VybmFsRW50cmllcy5mb3JFYWNoIHsgZW50cnkgLT4KICAgICAgICAgICAgcmVxdWlyZShlbnRyeS5pZC5pc05vdEJsYW5rKCkgJiYgZW50cnkuY3JlYXRlZEF0LmlzTm90QmxhbmsoKSkgewogICAgICAgICAgICAgICAgIlVuIGFzaWVudG8gZGUgbGEgY29waWEgdGllbmUgZGF0b3MgaW5jb21wbGV0b3MuIgogICAgICAgICAgICB9CiAgICAgICAgICAgIHBhcnNlRGF0ZShlbnRyeS5lbnRyeURhdGUpCiAgICAgICAgICAgIHJlcXVpcmUoZW50cnkuYW1vdW50TWlub3IgPj0gMEwpIHsgIlVuIGFzaWVudG8gY29udGllbmUgdW4gaW1wb3J0ZSBuZWdhdGl2byBubyB2w6FsaWRvLiIgfQogICAgICAgICAgICByZXF1aXJlKENvdW50ZXJwYXJ0eVJ1bGVzLm5vcm1hbGl6ZShlbnRyeS5jb3VudGVycGFydHkpID09IGVudHJ5LmNvdW50ZXJwYXJ0eSkgeyAiTGEgY29udHJhcGFydGUgZGUgdW4gYXNpZW50byBubyBlcyB2w6FsaWRhLiIgfQogICAgICAgICAgICByZXF1aXJlKFN1cHBvcnRSZWZlcmVuY2VSdWxlcy5ub3JtYWxpemUoZW50cnkuc3VwcG9ydFJlZmVyZW5jZSkgPT0gZW50cnkuc3VwcG9ydFJlZmVyZW5jZSkgeyAiTGEgcmVmZXJlbmNpYSBkZSBzb3BvcnRlIGRlIHVuIGFzaWVudG8gbm8gZXMgdsOhbGlkYS4iIH0KICAgICAgICAgICAgcmVxdWlyZShlbnRyeS5zdGF0dXMgPT0gIkRSQUZUIiB8fCBlbnRyeS5zdGF0dXMgPT0gIlBPU1RFRCIpIHsgIkxhIGNvcGlhIGNvbnRpZW5lIHVuIGVzdGFkbyBkZSBhc2llbnRvIG5vIHbDoWxpZG8uIiB9CiAgICAgICAgICAgIHJlcXVpcmUoZW50cnkuc3RhdHVzICE9ICJEUkFGVCIgfHwgZW50cnkua2luZCA9PSAiSU5DT01FIiB8fCBlbnRyeS5raW5kID09ICJFWFBFTlNFIikgewogICAgICAgICAgICAgICAgIkxhIGNvcGlhIGNvbnRpZW5lIHVuIGJvcnJhZG9yIHF1ZSBubyBlcyB1biBpbmdyZXNvIG8gZ2FzdG8gc2ltcGxlLiIKICAgICAgICAgICAgfQogICAgICAgICAgICByZXF1aXJlKGVudHJ5LmNhdGVnb3J5QWNjb3VudENvZGUgaW4gYWNjb3VudHMgJiYgZW50cnkucGF5bWVudEFjY291bnRDb2RlIGluIGFjY291bnRzKSB7CiAgICAgICAgICAgICAgICAiVW4gYXNpZW50byBoYWNlIHJlZmVyZW5jaWEgYSB1bmEgY3VlbnRhIHF1ZSBubyBleGlzdGUuIgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVudHJ5LnJldmVyc2FsT2ZFbnRyeUlkPy5sZXQgeyBvcmlnaW5hbElkIC0+CiAgICAgICAgICAgICAgICB2YWwgb3JpZ2luYWwgPSBlbnRyaWVzW29yaWdpbmFsSWRdCiAgICAgICAgICAgICAgICByZXF1aXJlKG9yaWdpbmFsSWQgIT0gZW50cnkuaWQgJiYgb3JpZ2luYWwgIT0gbnVsbCkgeyAiVW4gdsOtbmN1bG8gZGUgcmV2ZXJzYSBubyBhcHVudGEgYSB1biBhc2llbnRvIGV4aXN0ZW50ZS4iIH0KICAgICAgICAgICAgICAgIHJlcXVpcmUoZW50cnkua2luZCA9PSAiUkVWRVJTQUwiICYmIGVudHJ5LnN0YXR1cyA9PSAiUE9TVEVEIiAmJgogICAgICAgICAgICAgICAgICAgIG9yaWdpbmFsLnN0YXR1cyA9PSAiUE9TVEVEIiAmJiBvcmlnaW5hbC5raW5kICE9ICJSRVZFUlNBTCIgJiYKICAgICAgICAgICAgICAgICAgICBvcmlnaW5hbC5raW5kICE9ICJQRVJJT0RfQ0xPU0UiICYmIG9yaWdpbmFsLnJldmVyc2FsT2ZFbnRyeUlkID09IG51bGwgJiYKICAgICAgICAgICAgICAgICAgICBzbmFwc2hvdC5qb3VybmFsRW50cmllcy5jb3VudCB7IGl0LnJldmVyc2FsT2ZFbnRyeUlkID09IG9yaWdpbmFsLmlkIH0gPT0gMSkgewogICAgICAgICAgICAgICAgICAgICJFbCB2w61uY3VsbyBkZSByZXZlcnNhIG5vIGNvaW5jaWRlIGNvbiB1biBhc2llbnRvIGNvbnRhYmlsaXphZG8geSByZXZlcnNpYmxlLiIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSA/OiByZXF1aXJlKGVudHJ5LmtpbmQgIT0gIlJFVkVSU0FMIikgeyAiVW5hIHJldmVyc2Egbm8gY29uc2VydmEgc3UgdsOtbmN1bG8gYWwgYXNpZW50byBvcmlnaW5hbC4iIH0KICAgICAgICB9CgogICAgICAgIHJlcXVpcmVVbmlxdWUoc25hcHNob3Quam91cm5hbExpbmVzLm1hcCB7IGl0LmlkIH0sICJpZGVudGlmaWNhZG9yZXMgZGUgbMOtbmVhIikKICAgICAgICB2YWwgbGluZXNCeUVudHJ5ID0gc25hcHNob3Quam91cm5hbExpbmVzLmdyb3VwQnkgeyBpdC5lbnRyeUlkIH0KICAgICAgICBzbmFwc2hvdC5qb3VybmFsTGluZXMuZm9yRWFjaCB7IGxpbmUgLT4KICAgICAgICAgICAgdmFsIGVudHJ5ID0gZW50cmllc1tsaW5lLmVudHJ5SWRdCiAgICAgICAgICAgICAgICA/OiB0aHJvdyBJbGxlZ2FsQXJndW1lbnRFeGNlcHRpb24oIlVuYSBsw61uZWEgaGFjZSByZWZlcmVuY2lhIGEgdW4gYXNpZW50byBxdWUgbm8gZXhpc3RlLiIpCiAgICAgICAgICAgIHJlcXVpcmUobGluZS5hY2NvdW50Q29kZSBpbiBhY2NvdW50cykgeyAiVW5hIGzDrW5lYSBoYWNlIHJlZmVyZW5jaWEgYSB1bmEgY3VlbnRhIHF1ZSBubyBleGlzdGUuIiB9CiAgICAgICAgICAgIHJlcXVpcmUobGluZS5kZWJpdE1pbm9yID49IDBMICYmIGxpbmUuY3JlZGl0TWlub3IgPj0gMEwgJiYgKGxpbmUuZGViaXRNaW5vciA9PSAwTCkgIT0gKGxpbmUuY3JlZGl0TWlub3IgPT0gMEwpKSB7CiAgICAgICAgICAgICAgICAiVW5hIGzDrW5lYSBkZWJlIHRlbmVyIHVuIGTDqWJpdG8gbyB1biBjcsOpZGl0byBwb3NpdGl2bywgcGVybyBubyBhbWJvcy4iCiAgICAgICAgICAgIH0KICAgICAgICAgICAgcmVxdWlyZShsaW5lLmN1cnJlbmN5Q29kZS5pc05vdEJsYW5rKCkgJiYgbGluZS5jdXJyZW5jeUNvZGUgPT0gZW50cnkuY3VycmVuY3lDb2RlKSB7CiAgICAgICAgICAgICAgICAiTGEgbW9uZWRhIGRlIHVuYSBsw61uZWEgbm8gY29pbmNpZGUgY29uIGxhIGRlIHN1IGFzaWVudG8uIgogICAgICAgICAgICB9CiAgICAgICAgICAgIHJlcXVpcmUobGluZS5hY2NvdW50TmFtZVNuYXBzaG90LmlzTm90RW1wdHkoKSkgeyAiVW5hIGzDrW5lYSBubyBjb25zZXJ2YSBlbCBub21icmUgaGlzdMOzcmljbyBkZSBzdSBjdWVudGEuIiB9CiAgICAgICAgfQogICAgICAgIHNuYXBzaG90LmpvdXJuYWxFbnRyaWVzLmZvckVhY2ggeyBlbnRyeSAtPgogICAgICAgICAgICB2YWwgbGluZXMgPSBsaW5lc0J5RW50cnlbZW50cnkuaWRdLm9yRW1wdHkoKQogICAgICAgICAgICByZXF1aXJlKGxpbmVzLnNpemUgPj0gMikgeyAiRWwgYXNpZW50byAke2VudHJ5LmlkfSBubyB0aWVuZSBzdWZpY2llbnRlcyBsw61uZWFzIGNvbnRhYmxlcy4iIH0KICAgICAgICAgICAgdmFsIGRlYml0ID0gbGluZXMuZm9sZChCaWdJbnRlZ2VyLlpFUk8pIHsgc3VtLCBsaW5lIC0+IHN1bSArIEJpZ0ludGVnZXIudmFsdWVPZihsaW5lLmRlYml0TWlub3IpIH0KICAgICAgICAgICAgdmFsIGNyZWRpdCA9IGxpbmVzLmZvbGQoQmlnSW50ZWdlci5aRVJPKSB7IHN1bSwgbGluZSAtPiBzdW0gKyBCaWdJbnRlZ2VyLnZhbHVlT2YobGluZS5jcmVkaXRNaW5vcikgfQogICAgICAgICAgICByZXF1aXJlKGRlYml0LnNpZ251bSgpID4gMCAmJiBkZWJpdCA9PSBjcmVkaXQpIHsgIkVsIGFzaWVudG8gJHtlbnRyeS5pZH0gbm8gZXN0w6EgYmFsYW5jZWFkby4iIH0KICAgICAgICAgICAgcmVxdWlyZShkZWJpdCA9PSBCaWdJbnRlZ2VyLnZhbHVlT2YoZW50cnkuYW1vdW50TWlub3IpKSB7ICJFbCBpbXBvcnRlIGRlY2xhcmFkbyBkZWwgYXNpZW50byAke2VudHJ5LmlkfSBubyBjb2luY2lkZSBjb24gc3VzIGzDrW5lYXMuIiB9CiAgICAgICAgfQoKICAgICAgICBzbmFwc2hvdC5hdWRpdEV2ZW50cy5mb3JFYWNoIHsgZXZlbnQgLT4KICAgICAgICAgICAgcGFyc2VEYXRlKGV2ZW50LmV2ZW50RGF0ZSkKICAgICAgICAgICAgcmVxdWlyZShldmVudC5lbnRyeUlkIGluIGVudHJpZXMgJiYgKGV2ZW50LnJlbGF0ZWRFbnRyeUlkID09IG51bGwgfHwgZXZlbnQucmVsYXRlZEVudHJ5SWQgaW4gZW50cmllcykpIHsKICAgICAgICAgICAgICAgICJVbiBldmVudG8gZGUgYXVkaXRvcsOtYSBoYWNlIHJlZmVyZW5jaWEgYSB1biBhc2llbnRvIHF1ZSBubyBleGlzdGUuIgogICAgICAgICAgICB9CiAgICAgICAgfQogICAgICAgIHNuYXBzaG90LmFjY291bnRBdWRpdEV2ZW50cy5mb3JFYWNoIHsgZXZlbnQgLT4KICAgICAgICAgICAgcmVxdWlyZShldmVudC5hY2NvdW50Q29kZSBpbiBhY2NvdW50cykgeyAiVW4gZXZlbnRvIGRlIGN1ZW50YSBoYWNlIHJlZmVyZW5jaWEgYSB1bmEgY3VlbnRhIHF1ZSBubyBleGlzdGUuIiB9CiAgICAgICAgfQoKICAgICAgICBzbmFwc2hvdC5qb3VybmFsRW50cmllcy5maWx0ZXIgeyBpdC5raW5kID09ICJSRVZFUlNBTCIgfS5mb3JFYWNoIHsgcmV2ZXJzYWwgLT4KICAgICAgICAgICAgdmFsIG9yaWdpbmFsID0gZW50cmllcy5nZXRWYWx1ZShyZXZlcnNhbC5yZXZlcnNhbE9mRW50cnlJZCEhKQogICAgICAgICAgICByZXF1aXJlKGxpbmVNdWx0aXNldChsaW5lc0J5RW50cnkuZ2V0VmFsdWUocmV2ZXJzYWwuaWQpKSA9PQogICAgICAgICAgICAgICAgbGluZU11bHRpc2V0KGxpbmVzQnlFbnRyeS5nZXRWYWx1ZShvcmlnaW5hbC5pZCksIHN3YXBEZWJpdEFuZENyZWRpdCA9IHRydWUpKSB7CiAgICAgICAgICAgICAgICAiTGFzIGzDrW5lYXMgZGUgbGEgcmV2ZXJzYSBubyBzb24gbGEgaW52ZXJzacOzbiBleGFjdGEgZGVsIGFzaWVudG8gb3JpZ2luYWwuIgogICAgICAgICAgICB9CiAgICAgICAgfQoKICAgICAgICB2YWwgY2xvc2VzID0gc25hcHNob3QucGVyaW9kQ2xvc2VzCiAgICAgICAgdmFsIGNsb3NlRW50cnlJZHMgPSBjbG9zZXMubWFwTm90TnVsbCB7IGl0LmNsb3NpbmdFbnRyeUlkIH0KICAgICAgICByZXF1aXJlVW5pcXVlKGNsb3NlRW50cnlJZHMsICJ2w61uY3Vsb3MgZGUgYXNpZW50byBkZSBjaWVycmUiKQogICAgICAgIGNsb3Nlcy5mb3JFYWNoIHsgY2xvc2UgLT4KICAgICAgICAgICAgdmFsIHN0YXJ0ID0gcGFyc2VEYXRlKGNsb3NlLnN0YXJ0RGF0ZSkKICAgICAgICAgICAgdmFsIGVuZCA9IHBhcnNlRGF0ZShjbG9zZS5lbmREYXRlKQogICAgICAgICAgICByZXF1aXJlKCFlbmQuaXNCZWZvcmUoc3RhcnQpKSB7ICJVbiBjaWVycmUgdGllbmUgdW4gcmFuZ28gZGUgZmVjaGFzIGludsOhbGlkby4iIH0KICAgICAgICAgICAgcmVxdWlyZShjbG9zZS5yZXRhaW5lZEVhcm5pbmdzQWNjb3VudENvZGUgaW4gYWNjb3VudHMpIHsgIlVuIGNpZXJyZSBoYWNlIHJlZmVyZW5jaWEgYSB1bmEgY3VlbnRhIHF1ZSBubyBleGlzdGUuIiB9CgogICAgICAgICAgICAvLyBBY3Rpdml0eSBpcyByZWNvbXB1dGVkIGZyb20gdGhlIGF1dGhlbnRpY2F0ZWQgam91cm5hbCwgbm90IGZyb20gdGhlIHNhdmVkIGNsb3NlLgogICAgICAgICAgICAvLyBIaXN0b3JpY2FsIHJldGFpbmVkLWVhcm5pbmdzIChvciBQJkwpIGFjY291bnRzIG1heSBzaW5jZSBoYXZlIGJlZW4gZGVhY3RpdmF0ZWQ7CiAgICAgICAgICAgIC8vIGFjdGl2aXR5IGlzIGlycmVsZXZhbnQgdG8gYXJpdGhtZXRpYyB2YWxpZGF0aW9uIG9mIGEgY29tcGxldGVkIGNsb3NlLgogICAgICAgICAgICB2YWwgcGxhbm5pbmdBY2NvdW50cyA9IHNuYXBzaG90LmFjY291bnRzLm1hcCB7IFBlcmlvZENsb3NlQWNjb3VudChpdC5jb2RlLCBpdC50eXBlLCBhY3RpdmUgPSB0cnVlKSB9CiAgICAgICAgICAgIHZhbCBwbGFubmluZ1Bvc3RpbmdzID0gc25hcHNob3Quam91cm5hbEVudHJpZXMuYXNTZXF1ZW5jZSgpCiAgICAgICAgICAgICAgICAuZmlsdGVyIHsgZW50cnkgLT4KICAgICAgICAgICAgICAgICAgICBlbnRyeS5zdGF0dXMgPT0gIlBPU1RFRCIgJiYgZW50cnkua2luZCAhPSAiUEVSSU9EX0NMT1NFIiAmJgogICAgICAgICAgICAgICAgICAgICAgICAhcGFyc2VEYXRlKGVudHJ5LmVudHJ5RGF0ZSkuaXNCZWZvcmUoc3RhcnQpICYmICFwYXJzZURhdGUoZW50cnkuZW50cnlEYXRlKS5pc0FmdGVyKGVuZCkKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIC5tYXAgeyBlbnRyeSAtPgogICAgICAgICAgICAgICAgICAgIFBlcmlvZENsb3NlUG9zdGluZygKICAgICAgICAgICAgICAgICAgICAgICAgZW50cnlEYXRlID0gZW50cnkuZW50cnlEYXRlLAogICAgICAgICAgICAgICAgICAgICAgICBzdGF0dXMgPSBlbnRyeS5zdGF0dXMsCiAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbmN5Q29kZSA9IGVudHJ5LmN1cnJlbmN5Q29kZSwKICAgICAgICAgICAgICAgICAgICAgICAga2luZCA9IGVudHJ5LmtpbmQsCiAgICAgICAgICAgICAgICAgICAgICAgIGxpbmVzID0gbGluZXNCeUVudHJ5LmdldFZhbHVlKGVudHJ5LmlkKS5tYXAgeyBsaW5lIC0+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBQZXJpb2RDbG9zZVBvc3RpbmdMaW5lKGxpbmUuYWNjb3VudENvZGUsIGxpbmUuZGViaXRNaW5vciwgbGluZS5jcmVkaXRNaW5vciwgbGluZS5jdXJyZW5jeUNvZGUpCiAgICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgKQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgLnRvTGlzdCgpCiAgICAgICAgICAgIHZhbCBwbGFuID0gUGVyaW9kQ2xvc2VDYWxjdWxhdG9yLmNhbGN1bGF0ZSgKICAgICAgICAgICAgICAgIGFjY291bnRzID0gcGxhbm5pbmdBY2NvdW50cywKICAgICAgICAgICAgICAgIHBvc3RpbmdzID0gcGxhbm5pbmdQb3N0aW5ncywKICAgICAgICAgICAgICAgIHN0YXJ0RGF0ZSA9IGNsb3NlLnN0YXJ0RGF0ZSwKICAgICAgICAgICAgICAgIGVuZERhdGUgPSBjbG9zZS5lbmREYXRlLAogICAgICAgICAgICAgICAgcmV0YWluZWRFYXJuaW5nc0FjY291bnRDb2RlID0gY2xvc2UucmV0YWluZWRFYXJuaW5nc0FjY291bnRDb2RlLAogICAgICAgICAgICApCiAgICAgICAgICAgIHJlcXVpcmUoY2xvc2UubmV0UmVzdWx0TWlub3IgPT0gcGxhbi5uZXRSZXN1bHRNaW5vcikgewogICAgICAgICAgICAgICAgIkVsIHJlc3VsdGFkbyBuZXRvIGd1YXJkYWRvIG5vIGNvaW5jaWRlIGNvbiBsYSBhY3RpdmlkYWQgZGVsIHBlcmlvZG8uIgogICAgICAgICAgICB9CiAgICAgICAgICAgIHZhbCBzaG91bGRIYXZlRW50cnkgPSBwbGFuLmxpbmVzLmlzTm90RW1wdHkoKSB8fCBwbGFuLm5ldFJlc3VsdE1pbm9yICE9IDBMCiAgICAgICAgICAgIHJlcXVpcmUoKGNsb3NlLmNsb3NpbmdFbnRyeUlkICE9IG51bGwpID09IHNob3VsZEhhdmVFbnRyeSkgewogICAgICAgICAgICAgICAgIkxhIHByZXNlbmNpYSBkZWwgYXNpZW50byBkZSBjaWVycmUgbm8gY29pbmNpZGUgY29uIGVsIHBsYW4gY2FsY3VsYWRvLiIKICAgICAgICAgICAgfQogICAgICAgICAgICBjbG9zZS5jbG9zaW5nRW50cnlJZD8ubGV0IHsgY2xvc2luZ0lkIC0+CiAgICAgICAgICAgICAgICB2YWwgY2xvc2luZyA9IGVudHJpZXNbY2xvc2luZ0lkXQogICAgICAgICAgICAgICAgICAgID86IHRocm93IElsbGVnYWxBcmd1bWVudEV4Y2VwdGlvbigiVW4gY2llcnJlIGhhY2UgcmVmZXJlbmNpYSBhIHVuIGFzaWVudG8gcXVlIG5vIGV4aXN0ZS4iKQogICAgICAgICAgICAgICAgdmFsIGV4cGVjdGVkQW1vdW50ID0gcGxhbi5saW5lcy5mb2xkKDBMKSB7IHN1bSwgbGluZSAtPiBNYXRoLmFkZEV4YWN0KHN1bSwgbGluZS5kZWJpdE1pbm9yKSB9CiAgICAgICAgICAgICAgICByZXF1aXJlKGNsb3Npbmcuc3RhdHVzID09ICJQT1NURUQiICYmIGNsb3Npbmcua2luZCA9PSAiUEVSSU9EX0NMT1NFIiAmJgogICAgICAgICAgICAgICAgICAgIGNsb3NpbmcuZW50cnlEYXRlID09IHBsYW4uZW5kRGF0ZSAmJgogICAgICAgICAgICAgICAgICAgIGNsb3NpbmcuY2F0ZWdvcnlBY2NvdW50Q29kZSA9PSBwbGFuLnJldGFpbmVkRWFybmluZ3NBY2NvdW50Q29kZSAmJgogICAgICAgICAgICAgICAgICAgIGNsb3NpbmcucGF5bWVudEFjY291bnRDb2RlID09IHBsYW4ucmV0YWluZWRFYXJuaW5nc0FjY291bnRDb2RlICYmCiAgICAgICAgICAgICAgICAgICAgY2xvc2luZy5jdXJyZW5jeUNvZGUgPT0gIlVTRCIgJiYgY2xvc2luZy5hbW91bnRNaW5vciA9PSBleHBlY3RlZEFtb3VudCAmJgogICAgICAgICAgICAgICAgICAgIGxpbmVNdWx0aXNldChsaW5lc0J5RW50cnkuZ2V0VmFsdWUoY2xvc2luZ0lkKSkgPT0gcGxhbm5lZExpbmVNdWx0aXNldChwbGFuLmxpbmVzKSkgewogICAgICAgICAgICAgICAgICAgICJMb3MgZGF0b3MgeSBsYXMgbMOtbmVhcyBkZWwgYXNpZW50byBkZSBjaWVycmUgbm8gY29pbmNpZGVuIGNvbiBlbCBwbGFuIGNhbGN1bGFkby4iCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICAgICAgY2xvc2VzLmZvckVhY2hJbmRleGVkIHsgaW5kZXgsIGZpcnN0IC0+CiAgICAgICAgICAgIHZhbCBmaXJzdFN0YXJ0ID0gcGFyc2VEYXRlKGZpcnN0LnN0YXJ0RGF0ZSkKICAgICAgICAgICAgdmFsIGZpcnN0RW5kID0gcGFyc2VEYXRlKGZpcnN0LmVuZERhdGUpCiAgICAgICAgICAgIGNsb3Nlcy5kcm9wKGluZGV4ICsgMSkuZm9yRWFjaCB7IHNlY29uZCAtPgogICAgICAgICAgICAgICAgdmFsIHNlY29uZFN0YXJ0ID0gcGFyc2VEYXRlKHNlY29uZC5zdGFydERhdGUpCiAgICAgICAgICAgICAgICB2YWwgc2Vjb25kRW5kID0gcGFyc2VEYXRlKHNlY29uZC5lbmREYXRlKQogICAgICAgICAgICAgICAgcmVxdWlyZShmaXJzdEVuZC5pc0JlZm9yZShzZWNvbmRTdGFydCkgfHwgc2Vjb25kRW5kLmlzQmVmb3JlKGZpcnN0U3RhcnQpKSB7CiAgICAgICAgICAgICAgICAgICAgIkxhIGNvcGlhIGNvbnRpZW5lIHBlcmlvZG9zIGNlcnJhZG9zIHN1cGVycHVlc3Rvcy4iCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICAgICAgc25hcHNob3Quam91cm5hbEVudHJpZXMuZmlsdGVyIHsgaXQua2luZCA9PSAiUEVSSU9EX0NMT1NFIiB9LmZvckVhY2ggeyBlbnRyeSAtPgogICAgICAgICAgICByZXF1aXJlKGVudHJ5LmlkIGluIGNsb3NlRW50cnlJZHMpIHsgIlVuIGFzaWVudG8gZGUgY2llcnJlIG5vIHRpZW5lIG1ldGFkYXRvcyBkZSBwZXJpb2RvIGFzb2NpYWRvcy4iIH0KICAgICAgICB9CgogICAgICAgIHZhbCBwYXJ0eUlkcyA9IHNuYXBzaG90LmNvdW50ZXJwYXJ0aWVzLm1hcCB7IGl0LmlkIH0udG9TZXQoKQogICAgICAgIHZhbCBpbnZvaWNlSWRzID0gc25hcHNob3QuaW52b2ljZXMubWFwIHsgaXQuaWQgfS50b1NldCgpCiAgICAgICAgcmVxdWlyZShzbmFwc2hvdC5jb3VudGVycGFydGllcy5hbGwgeyBpdC5pZC5pc05vdEJsYW5rKCkgJiYgaXQuZGlzcGxheU5hbWUuaXNOb3RCbGFuaygpICYmIGl0LmtpbmQgaW4gc2V0T2YoIkNMSUVOVCIsICJTVVBQTElFUiIpICYmIChpdC5kZWZhdWx0QWNjb3VudENvZGUgPT0gbnVsbCB8fCBpdC5kZWZhdWx0QWNjb3VudENvZGUgaW4gYWNjb3VudHMpIH0pIHsgIkxhIGNvcGlhIGNvbnRpZW5lIHVuIHRlcmNlcm8gaW52w6FsaWRvLiIgfQogICAgICAgIHJlcXVpcmVVbmlxdWUoc25hcHNob3QuaW52b2ljZXMubWFwIHsgIiR7aXQua2luZH18JHtpdC5yZWdpc3RlcmVkUGFydHlJZC50cmltKCkudXBwZXJjYXNlKCl9fCR7aXQuaW52b2ljZU51bWJlci50cmltKCkudXBwZXJjYXNlKCl9IiB9LCAibsO6bWVybyBkZSBmYWN0dXJhIHBvciB0ZXJjZXJvIikKICAgICAgICByZXF1aXJlKHNuYXBzaG90Lmludm9pY2VzLmFsbCB7IGl0LmtpbmQgaW4gc2V0T2YoIlNBTEUiLCAiUFVSQ0hBU0UiKSAmJiBpdC5yZWdpc3RlcmVkUGFydHlJZCBpbiBwYXJ0eUlkcyAmJiBpdC5lbnRyeUlkIGluIGVudHJpZXMgJiYgaXQudGF4YWJsZUJhc2VNaW5vciA+IDAgJiYgaXQudmF0TWlub3IgPj0gMCAmJiBpdC50b3RhbE1pbm9yID09IE1hdGguYWRkRXhhY3QoaXQudGF4YWJsZUJhc2VNaW5vciwgaXQudmF0TWlub3IpICYmIGl0LnBhaWRNaW5vciBpbiAwLi5pdC50b3RhbE1pbm9yICYmIGl0LmNhc2hBY2NvdW50Q29kZSBpbiBhY2NvdW50cyAmJiBpdC5jb3VudGVyQWNjb3VudENvZGUgaW4gYWNjb3VudHMgfSkgeyAiTGEgY29waWEgY29udGllbmUgdW5hIGZhY3R1cmEgaW5jb25zaXN0ZW50ZS4iIH0KICAgICAgICByZXF1aXJlKHNuYXBzaG90Lmludm9pY2VTZXR0bGVtZW50cy5hbGwgeyBpdC5pbnZvaWNlSWQgaW4gaW52b2ljZUlkcyAmJiBpdC5lbnRyeUlkIGluIGVudHJpZXMgJiYgaXQuYW1vdW50TWlub3IgPiAwICYmIGl0LmNhc2hBY2NvdW50Q29kZSBpbiBhY2NvdW50cyB9KSB7ICJMYSBjb3BpYSBjb250aWVuZSB1biBjb2Jyby9wYWdvIHNpbiB2w61uY3VsbyB2w6FsaWRvLiIgfQogICAgICAgIHNuYXBzaG90Lmludm9pY2VzLmZvckVhY2ggeyBpbnZvaWNlIC0+CiAgICAgICAgICAgIHZhbCBpbml0aWFsID0gc25hcHNob3QuaW52b2ljZVNldHRsZW1lbnRzLmZpbHRlciB7IGl0Lmludm9pY2VJZCA9PSBpbnZvaWNlLmlkICYmIGl0LmVudHJ5SWQgPT0gaW52b2ljZS5lbnRyeUlkIH0uc3VtT2YgeyBpdC5hbW91bnRNaW5vciB9CiAgICAgICAgICAgIHJlcXVpcmUoaW5pdGlhbCA9PSBpbnZvaWNlLnBhaWRNaW5vciAmJiBzbmFwc2hvdC5pbnZvaWNlU2V0dGxlbWVudHMuZmlsdGVyIHsgaXQuaW52b2ljZUlkID09IGludm9pY2UuaWQgfS5zdW1PZiB7IGl0LmFtb3VudE1pbm9yIH0gPD0gaW52b2ljZS50b3RhbE1pbm9yKSB7ICJFbCBoaXN0b3JpYWwgZGUgYWJvbm9zIG5vIGNvaW5jaWRlIGNvbiBlbCBkb2N1bWVudG8uIiB9CiAgICAgICAgfQogICAgICAgIHJldHVybiBMZWRnZXJCYWNrdXBQcmV2aWV3KAogICAgICAgICAgICBib29rTmFtZSA9IHNldHRpbmdzLmJvb2tOYW1lLAogICAgICAgICAgICBhY2NvdW50Q291bnQgPSBzbmFwc2hvdC5hY2NvdW50cy5zaXplLAogICAgICAgICAgICBqb3VybmFsRW50cnlDb3VudCA9IHNuYXBzaG90LmpvdXJuYWxFbnRyaWVzLnNpemUsCiAgICAgICAgICAgIGpvdXJuYWxMaW5lQ291bnQgPSBzbmFwc2hvdC5qb3VybmFsTGluZXMuc2l6ZSwKICAgICAgICAgICAgYXVkaXRFdmVudENvdW50ID0gc25hcHNob3QuYXVkaXRFdmVudHMuc2l6ZSwKICAgICAgICAgICAgYWNjb3VudEF1ZGl0RXZlbnRDb3VudCA9IHNuYXBzaG90LmFjY291bnRBdWRpdEV2ZW50cy5zaXplLAogICAgICAgICAgICBwZXJpb2RDbG9zZUNvdW50ID0gc25hcHNob3QucGVyaW9kQ2xvc2VzLnNpemUsCiAgICAgICAgICAgIGludm9pY2VDb3VudCA9IHNuYXBzaG90Lmludm9pY2VzLnNpemUsCiAgICAgICAgICAgIGNvdW50ZXJwYXJ0eUNvdW50ID0gc25hcHNob3QuY291bnRlcnBhcnRpZXMuc2l6ZSwKICAgICAgICAgICAgc2V0dGxlbWVudENvdW50ID0gc25hcHNob3QuaW52b2ljZVNldHRsZW1lbnRzLnNpemUsCiAgICAgICAgKQogICAgfQoKICAgIHByaXZhdGUgZGF0YSBjbGFzcyBMZWRnZXJMaW5lU2lnbmF0dXJlKAogICAgICAgIHZhbCBhY2NvdW50Q29kZTogU3RyaW5nLAogICAgICAgIHZhbCBjdXJyZW5jeUNvZGU6IFN0cmluZywKICAgICAgICB2YWwgZGViaXRNaW5vcjogTG9uZywKICAgICAgICB2YWwgY3JlZGl0TWlub3I6IExvbmcsCiAgICApCgogICAgLyoqIEEgY291bnRlZCBtdWx0aXNldCBrZWVwcyBkdXBsaWNhdGUgbGluZXMgc2lnbmlmaWNhbnQgaW5zdGVhZCBvZiBvdmVyd3JpdGluZyBieSBhY2NvdW50LiAqLwogICAgcHJpdmF0ZSBmdW4gbGluZU11bHRpc2V0KAogICAgICAgIGxpbmVzOiBMaXN0PEpvdXJuYWxMaW5lRW50aXR5PiwKICAgICAgICBzd2FwRGViaXRBbmRDcmVkaXQ6IEJvb2xlYW4gPSBmYWxzZSwKICAgICk6IE1hcDxMZWRnZXJMaW5lU2lnbmF0dXJlLCBJbnQ+ID0gbGluZXMuZ3JvdXBpbmdCeSB7IGxpbmUgLT4KICAgICAgICBMZWRnZXJMaW5lU2lnbmF0dXJlKAogICAgICAgICAgICBhY2NvdW50Q29kZSA9IGxpbmUuYWNjb3VudENvZGUsCiAgICAgICAgICAgIGN1cnJlbmN5Q29kZSA9IGxpbmUuY3VycmVuY3lDb2RlLAogICAgICAgICAgICBkZWJpdE1pbm9yID0gaWYgKHN3YXBEZWJpdEFuZENyZWRpdCkgbGluZS5jcmVkaXRNaW5vciBlbHNlIGxpbmUuZGViaXRNaW5vciwKICAgICAgICAgICAgY3JlZGl0TWlub3IgPSBpZiAoc3dhcERlYml0QW5kQ3JlZGl0KSBsaW5lLmRlYml0TWlub3IgZWxzZSBsaW5lLmNyZWRpdE1pbm9yLAogICAgICAgICkKICAgIH0uZWFjaENvdW50KCkKCiAgICBwcml2YXRlIGZ1biBwbGFubmVkTGluZU11bHRpc2V0KGxpbmVzOiBMaXN0PFBlcmlvZENsb3NlTGluZVBsYW4+KTogTWFwPExlZGdlckxpbmVTaWduYXR1cmUsIEludD4gPQogICAgICAgIGxpbmVzLmdyb3VwaW5nQnkgeyBsaW5lIC0+CiAgICAgICAgICAgIExlZGdlckxpbmVTaWduYXR1cmUobGluZS5hY2NvdW50Q29kZSwgbGluZS5jdXJyZW5jeUNvZGUsIGxpbmUuZGViaXRNaW5vciwgbGluZS5jcmVkaXRNaW5vcikKICAgICAgICB9LmVhY2hDb3VudCgpCgogICAgcHJpdmF0ZSBmdW4gcmVxdWlyZVVuaXF1ZSh2YWx1ZXM6IExpc3Q8U3RyaW5nPiwgZGVzY3JpcHRpb246IFN0cmluZykgewogICAgICAgIHJlcXVpcmUodmFsdWVzLnNpemUgPT0gdmFsdWVzLnRvU2V0KCkuc2l6ZSkgeyAiTGEgY29waWEgY29udGllbmUgJGRlc2NyaXB0aW9uIGR1cGxpY2Fkb3MuIiB9CiAgICB9CgogICAgcHJpdmF0ZSBmdW4gcGFyc2VEYXRlKHZhbHVlOiBTdHJpbmcpOiBMb2NhbERhdGUgPSB0cnkgewogICAgICAgIExvY2FsRGF0ZS5wYXJzZSh2YWx1ZSkKICAgIH0gY2F0Y2ggKF86IEV4Y2VwdGlvbikgewogICAgICAgIHRocm93IElsbGVnYWxBcmd1bWVudEV4Y2VwdGlvbigiTGEgY29waWEgY29udGllbmUgdW5hIGZlY2hhIGludsOhbGlkYS4iKQogICAgfQp9Cg==
+package com.neon.book01.data
+
+import com.neon.book01.domain.CounterpartyRules
+import com.neon.book01.domain.SupportReferenceRules
+import com.neon.book01.domain.PeriodCloseAccount
+import com.neon.book01.domain.PeriodCloseCalculator
+import com.neon.book01.domain.PeriodCloseLinePlan
+import com.neon.book01.domain.PeriodClosePosting
+import com.neon.book01.domain.PeriodClosePostingLine
+import java.math.BigInteger
+import java.time.LocalDate
+
+/** Counts shown to the user after decryption and before the separate confirmation step. */
+data class LedgerBackupPreview(
+    val bookName: String,
+    val accountCount: Int,
+    val journalEntryCount: Int,
+    val journalLineCount: Int,
+    val auditEventCount: Int,
+    val accountAuditEventCount: Int,
+    val periodCloseCount: Int,
+    val invoiceCount: Int = 0,
+    val counterpartyCount: Int = 0,
+    val settlementCount: Int = 0,
+)
+
+/** Parent-first deterministic ordering used by restore even when serialized rows are shuffled. */
+internal fun parentFirstAccounts(accounts: List<AccountEntity>): List<AccountEntity> {
+    val byCode = accounts.associateBy { it.code }
+    require(byCode.size == accounts.size) { "Hay códigos de cuenta duplicados." }
+    accounts.forEach { account ->
+        account.parentCode?.let { parentCode ->
+            val parent = byCode[parentCode]
+                ?: throw IllegalArgumentException("La cuenta ${account.code} hace referencia a un padre que no existe.")
+            require(parentCode != account.code) { "Una cuenta no puede ser su propio padre." }
+            require(parent.active) { "La cuenta padre ${parent.code} debe estar activa." }
+            require(parent.type == account.type) { "La cuenta padre debe tener la misma clasificación." }
+        }
+    }
+    val childrenByParent = accounts.filter { it.parentCode != null }.groupBy { it.parentCode!! }
+    val ready = java.util.PriorityQueue<String>()
+    accounts.filter { it.parentCode == null }.forEach { ready.add(it.code) }
+    val ordered = mutableListOf<AccountEntity>()
+    while (ready.isNotEmpty()) {
+        val code = ready.remove()
+        ordered += byCode.getValue(code)
+        childrenByParent[code].orEmpty().forEach { child -> ready.add(child.code) }
+    }
+    require(ordered.size == accounts.size) { "La jerarquía de cuentas contiene un ciclo." }
+    return ordered
+}
+
+/** Structural and accounting consistency checks for authenticated v1 snapshots. */
+object LedgerBackupValidator {
+    fun validate(snapshot: LedgerBackupSnapshot): LedgerBackupPreview {
+        val settings = snapshot.bookSettings
+            ?: throw IllegalArgumentException("La copia no contiene la configuración del libro.")
+        require(settings.id == 1 && settings.bookName.trim().length in 2..60 && settings.baseCurrency.isNotBlank()) {
+            "La configuración del libro no es válida."
+        }
+
+        requireUnique(snapshot.accounts.map { it.code }, "códigos de cuenta")
+        requireUnique(snapshot.journalEntries.map { it.id }, "asientos")
+        requireUnique(snapshot.journalLines.map { it.id }, "líneas contables")
+        requireUnique(snapshot.auditEvents.map { it.id }, "eventos de auditoría")
+        requireUnique(snapshot.accountAuditEvents.map { it.id }, "eventos de cuenta")
+        requireUnique(snapshot.periodCloses.map { it.id }, "cierres de periodo")
+        requireUnique(snapshot.counterparties.map { it.id }, "clientes y proveedores")
+        requireUnique(snapshot.invoices.map { it.id }, "facturas")
+        requireUnique(snapshot.invoiceSettlements.map { it.id }, "cobros y pagos")
+
+        val accounts = snapshot.accounts.associateBy { it.code }
+        require(accounts.size == snapshot.accounts.size) { "Hay códigos de cuenta duplicados." }
+        require(snapshot.accounts.all { it.code.isNotBlank() && it.name.isNotBlank() && it.type.isNotBlank() }) {
+            "Una cuenta de la copia tiene datos incompletos."
+        }
+        val accountTypes = accounts.mapValues { it.value.type }
+        val legacyDefaults = LedgerBookDefaults.accounts.filter { it.code !in setOf("1100", "1105", "2102", "2103") }
+        listOf("1100" to "ASSET", "1105" to "ASSET", "2102" to "LIABILITY", "2103" to "LIABILITY").forEach { (code, type) ->
+            require(accountTypes[code] == null || accountTypes[code] == type) { "La copia contiene clasificación incorrecta para $code." }
+        }
+        legacyDefaults.forEach { seeded ->
+            require(accountTypes[seeded.code] == seeded.type) {
+                "La copia no conserva la clasificación inmutable de las cuentas predeterminadas."
+            }
+            require(accounts.getValue(seeded.code).parentCode == null) {
+                "Las cuentas predeterminadas deben conservar su jerarquía original."
+            }
+        }
+        parentFirstAccounts(snapshot.accounts)
+
+        val entries = snapshot.journalEntries.associateBy { it.id }
+        val reversedIds = snapshot.journalEntries.mapNotNull { it.reversalOfEntryId }
+        requireUnique(reversedIds, "vínculos de reversa")
+        snapshot.journalEntries.forEach { entry ->
+            require(entry.id.isNotBlank() && entry.createdAt.isNotBlank()) {
+                "Un asiento de la copia tiene datos incompletos."
+            }
+            parseDate(entry.entryDate)
+            require(entry.amountMinor >= 0L) { "Un asiento contiene un importe negativo no válido." }
+            require(CounterpartyRules.normalize(entry.counterparty) == entry.counterparty) { "La contraparte de un asiento no es válida." }
+            require(SupportReferenceRules.normalize(entry.supportReference) == entry.supportReference) { "La referencia de soporte de un asiento no es válida." }
+            require(entry.status == "DRAFT" || entry.status == "POSTED") { "La copia contiene un estado de asiento no válido." }
+            require(entry.status != "DRAFT" || entry.kind == "INCOME" || entry.kind == "EXPENSE") {
+                "La copia contiene un borrador que no es un ingreso o gasto simple."
+            }
+            require(entry.categoryAccountCode in accounts && entry.paymentAccountCode in accounts) {
+                "Un asiento hace referencia a una cuenta que no existe."
+            }
+            entry.reversalOfEntryId?.let { originalId ->
+                val original = entries[originalId]
+                require(originalId != entry.id && original != null) { "Un vínculo de reversa no apunta a un asiento existente." }
+                require(entry.kind == "REVERSAL" && entry.status == "POSTED" &&
+                    original.status == "POSTED" && original.kind != "REVERSAL" &&
+                    original.kind != "PERIOD_CLOSE" && original.reversalOfEntryId == null &&
+                    snapshot.journalEntries.count { it.reversalOfEntryId == original.id } == 1) {
+                    "El vínculo de reversa no coincide con un asiento contabilizado y reversible."
+                }
+            } ?: require(entry.kind != "REVERSAL") { "Una reversa no conserva su vínculo al asiento original." }
+        }
+
+        requireUnique(snapshot.journalLines.map { it.id }, "identificadores de línea")
+        val linesByEntry = snapshot.journalLines.groupBy { it.entryId }
+        snapshot.journalLines.forEach { line ->
+            val entry = entries[line.entryId]
+                ?: throw IllegalArgumentException("Una línea hace referencia a un asiento que no existe.")
+            require(line.accountCode in accounts) { "Una línea hace referencia a una cuenta que no existe." }
+            require(line.debitMinor >= 0L && line.creditMinor >= 0L && (line.debitMinor == 0L) != (line.creditMinor == 0L)) {
+                "Una línea debe tener un débito o un crédito positivo, pero no ambos."
+            }
+            require(line.currencyCode.isNotBlank() && line.currencyCode == entry.currencyCode) {
+                "La moneda de una línea no coincide con la de su asiento."
+            }
+            require(line.accountNameSnapshot.isNotEmpty()) { "Una línea no conserva el nombre histórico de su cuenta." }
+        }
+        snapshot.journalEntries.forEach { entry ->
+            val lines = linesByEntry[entry.id].orEmpty()
+            require(lines.size >= 2) { "El asiento ${entry.id} no tiene suficientes líneas contables." }
+            val debit = lines.fold(BigInteger.ZERO) { sum, line -> sum + BigInteger.valueOf(line.debitMinor) }
+            val credit = lines.fold(BigInteger.ZERO) { sum, line -> sum + BigInteger.valueOf(line.creditMinor) }
+            require(debit.signum() > 0 && debit == credit) { "El asiento ${entry.id} no está balanceado." }
+            require(debit == BigInteger.valueOf(entry.amountMinor)) { "El importe declarado del asiento ${entry.id} no coincide con sus líneas." }
+        }
+
+        snapshot.auditEvents.forEach { event ->
+            parseDate(event.eventDate)
+            require(event.entryId in entries && (event.relatedEntryId == null || event.relatedEntryId in entries)) {
+                "Un evento de auditoría hace referencia a un asiento que no existe."
+            }
+        }
+        snapshot.accountAuditEvents.forEach { event ->
+            require(event.accountCode in accounts) { "Un evento de cuenta hace referencia a una cuenta que no existe." }
+        }
+
+        snapshot.journalEntries.filter { it.kind == "REVERSAL" }.forEach { reversal ->
+            val original = entries.getValue(reversal.reversalOfEntryId!!)
+            require(lineMultiset(linesByEntry.getValue(reversal.id)) ==
+                lineMultiset(linesByEntry.getValue(original.id), swapDebitAndCredit = true)) {
+                "Las líneas de la reversa no son la inversión exacta del asiento original."
+            }
+        }
+
+        val closes = snapshot.periodCloses
+        val closeEntryIds = closes.mapNotNull { it.closingEntryId }
+        requireUnique(closeEntryIds, "vínculos de asiento de cierre")
+        closes.forEach { close ->
+            val start = parseDate(close.startDate)
+            val end = parseDate(close.endDate)
+            require(!end.isBefore(start)) { "Un cierre tiene un rango de fechas inválido." }
+            require(close.retainedEarningsAccountCode in accounts) { "Un cierre hace referencia a una cuenta que no existe." }
+
+            // Activity is recomputed from the authenticated journal, not from the saved close.
+            // Historical retained-earnings (or P&L) accounts may since have been deactivated;
+            // activity is irrelevant to arithmetic validation of a completed close.
+            val planningAccounts = snapshot.accounts.map { PeriodCloseAccount(it.code, it.type, active = true) }
+            val planningPostings = snapshot.journalEntries.asSequence()
+                .filter { entry ->
+                    entry.status == "POSTED" && entry.kind != "PERIOD_CLOSE" &&
+                        !parseDate(entry.entryDate).isBefore(start) && !parseDate(entry.entryDate).isAfter(end)
+                }
+                .map { entry ->
+                    PeriodClosePosting(
+                        entryDate = entry.entryDate,
+                        status = entry.status,
+                        currencyCode = entry.currencyCode,
+                        kind = entry.kind,
+                        lines = linesByEntry.getValue(entry.id).map { line ->
+                            PeriodClosePostingLine(line.accountCode, line.debitMinor, line.creditMinor, line.currencyCode)
+                        },
+                    )
+                }
+                .toList()
+            val plan = PeriodCloseCalculator.calculate(
+                accounts = planningAccounts,
+                postings = planningPostings,
+                startDate = close.startDate,
+                endDate = close.endDate,
+                retainedEarningsAccountCode = close.retainedEarningsAccountCode,
+            )
+            require(close.netResultMinor == plan.netResultMinor) {
+                "El resultado neto guardado no coincide con la actividad del periodo."
+            }
+            val shouldHaveEntry = plan.lines.isNotEmpty() || plan.netResultMinor != 0L
+            require((close.closingEntryId != null) == shouldHaveEntry) {
+                "La presencia del asiento de cierre no coincide con el plan calculado."
+            }
+            close.closingEntryId?.let { closingId ->
+                val closing = entries[closingId]
+                    ?: throw IllegalArgumentException("Un cierre hace referencia a un asiento que no existe.")
+                val expectedAmount = plan.lines.fold(0L) { sum, line -> Math.addExact(sum, line.debitMinor) }
+                require(closing.status == "POSTED" && closing.kind == "PERIOD_CLOSE" &&
+                    closing.entryDate == plan.endDate &&
+                    closing.categoryAccountCode == plan.retainedEarningsAccountCode &&
+                    closing.paymentAccountCode == plan.retainedEarningsAccountCode &&
+                    closing.currencyCode == "USD" && closing.amountMinor == expectedAmount &&
+                    lineMultiset(linesByEntry.getValue(closingId)) == plannedLineMultiset(plan.lines)) {
+                    "Los datos y las líneas del asiento de cierre no coinciden con el plan calculado."
+                }
+            }
+        }
+        closes.forEachIndexed { index, first ->
+            val firstStart = parseDate(first.startDate)
+            val firstEnd = parseDate(first.endDate)
+            closes.drop(index + 1).forEach { second ->
+                val secondStart = parseDate(second.startDate)
+                val secondEnd = parseDate(second.endDate)
+                require(firstEnd.isBefore(secondStart) || secondEnd.isBefore(firstStart)) {
+                    "La copia contiene periodos cerrados superpuestos."
+                }
+            }
+        }
+        snapshot.journalEntries.filter { it.kind == "PERIOD_CLOSE" }.forEach { entry ->
+            require(entry.id in closeEntryIds) { "Un asiento de cierre no tiene metadatos de periodo asociados." }
+        }
+
+        val partyIds = snapshot.counterparties.map { it.id }.toSet()
+        val invoiceIds = snapshot.invoices.map { it.id }.toSet()
+        require(snapshot.counterparties.all { it.id.isNotBlank() && it.displayName.isNotBlank() && it.kind in setOf("CLIENT", "SUPPLIER") && (it.defaultAccountCode == null || it.defaultAccountCode in accounts) }) { "La copia contiene un tercero inválido." }
+        requireUnique(snapshot.invoices.map { "${it.kind}|${it.registeredPartyId.trim().uppercase()}|${it.invoiceNumber.trim().uppercase()}" }, "número de factura por tercero")
+        require(snapshot.invoices.all { it.kind in setOf("SALE", "PURCHASE") && it.registeredPartyId in partyIds && it.entryId in entries && it.taxableBaseMinor > 0 && it.vatMinor >= 0 && it.totalMinor == Math.addExact(it.taxableBaseMinor, it.vatMinor) && it.paidMinor in 0..it.totalMinor && it.cashAccountCode in accounts && it.counterAccountCode in accounts }) { "La copia contiene una factura inconsistente." }
+        require(snapshot.invoiceSettlements.all { it.invoiceId in invoiceIds && it.entryId in entries && it.amountMinor > 0 && it.cashAccountCode in accounts }) { "La copia contiene un cobro/pago sin vínculo válido." }
+        snapshot.invoices.forEach { invoice ->
+            val initial = snapshot.invoiceSettlements.filter { it.invoiceId == invoice.id && it.entryId == invoice.entryId }.sumOf { it.amountMinor }
+            require(initial == invoice.paidMinor && snapshot.invoiceSettlements.filter { it.invoiceId == invoice.id }.sumOf { it.amountMinor } <= invoice.totalMinor) { "El historial de abonos no coincide con el documento." }
+        }
+        return LedgerBackupPreview(
+            bookName = settings.bookName,
+            accountCount = snapshot.accounts.size,
+            journalEntryCount = snapshot.journalEntries.size,
+            journalLineCount = snapshot.journalLines.size,
+            auditEventCount = snapshot.auditEvents.size,
+            accountAuditEventCount = snapshot.accountAuditEvents.size,
+            periodCloseCount = snapshot.periodCloses.size,
+            invoiceCount = snapshot.invoices.size,
+            counterpartyCount = snapshot.counterparties.size,
+            settlementCount = snapshot.invoiceSettlements.size,
+        )
+    }
+
+    private data class LedgerLineSignature(
+        val accountCode: String,
+        val currencyCode: String,
+        val debitMinor: Long,
+        val creditMinor: Long,
+    )
+
+    /** A counted multiset keeps duplicate lines significant instead of overwriting by account. */
+    private fun lineMultiset(
+        lines: List<JournalLineEntity>,
+        swapDebitAndCredit: Boolean = false,
+    ): Map<LedgerLineSignature, Int> = lines.groupingBy { line ->
+        LedgerLineSignature(
+            accountCode = line.accountCode,
+            currencyCode = line.currencyCode,
+            debitMinor = if (swapDebitAndCredit) line.creditMinor else line.debitMinor,
+            creditMinor = if (swapDebitAndCredit) line.debitMinor else line.creditMinor,
+        )
+    }.eachCount()
+
+    private fun plannedLineMultiset(lines: List<PeriodCloseLinePlan>): Map<LedgerLineSignature, Int> =
+        lines.groupingBy { line ->
+            LedgerLineSignature(line.accountCode, line.currencyCode, line.debitMinor, line.creditMinor)
+        }.eachCount()
+
+    private fun requireUnique(values: List<String>, description: String) {
+        require(values.size == values.toSet().size) { "La copia contiene $description duplicados." }
+    }
+
+    private fun parseDate(value: String): LocalDate = try {
+        LocalDate.parse(value)
+    } catch (_: Exception) {
+        throw IllegalArgumentException("La copia contiene una fecha inválida.")
+    }
+}
