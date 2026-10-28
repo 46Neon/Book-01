@@ -1,4 +1,6 @@
-# Android app
+# Aplicación Android Ariño
+
+Nombre visible de la app: **Ariño**. El identificador técnico `com.neon.book01` se conserva intencionalmente para no cambiar la identidad de instalación. La aplicación sigue siendo el prototipo local existente; las pantallas de ventas, compras, clientes, proveedores e impuestos descritas en el plan todavía no están implementadas.
 
 Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicación conserva sus cinco pestañas (Diario, Mayor, Cuentas, Balance y Más); desde «Más» se accede a configuración, trazabilidad, estados financieros y respaldo cifrado.
 
