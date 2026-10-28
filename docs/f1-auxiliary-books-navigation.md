@@ -60,6 +60,10 @@ Se pueden indicar fechas inicial y final (AAAA-MM-DD) para consultar un tramo in
 
 Desde el estado de cuenta filtrado se puede abrir el menú de compartir Android con una representación CSV del tramo visible. Incluye encabezados, contraparte, fecha/tipo/referencia, cambio y saldo corrido, código de moneda, saldo inicial y saldo final; conserva los importes almacenados como unidades menores enteras exactas y escapa comas/comillas. Los campos textuales que podrían interpretarse como fórmulas de hoja de cálculo reciben una marca preventiva. Se comparte como texto MIME `text/csv`; no se escribe un archivo ni se persiste ningún dato, y la consulta sigue siendo de solo lectura. Pruebas puras cubren valores exactos, extremos del período, escape, prefijos de fórmula y rechazo de código de moneda inválido. No se afirma compatibilidad exhaustiva con todos los lectores CSV ni se implementa PDF/XLSX.
 
+## Validación visible de vencimiento de factura
+
+En la captura de una factura a crédito, una fecha de vencimiento opcional se valida en el formulario: debe ser una fecha real en formato `AAAA-MM-DD` y no puede preceder la fecha de factura. El mensaje aparece junto al campo antes del guardado; se admite dejarlo vacío y la validación del dominio/repository sigue protegiendo el guardado. No se derivan vencimientos ni se altera el cálculo contable. Pruebas de dominio cubren fecha ausente, igual, posterior, anterior, inválida y formato estricto.
+
 ## Aviso preventivo de referencia de factura duplicada
 
 Al capturar el número, la factura de venta/compra compara la referencia normalizada (recorte y mayúsculas) con los documentos ya cargados del mismo tipo y contraparte. Si detecta una coincidencia, informa antes del guardado y deshabilita la acción para reducir duplicados accidentales. La comprobación es una ayuda de interfaz basada en la lista visible; la validación transaccional existente del repositorio sigue siendo la autoridad final ante carreras o datos desactualizados. No crea ni modifica asientos, facturas, saldos ni esquema Room. Las pruebas de dominio cubren normalización, alcance por contraparte/tipo y entradas vacías.

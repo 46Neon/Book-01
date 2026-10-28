@@ -343,6 +343,9 @@ private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<Coun
         InvoiceInput(kind, date, number, control.takeIf { kind == InvoiceKind.SALE }, partyId, description, base, rate, condition, paid, cashCode, dueDate.takeIf { condition == PaymentCondition.CREDIT && it.isNotBlank() })
     }.getOrNull()
     val preview = input?.let { runCatching { InvoiceAccounting.preview(it, accountsConfig) }.getOrNull() }
+    val dueDateError = if (condition == PaymentCondition.CREDIT && dueDate.isNotBlank()) {
+        runCatching { InvoiceAccounting.validateDueDate(date, dueDate) }.exceptionOrNull()?.message
+    } else null
     AlertDialog(onDismissRequest = { if (!saving) onDismiss() }, title = { Text(if (kind == InvoiceKind.SALE) "Nueva factura de venta" else "Nueva factura de compra") },
         text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedButton(onClick = { kind = InvoiceKind.SALE; partyId = ""; error = null }) { Text("Venta") }; OutlinedButton(onClick = { kind = InvoiceKind.PURCHASE; partyId = ""; error = null }) { Text("Compra") } }
@@ -350,7 +353,10 @@ private fun InvoiceEntryDialog(accounts: List<AccountEntity>, clients: List<Coun
             OutlinedButton(onClick = { condition = PaymentCondition.CASH; if (paidText.isBlank()) paidText = baseText }, modifier = Modifier.fillMaxWidth()) { Text("Condición seleccionada: ${if (condition == PaymentCondition.CASH) "Contado" else "Crédito"}") }
             OutlinedTextField(number, { number = it; error = null }, label = { Text("Número de factura") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             if (duplicateInvoice) Text("Ya existe una factura con ese número para este tercero en este libro. Verifica la referencia antes de guardar.", color = Color(0xFFB3261E), fontSize = 12.sp)
-            if (condition == PaymentCondition.CREDIT) OutlinedTextField(dueDate, { dueDate = it; error = null }, label = { Text("Vencimiento (opcional, AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            if (condition == PaymentCondition.CREDIT) {
+                OutlinedTextField(dueDate, { dueDate = it; error = null }, label = { Text("Vencimiento (opcional, AAAA-MM-DD)") }, singleLine = true, modifier = Modifier.fillMaxWidth(), isError = dueDateError != null)
+                dueDateError?.let { Text(it, color = Color(0xFFB3261E), fontSize = 12.sp) }
+            }
             if (kind == InvoiceKind.SALE) OutlinedTextField(control, { control = it; error = null }, label = { Text("Número de control") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Text(if (kind == InvoiceKind.SALE) "Cliente registrado" else "Proveedor registrado", fontSize = 12.sp, color = Color(0xFF6B778C))
             OutlinedButton(onClick = { partyExpanded = true }, modifier = Modifier.fillMaxWidth()) { Text(parties.firstOrNull { it.id == partyId }?.displayName ?: "Seleccionar tercero") }

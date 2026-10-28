@@ -76,6 +76,17 @@ object InvoiceAccounting {
         return InvoicePostingPreview(input.taxableBaseMinor, vat, total, input.paidTodayMinor, outstanding, lines)
     }
 
+    /** A due date is optional, but when entered it must be a real ISO date on/after the invoice date. */
+    fun validateDueDate(invoiceDate: String, dueDate: String?) {
+        if (dueDate == null) return
+        val invoice = runCatching { java.time.LocalDate.parse(invoiceDate) }.getOrNull()
+            ?: throw IllegalArgumentException("La fecha de factura no es válida.")
+        val due = runCatching { java.time.LocalDate.parse(dueDate) }.getOrNull()
+            ?: throw IllegalArgumentException("La fecha de vencimiento no es válida.")
+        require(invoice.toString() == invoiceDate && due.toString() == dueDate) { "La fecha de vencimiento debe tener el formato AAAA-MM-DD." }
+        require(!due.isBefore(invoice)) { "El vencimiento no puede ser anterior a la fecha de la factura." }
+    }
+
     /** Later receipts/payments are independent balanced entries linked by the caller to an invoice. */
     fun settlement(kind: InvoiceKind, amountMinor: Long, cashAccountCode: String, accounts: InvoiceAccounts): List<PostingLineProposal> {
         require(amountMinor > 0) { "El cobro o pago debe ser mayor que cero." }
@@ -128,7 +139,7 @@ object InvoiceAccounting {
         require(input.invoiceDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && runCatching { java.time.LocalDate.parse(input.invoiceDate) }.isSuccess) { "La fecha de factura no es válida." }
         require(input.invoiceNumber.isNotBlank()) { "Escribe el número de factura." }
         require(input.kind != InvoiceKind.SALE || !input.controlNumber.isNullOrBlank()) { "La venta requiere número de control." }
-        input.dueDate?.let { require(runCatching { java.time.LocalDate.parse(it) }.isSuccess) { "La fecha de vencimiento no es válida." } }
+        validateDueDate(input.invoiceDate, input.dueDate)
         require(input.registeredPartyId.isNotBlank()) { "Selecciona un cliente o proveedor registrado." }
         require(input.description.isNotBlank()) { "Escribe una descripción." }
         require(input.taxableBaseMinor > 0) { "La base imponible debe ser mayor que cero." }
