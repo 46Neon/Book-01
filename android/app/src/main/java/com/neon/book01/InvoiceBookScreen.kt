@@ -127,6 +127,31 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Resumen del período · ${periodSummary.invoiceCount} ${if (periodSummary.invoiceCount == 1) "factura" else "facturas"}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
                 Text("Total facturado ${money(periodSummary.grossTotalMinor)} · no descuenta cobros ni pagos", color = Color(0xFF6B778C), fontSize = 12.sp)
+                Text("Exportación informativa: valores guardados, importes en unidades menores; no es un formato fiscal.", color = Color(0xFF6B778C), fontSize = 11.sp)
+                OutlinedButton(onClick = {
+                    val bookLabel = if (initialKind == InvoiceKind.SALE) "Ventas" else "Compras"
+                    val csv = com.neon.book01.domain.invoiceBookCsv(
+                        currencyCode,
+                        issuedPeriodInvoices.map { invoice ->
+                            com.neon.book01.domain.InvoiceBookCsvRow(
+                                invoiceDate = invoice.invoiceDate,
+                                invoiceNumber = invoice.invoiceNumber,
+                                counterparty = partyNames[invoice.registeredPartyId] ?: invoice.registeredPartyId,
+                                description = invoice.description,
+                                taxableBaseMinor = invoice.taxableBaseMinor,
+                                vatMinor = invoice.vatMinor,
+                                totalMinor = invoice.totalMinor,
+                                dueDate = invoice.dueDate,
+                            )
+                        },
+                    )
+                    val share = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_SUBJECT, "Libro auxiliar · $bookLabel · ${selectedPeriod.displayLabel}")
+                        putExtra(Intent.EXTRA_TEXT, csv)
+                    }
+                    context.startActivity(Intent.createChooser(share, "Compartir libro auxiliar CSV"))
+                }) { Text("Compartir libro del período CSV") }
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
