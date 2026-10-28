@@ -5,10 +5,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InvoiceBookFilterEmptyStateTest {
-    @Test fun showsEmptyStateOnlyWhenPeriodHasInvoicesButFilterHasNoMatches() {
-        assertTrue(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 3, 0))
+    @Test fun distinguishesFutureOnlyPeriodsFromIssuedInvoicesWithoutStatusMatches() {
         assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 0, 0))
-        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 3, 1))
-        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.ALL, 3, 0))
+        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 2, 0))
+        assertTrue(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.PAID, 2, 0))
+        assertFalse(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.ALL, 2, 0))
+
+        assertTrue(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 2, 0))
+        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 2, 1))
+        assertFalse(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.PAID, 3, 2))
+        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.ALL, 2, 0))
     }
 }
