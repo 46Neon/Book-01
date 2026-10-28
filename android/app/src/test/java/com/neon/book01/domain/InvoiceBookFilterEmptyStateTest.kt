@@ -10,6 +10,10 @@ class InvoiceBookFilterEmptyStateTest {
         assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 0, 0))
         assertTrue(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.PAID, 2, 0))
         assertFalse(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.ALL, 2, 0))
+        assertTrue(shouldExplainFutureInvoicesInPeriodSummary(3, 2))
+        assertTrue(shouldExplainFutureInvoicesInPeriodSummary(2, 0))
+        assertFalse(shouldExplainFutureInvoicesInPeriodSummary(2, 2))
+        assertFalse(shouldExplainFutureInvoicesInPeriodSummary(0, 0))
 
         assertTrue(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 2, 0))
         assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 2, 1))
