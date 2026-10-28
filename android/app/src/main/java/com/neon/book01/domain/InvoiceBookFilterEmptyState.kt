@@ -13,3 +13,10 @@ fun shouldExplainFutureInvoicesExcludedFromStatusFilter(
     periodInvoiceCount: Int,
     issuedPeriodInvoiceCount: Int,
 ): Boolean = filter != InvoiceBookFilter.ALL && periodInvoiceCount > 0 && issuedPeriodInvoiceCount == 0
+
+
+/** The period summary excludes future-dated invoices, which are listed only by ALL. */
+fun shouldExplainFutureInvoicesInPeriodSummary(
+    periodInvoiceCount: Int,
+    issuedPeriodInvoiceCount: Int,
+): Boolean = periodInvoiceCount > issuedPeriodInvoiceCount
