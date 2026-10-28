@@ -298,13 +298,17 @@ private fun BookHomeScreen(repository: LedgerRepository) {
         ) {
             BookHeader(bookName, currencyCode)
             Spacer(Modifier.height(16.dp))
-            SummaryCards(
-                netMinor = netMinor,
-                incomeMinor = incomeMinor,
-                expenseMinor = expenseMinor,
-                currencyCode = currencyCode,
-            )
-            Spacer(Modifier.height(22.dp))
+            // Sales/purchase books have their own invoice summary; do not mix it with
+            // journal-wide income/expense totals shown on the accounting tabs.
+            if (selectedTab >= 2) {
+                SummaryCards(
+                    netMinor = netMinor,
+                    incomeMinor = incomeMinor,
+                    expenseMinor = expenseMinor,
+                    currencyCode = currencyCode,
+                )
+                Spacer(Modifier.height(22.dp))
+            }
 
             if (selectedTab == 2) {
                 JournalScreen(
