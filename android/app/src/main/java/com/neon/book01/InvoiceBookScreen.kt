@@ -122,7 +122,18 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             }
         }
         val issuedPeriodInvoices = periodInvoices.filter { com.neon.book01.domain.isInvoiceIssuedAsOf(it.invoiceDate, asOf) }
+        val matchingStatusCount = if (statusFilter == InvoiceBookFilter.ALL) 0 else periodInvoices.count { invoice ->
+            if (!com.neon.book01.domain.isInvoiceIssuedAsOf(invoice.invoiceDate, asOf)) return@count false
+            val settledMinor = com.neon.book01.domain.settledMinorAsOf(
+                invoice.id,
+                settlements.map { com.neon.book01.domain.SettlementBalanceInput(it.invoiceId, it.amountMinor, it.settlementDate) },
+                asOf,
+            )
+            matchesInvoiceBookFilter(statusFilter, invoiceSettlementStatus(invoice.totalMinor, settledMinor, invoice.dueDate, asOf))
+
+        }
         val periodSummary = com.neon.book01.domain.summarizeInvoiceBookTotals(issuedPeriodInvoices.map { it.totalMinor })
+
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Resumen del período · ${periodSummary.invoiceCount} ${if (periodSummary.invoiceCount == 1) "factura" else "facturas"}", color = Color(0xFF172B4D), fontWeight = FontWeight.SemiBold)
@@ -237,6 +248,12 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             Text(if (initialKind == InvoiceKind.SALE) "Aún no hay facturas de venta. Registra clientes y captura los documentos emitidos." else "Aún no hay facturas de compra. Registra proveedores y captura los documentos recibidos.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
         } else if (periodInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Text("No hay facturas en este período de emisión.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
+        } else if (statusFilter != InvoiceBookFilter.ALL && matchingStatusCount == 0) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Ninguna factura coincide con “${statusFilter.displayLabel}” en este período.", color = Color(0xFF172B4D))
+                Text("Prueba otro estado o muestra todas las facturas del período.", color = Color(0xFF6B778C), fontSize = 12.sp)
+                TextButton(onClick = { statusFilter = InvoiceBookFilter.ALL }) { Text("Mostrar todas") }
+            }
         }
         periodInvoices.forEach { InvoiceCard(it, repository, accounts, statusFilter) }
     }
