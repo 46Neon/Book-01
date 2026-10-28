@@ -10,7 +10,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Instrumented runtime regression test for the full v1→v11 chain without losing or unlocking postings. */
+/** Instrumented runtime regression test for the full v1→v12 chain without losing or unlocking postings. */
 @RunWith(AndroidJUnit4::class)
 class LedgerMigrationTest {
     @Test
@@ -64,7 +64,8 @@ class LedgerMigrationTest {
             assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1000'"))
             assertEquals(1L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '1010'"))
             assertEquals(0L, db.longValue("SELECT cashOrBank FROM accounts WHERE code = '4000'"))
-            assertEquals(3L, db.longValue("SELECT COUNT(*) FROM accounts WHERE parentCode IS NULL"))
+            assertEquals(7L, db.longValue("SELECT COUNT(*) FROM accounts WHERE parentCode IS NULL"))
+            assertEquals(4L, db.longValue("SELECT COUNT(*) FROM accounts WHERE code IN ('1100','1105','2102','2103')"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM pragma_table_info('accounts') WHERE name = 'parentCode'"))
             assertEquals(1L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_accounts_parentCode'"))
             assertEquals(3L, db.longValue("SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'accounts_parent_%'"))
