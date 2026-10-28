@@ -248,7 +248,12 @@ internal fun InvoiceBookScreen(repository: LedgerRepository, accounts: List<Acco
             Text(if (initialKind == InvoiceKind.SALE) "Aún no hay facturas de venta. Registra clientes y captura los documentos emitidos." else "Aún no hay facturas de compra. Registra proveedores y captura los documentos recibidos.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
         } else if (periodInvoices.isEmpty()) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Text("No hay facturas en este período de emisión.", Modifier.padding(16.dp), color = Color(0xFF6B778C))
-        } else if (com.neon.book01.domain.shouldShowInvoiceBookFilterEmptyState(statusFilter, periodInvoices.size, matchingStatusCount)) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+        } else if (com.neon.book01.domain.shouldExplainFutureInvoicesExcludedFromStatusFilter(statusFilter, periodInvoices.size, issuedPeriodInvoices.size)) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Las facturas con fecha futura no entran en filtros de estado hasta su fecha de emisión.", color = Color(0xFF172B4D))
+                TextButton(onClick = { statusFilter = InvoiceBookFilter.ALL }) { Text("Mostrar todas") }
+            }
+        } else if (com.neon.book01.domain.shouldShowInvoiceBookFilterEmptyState(statusFilter, issuedPeriodInvoices.size, matchingStatusCount)) Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Ninguna factura coincide con “${statusFilter.displayLabel}” en este período.", color = Color(0xFF172B4D))
                 Text("Prueba otro estado o muestra todas las facturas del período.", color = Color(0xFF6B778C), fontSize = 12.sp)
