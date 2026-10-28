@@ -106,6 +106,9 @@ interface LedgerDao {
     @Query("SELECT * FROM invoice_settlements ORDER BY settlementDate, createdAt")
     suspend fun getAllInvoiceSettlements(): List<InvoiceSettlementEntity>
 
+    @Query("SELECT * FROM invoice_settlements ORDER BY settlementDate, createdAt")
+    fun observeAllInvoiceSettlements(): Flow<List<InvoiceSettlementEntity>>
+
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
     suspend fun getAccount(code: String): AccountEntity?
 

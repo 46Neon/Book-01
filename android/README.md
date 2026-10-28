@@ -1,12 +1,11 @@
-# Aplicación Android Ariño
-
-Nombre visible de la app: **Ariño**. El identificador técnico `com.neon.book01` se conserva intencionalmente para no cambiar la identidad de instalación. La aplicación sigue siendo el prototipo local existente; las pantallas de ventas, compras, clientes, proveedores e impuestos descritas en el plan todavía no están implementadas.
+# Android app
 
 Módulo Android de Book-01, construido con Kotlin + Jetpack Compose. La aplicación conserva sus cinco pestañas (Diario, Mayor, Cuentas, Balance y Más); desde «Más» se accede a configuración, trazabilidad, estados financieros y respaldo cifrado.
 
 ## Funciones del prototipo
 
 - Diario local con asientos simples de ingreso/gasto, guardados como líneas de doble partida balanceadas.
+- Libros auxiliares de ventas y compras con resumen derivado por período: cantidad de facturas y suma exacta de sus totales brutos (no equivale a cobros/pagos ni al saldo pendiente); se usan centavos `Long` y la suma rechaza desbordamientos.
 - Plan de cuentas inicial y altas de cuentas. Nombre y estado se pueden editar; código y tipo son inmutables. Las cuentas inactivas no se ofrecen para asientos nuevos.
 - Mayor por cuenta con movimientos cronológicos, debe/haber, saldo corrido y saldo inicial anterior al límite «Desde».
 - Balance de comprobación por cuenta y periodo.
@@ -34,3 +33,4 @@ gradle :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDe
 ```
 
 La acción de GitHub genera un APK debug como artefacto cuando el job de compilación finaliza correctamente.
+
