@@ -93,8 +93,14 @@ fun counterpartyStatementForPeriod(
     fromDate: String? = null,
     throughDate: String? = null,
 ): CounterpartyStatementPeriod {
-    fun parseBound(value: String?): LocalDate? = value?.takeIf { it.isNotBlank() }?.let {
-        LocalDate.parse(it).also { parsed -> require(parsed.toString() == it) { "La fecha debe estar en formato AAAA-MM-DD." } }
+    fun parseBound(value: String?): LocalDate? = value?.takeIf { it.isNotBlank() }?.let { raw ->
+        val parsed = try {
+            LocalDate.parse(raw)
+        } catch (error: java.time.format.DateTimeParseException) {
+            throw IllegalArgumentException("La fecha debe estar en formato AAAA-MM-DD.", error)
+        }
+        require(parsed.toString() == raw) { "La fecha debe estar en formato AAAA-MM-DD." }
+        parsed
     }
     val from = parseBound(fromDate)
     val through = parseBound(throughDate)
