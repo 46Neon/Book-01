@@ -106,6 +106,9 @@ interface LedgerDao {
     @Query("SELECT * FROM invoice_settlements ORDER BY settlementDate, createdAt")
     suspend fun getAllInvoiceSettlements(): List<InvoiceSettlementEntity>
 
+    @Query("SELECT * FROM invoice_settlements ORDER BY settlementDate, createdAt")
+    fun observeAllInvoiceSettlements(): Flow<List<InvoiceSettlementEntity>>
+
     @Query("SELECT * FROM accounts WHERE code = :code LIMIT 1")
     suspend fun getAccount(code: String): AccountEntity?
 
@@ -189,6 +192,9 @@ interface LedgerDao {
 
     @Query("SELECT COALESCE(SUM(amountMinor), 0) FROM invoice_settlements WHERE invoiceId = :invoiceId")
     suspend fun totalSettled(invoiceId: String): Long
+
+    @Query("SELECT COALESCE(SUM(amountMinor), 0) FROM invoice_settlements WHERE invoiceId = :invoiceId AND entryId = :entryId")
+    suspend fun initialSettlementTotal(invoiceId: String, entryId: String): Long
 
     @Query("SELECT * FROM invoice_settlements WHERE invoiceId = :invoiceId ORDER BY settlementDate, createdAt")
     fun observeInvoiceSettlements(invoiceId: String): Flow<List<InvoiceSettlementEntity>>

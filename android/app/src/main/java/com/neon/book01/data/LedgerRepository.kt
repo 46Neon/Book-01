@@ -201,6 +201,8 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     fun observeInvoiceSettlements(invoiceId: String): Flow<List<InvoiceSettlementEntity>> = dao.observeInvoiceSettlements(invoiceId)
 
+    fun observeAllInvoiceSettlements(): Flow<List<InvoiceSettlementEntity>> = dao.observeAllInvoiceSettlements()
+
     suspend fun hasAvailableCash(accountCode: String, amountMinor: Long): Boolean =
         dao.accountBalanceMinor(accountCode) >= amountMinor
 
