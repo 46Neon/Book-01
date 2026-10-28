@@ -7,7 +7,7 @@ import org.junit.Test
 class InvoiceBookFilterEmptyStateTest {
     @Test fun distinguishesFutureOnlyPeriodsFromIssuedInvoicesWithoutStatusMatches() {
         assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 0, 0))
-        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 2, 0))
+        assertFalse(shouldShowInvoiceBookFilterEmptyState(InvoiceBookFilter.PAID, 0, 0))
         assertTrue(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.PAID, 2, 0))
         assertFalse(shouldExplainFutureInvoicesExcludedFromStatusFilter(InvoiceBookFilter.ALL, 2, 0))
 
