@@ -1,1 +1,71 @@
-cGFja2FnZSBjb20ubmVvbi5ib29rMDEuZG9tYWluCgplbnVtIGNsYXNzIEVudHJ5S2luZCB7CiAgICBJTkNPTUUsCiAgICBFWFBFTlNFLAp9CgpkYXRhIGNsYXNzIFBvc3RpbmdMaW5lKAogICAgdmFsIGFjY291bnRDb2RlOiBTdHJpbmcsCiAgICB2YWwgZGViaXRNaW5vcjogTG9uZywKICAgIHZhbCBjcmVkaXRNaW5vcjogTG9uZywKICAgIHZhbCBjdXJyZW5jeUNvZGU6IFN0cmluZywKKQoKLyoqIERldGVybWluaXN0aWMgcnVsZXMgZm9yIHRoZSBmaXJzdCBzaW1wbGUgY2FzaC9iYW5rIGluY29tZSBhbmQgZXhwZW5zZSB3b3JrZmxvdy4gKi8Kb2JqZWN0IEFjY291bnRpbmdSdWxlcyB7CiAgICBmdW4gc2ltcGxlQ2FzaEVudHJ5KAogICAgICAgIGtpbmQ6IEVudHJ5S2luZCwKICAgICAgICBkZXNjcmlwdGlvbjogU3RyaW5nLAogICAgICAgIGNhdGVnb3J5QWNjb3VudENvZGU6IFN0cmluZywKICAgICAgICBjYXRlZ29yeUFjY291bnRUeXBlOiBTdHJpbmcsCiAgICAgICAgcGF5bWVudEFjY291bnRDb2RlOiBTdHJpbmcsCiAgICAgICAgcGF5bWVudEFjY291bnRUeXBlOiBTdHJpbmcsCiAgICAgICAgYW1vdW50TWlub3I6IExvbmcsCiAgICAgICAgY3VycmVuY3lDb2RlOiBTdHJpbmcsCiAgICApOiBMaXN0PFBvc3RpbmdMaW5lPiB7CiAgICAgICAgcmVxdWlyZShkZXNjcmlwdGlvbi5pc05vdEJsYW5rKCkpIHsgIkVzY3JpYmUgdW5hIGRlc2NyaXBjacOzbi4iIH0KICAgICAgICByZXF1aXJlKGFtb3VudE1pbm9yID4gMCkgeyAiRWwgaW1wb3J0ZSBkZWJlIHNlciBtYXlvciBxdWUgY2Vyby4iIH0KICAgICAgICByZXF1aXJlKGN1cnJlbmN5Q29kZSA9PSBVc2RNb25leS5DVVJSRU5DWV9DT0RFKSB7CiAgICAgICAgICAgICJFc3RhIHZlcnNpw7NuIHJlZ2lzdHJhIMO6bmljYW1lbnRlIGVuIGTDs2xhcmVzIGVzdGFkb3VuaWRlbnNlcyAoVVNEKS4iCiAgICAgICAgfQogICAgICAgIHJlcXVpcmUocGF5bWVudEFjY291bnRUeXBlID09ICJBU1NFVCIpIHsgIlNlbGVjY2lvbmEgdW5hIGN1ZW50YSBkZSBjYWphIG8gYmFuY28uIiB9CiAgICAgICAgcmVxdWlyZSgKICAgICAgICAgICAgKGtpbmQgPT0gRW50cnlLaW5kLkVYUEVOU0UgJiYgY2F0ZWdvcnlBY2NvdW50VHlwZSA9PSAiRVhQRU5TRSIpIHx8CiAgICAgICAgICAgICAgICAoa2luZCA9PSBFbnRyeUtpbmQuSU5DT01FICYmIGNhdGVnb3J5QWNjb3VudFR5cGUgPT0gIklOQ09NRSIpLAogICAgICAgICkgeyAiTGEgY2F0ZWdvcsOtYSBubyBjb3JyZXNwb25kZSBhbCB0aXBvIGRlIG1vdmltaWVudG8uIiB9CgogICAgICAgIHZhbCBsaW5lcyA9IHdoZW4gKGtpbmQpIHsKICAgICAgICAgICAgRW50cnlLaW5kLkVYUEVOU0UgLT4gbGlzdE9mKAogICAgICAgICAgICAgICAgUG9zdGluZ0xpbmUoY2F0ZWdvcnlBY2NvdW50Q29kZSwgZGViaXRNaW5vciA9IGFtb3VudE1pbm9yLCBjcmVkaXRNaW5vciA9IDAsIGN1cnJlbmN5Q29kZSA9IGN1cnJlbmN5Q29kZSksCiAgICAgICAgICAgICAgICBQb3N0aW5nTGluZShwYXltZW50QWNjb3VudENvZGUsIGRlYml0TWlub3IgPSAwLCBjcmVkaXRNaW5vciA9IGFtb3VudE1pbm9yLCBjdXJyZW5jeUNvZGUgPSBjdXJyZW5jeUNvZGUpLAogICAgICAgICAgICApCiAgICAgICAgICAgIEVudHJ5S2luZC5JTkNPTUUgLT4gbGlzdE9mKAogICAgICAgICAgICAgICAgUG9zdGluZ0xpbmUocGF5bWVudEFjY291bnRDb2RlLCBkZWJpdE1pbm9yID0gYW1vdW50TWlub3IsIGNyZWRpdE1pbm9yID0gMCwgY3VycmVuY3lDb2RlID0gY3VycmVuY3lDb2RlKSwKICAgICAgICAgICAgICAgIFBvc3RpbmdMaW5lKGNhdGVnb3J5QWNjb3VudENvZGUsIGRlYml0TWlub3IgPSAwLCBjcmVkaXRNaW5vciA9IGFtb3VudE1pbm9yLCBjdXJyZW5jeUNvZGUgPSBjdXJyZW5jeUNvZGUpLAogICAgICAgICAgICApCiAgICAgICAgfQogICAgICAgIHJlcXVpcmVCYWxhbmNlZChsaW5lcykKICAgICAgICByZXR1cm4gbGluZXMKICAgIH0KCiAgICBmdW4gcmVxdWlyZUJhbGFuY2VkKGxpbmVzOiBMaXN0PFBvc3RpbmdMaW5lPikgewogICAgICAgIHJlcXVpcmUobGluZXMuaXNOb3RFbXB0eSgpKSB7ICJFbCBhc2llbnRvIGRlYmUgdGVuZXIgYWwgbWVub3MgdW5hIGzDrW5lYS4iIH0KICAgICAgICByZXF1aXJlKGxpbmVzLmFsbCB7IGl0LmRlYml0TWlub3IgPj0gMCAmJiBpdC5jcmVkaXRNaW5vciA+PSAwIH0pIHsgIkxvcyBpbXBvcnRlcyBubyBwdWVkZW4gc2VyIG5lZ2F0aXZvcy4iIH0KICAgICAgICByZXF1aXJlKGxpbmVzLmFsbCB7IGl0LmN1cnJlbmN5Q29kZSA9PSBVc2RNb25leS5DVVJSRU5DWV9DT0RFIH0pIHsKICAgICAgICAgICAgIkVzdGEgdmVyc2nDs24gYWRtaXRlIMO6bmljYW1lbnRlIGzDrW5lYXMgZW4gVVNELiIKICAgICAgICB9CiAgICAgICAgcmVxdWlyZShsaW5lcy5hbGwgeyAoaXQuZGViaXRNaW5vciA9PSAwTCkgeG9yIChpdC5jcmVkaXRNaW5vciA9PSAwTCkgfSkgewogICAgICAgICAgICAiQ2FkYSBsw61uZWEgZGViZSBzZXIgZMOpYml0byBvIGNyw6lkaXRvLCBubyBhbWJvcy4iCiAgICAgICAgfQogICAgICAgIHJlcXVpcmUobGluZXMubWFwIHsgaXQuY3VycmVuY3lDb2RlIH0uZGlzdGluY3QoKS5zaXplID09IDEpIHsKICAgICAgICAgICAgIkxhcyBsw61uZWFzIGRlbCBhc2llbnRvIGRlYmVuIHVzYXIgbGEgbWlzbWEgbW9uZWRhIGVuIGVzdGEgdmVyc2nDs24uIgogICAgICAgIH0KICAgICAgICByZXF1aXJlKAogICAgICAgICAgICBVc2RNb25leS5zdW1NaW5vclVuaXRzKGxpbmVzLm1hcCB7IGl0LmRlYml0TWlub3IgfSkgPT0KICAgICAgICAgICAgICAgIFVzZE1vbmV5LnN1bU1pbm9yVW5pdHMobGluZXMubWFwIHsgaXQuY3JlZGl0TWlub3IgfSksCiAgICAgICAgKSB7CiAgICAgICAgICAgICJFbCBhc2llbnRvIG5vIGVzdMOhIGJhbGFuY2VhZG8uIgogICAgICAgIH0KICAgIH0KfQo=
+package com.neon.book01.domain
+
+enum class EntryKind {
+    INCOME,
+    EXPENSE,
+}
+
+data class PostingLine(
+    val accountCode: String,
+    val debitMinor: Long,
+    val creditMinor: Long,
+    val currencyCode: String,
+)
+
+/** Deterministic rules for the first simple cash/bank income and expense workflow. */
+object AccountingRules {
+    fun simpleCashEntry(
+        kind: EntryKind,
+        description: String,
+        categoryAccountCode: String,
+        categoryAccountType: String,
+        paymentAccountCode: String,
+        paymentAccountType: String,
+        amountMinor: Long,
+        currencyCode: String,
+    ): List<PostingLine> {
+        require(description.isNotBlank()) { "Escribe una descripción." }
+        require(amountMinor > 0) { "El importe debe ser mayor que cero." }
+        require(currencyCode == UsdMoney.CURRENCY_CODE) {
+            "Esta versión registra únicamente en dólares estadounidenses (USD)."
+        }
+        require(paymentAccountType == "ASSET") { "Selecciona una cuenta de caja o banco." }
+        require(
+            (kind == EntryKind.EXPENSE && categoryAccountType == "EXPENSE") ||
+                (kind == EntryKind.INCOME && categoryAccountType == "INCOME"),
+        ) { "La categoría no corresponde al tipo de movimiento." }
+
+        val lines = when (kind) {
+            EntryKind.EXPENSE -> listOf(
+                PostingLine(categoryAccountCode, debitMinor = amountMinor, creditMinor = 0, currencyCode = currencyCode),
+                PostingLine(paymentAccountCode, debitMinor = 0, creditMinor = amountMinor, currencyCode = currencyCode),
+            )
+            EntryKind.INCOME -> listOf(
+                PostingLine(paymentAccountCode, debitMinor = amountMinor, creditMinor = 0, currencyCode = currencyCode),
+                PostingLine(categoryAccountCode, debitMinor = 0, creditMinor = amountMinor, currencyCode = currencyCode),
+            )
+        }
+        requireBalanced(lines)
+        return lines
+    }
+
+    fun requireBalanced(lines: List<PostingLine>) {
+        require(lines.isNotEmpty()) { "El asiento debe tener al menos una línea." }
+        require(lines.all { it.debitMinor >= 0 && it.creditMinor >= 0 }) { "Los importes no pueden ser negativos." }
+        require(lines.all { it.currencyCode == UsdMoney.CURRENCY_CODE }) {
+            "Esta versión admite únicamente líneas en USD."
+        }
+        require(lines.all { (it.debitMinor == 0L) xor (it.creditMinor == 0L) }) {
+            "Cada línea debe ser débito o crédito, no ambos."
+        }
+        require(lines.map { it.currencyCode }.distinct().size == 1) {
+            "Las líneas del asiento deben usar la misma moneda en esta versión."
+        }
+        require(
+            UsdMoney.sumMinorUnits(lines.map { it.debitMinor }) ==
+                UsdMoney.sumMinorUnits(lines.map { it.creditMinor }),
+        ) {
+            "El asiento no está balanceado."
+        }
+    }
+}
