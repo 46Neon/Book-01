@@ -150,8 +150,7 @@ private data class EntryDraft(
 private val tabs = listOf(
     BookTab("Diario", Icons.Outlined.MenuBook),
     BookTab("Mayor", Icons.Outlined.AccountBalance),
-    BookTab("Facturas", Icons.Outlined.ReceiptLong),
-    BookTab("Cuentas", Icons.Outlined.AccountBalance),
+    BookTab("Cuentas", Icons.Outlined.ReceiptLong),
     BookTab("Balance", Icons.Outlined.BarChart),
     BookTab("Más", Icons.Outlined.MoreHoriz),
 )
@@ -181,7 +180,6 @@ class MainActivity : ComponentActivity() {
 private fun BookHomeScreen(repository: LedgerRepository) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEntryDialog by rememberSaveable { mutableStateOf(false) }
-    var showInvoiceForm by rememberSaveable { mutableStateOf(false) }
     var draftBeingEdited by remember { mutableStateOf<EntryWithLines?>(null) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var accountBeingEdited by remember { mutableStateOf<AccountEntity?>(null) }
@@ -271,15 +269,15 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             }
         },
         floatingActionButton = {
-            if (selectedTab == 0 || selectedTab == 2 || selectedTab == 3) {
+            if (selectedTab == 0 || selectedTab == 2) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        if (selectedTab == 0) showEntryDialog = true else if (selectedTab == 2) showInvoiceForm = true else showAccountDialog = true
+                        if (selectedTab == 0) showEntryDialog = true else showAccountDialog = true
                     },
                     containerColor = BookGreen,
                     contentColor = Color.White,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                    text = { Text(when (selectedTab) { 0 -> "Nuevo asiento"; 2 -> "Nueva factura"; else -> "Nueva cuenta" }, fontWeight = FontWeight.SemiBold) },
+                    text = { Text(if (selectedTab == 0) "Nuevo asiento" else "Nueva cuenta", fontWeight = FontWeight.SemiBold) },
                 )
             }
         },
@@ -319,12 +317,10 @@ private fun BookHomeScreen(repository: LedgerRepository) {
             } else if (selectedTab == 1) {
                 GeneralLedgerScreen(accounts, postedEntries, currencyCode)
             } else if (selectedTab == 2) {
-                InvoiceBookScreen(repository, accounts, currencyCode, showInvoiceForm, { showInvoiceForm = it }, snackbarHostState)
-            } else if (selectedTab == 3) {
                 AccountsScreen(accounts, accountAuditEvents, onEditAccount = { accountBeingEdited = it })
-            } else if (selectedTab == 4) {
+            } else if (selectedTab == 3) {
                 TrialBalanceScreen(accounts, postedEntries, currencyCode)
-            } else if (selectedTab == 5) {
+            } else if (selectedTab == 4) {
                 if (showAuditHistory) {
                     AuditHistoryScreen(
                         events = auditEvents,
@@ -716,7 +712,7 @@ private fun BookHeader(bookName: String, currencyCode: String) {
             }
         }
         Column(modifier = Modifier.weight(1f).padding(start = 11.dp)) {
-            Text("Book-01", color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Ariño", color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("$bookName · $currencyCode", color = BookMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Icon(
@@ -2424,7 +2420,7 @@ private fun ComingSoonScreen(section: String) {
             Text(section, color = BookInk, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(5.dp))
             Text(
-                "Esta hoja se habilitará en una siguiente etapa de Book-01.",
+                "Esta sección estará disponible en una siguiente etapa de Ariño.",
                 color = BookMuted,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,

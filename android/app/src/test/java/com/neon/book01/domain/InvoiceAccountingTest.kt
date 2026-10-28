@@ -66,6 +66,15 @@ class InvoiceAccountingTest {
         assertBalanced(payment)
     }
 
+    @Test fun dueDateIsOptionalButMustBeValidAndNotPrecedeInvoice() {
+        InvoiceAccounting.validateDueDate("2026-01-10", null)
+        InvoiceAccounting.validateDueDate("2026-01-10", "2026-01-10")
+        InvoiceAccounting.validateDueDate("2026-01-10", "2026-02-01")
+        expectFailure { InvoiceAccounting.validateDueDate("2026-01-10", "2026-01-09") }
+        expectFailure { InvoiceAccounting.validateDueDate("2026-01-10", "2026-02-30") }
+        expectFailure { InvoiceAccounting.validateDueDate("2026-1-10", "2026-02-01") }
+    }
+
     @Test fun settlementCannotPrecedeInvoiceDate() {
         InvoiceAccounting.requireSettlementDateNotBeforeInvoice("2026-01-10", "2026-01-10")
         InvoiceAccounting.requireSettlementDateNotBeforeInvoice("2026-01-10", "2026-01-11")
